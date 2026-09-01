@@ -1,6 +1,6 @@
 # Diana Multi-App Launcher
 
-嘉然 Diana 多应用主题启动器。当前公开版本为 **`v0.1.0-beta.1`**，仅面向 Windows 测试用户；安装器和便携版均未签名。
+嘉然 Diana 多应用主题启动器。当前公开版本为 **`v0.1.0-beta.2`**，仅面向 Windows 测试用户；安装器和便携版均未签名。
 
 > 这是非商业同人项目，不隶属于 OpenAI、A-SOUL、字节跳动、Microsoft、Anysphere、DeepSeek 或 ZCode。Beta 版可能因目标应用更新而拒绝挂载；拒绝旧适配器属于安全行为，不代表目标应用损坏。
 
@@ -8,8 +8,10 @@
 
 在 GitHub Releases 下载下列任一文件：
 
-- `Diana-Multi-App-Launcher_0.1.0-beta.1_x64-setup.exe`：当前用户 NSIS 安装包；
-- `diana-multi-app-launcher_0.1.0-beta.1_x64-portable.exe`：免安装便携版。
+- `Diana-Multi-App-Launcher_0.1.0-beta.2_x64-setup.exe`：当前用户 NSIS 安装包；
+- `diana-multi-app-launcher_0.1.0-beta.2_x64-portable.exe`：免安装便携版。
+
+`v0.1.0-beta.1` 的 Windows 构建会因主题 CSS 换行转换触发 `SHA-256 mismatch`，请勿继续使用；该问题已在 Beta.2 修复。
 
 首次使用建议：
 
@@ -52,7 +54,7 @@ Codex、Cursor、Grok Bot 与 ZCode 的完整美术可能需要 Chromium 调试�
 
 ## 音乐按钮
 
-公开 `beta.1` 构建内置 2 分 32.5 秒的《Hopeful Dreamer》粉丝向歌词循环，按钮默认关闭，点击播放、再次点击暂停，默认音量为 34%。音频只从 EXE 内的本地字节播放，不访问网络、不扫描用户音乐目录，也不提供单独导出入口。
+公开 `beta.2` 构建内置 2 分 32.5 秒的《Hopeful Dreamer》粉丝向歌词循环，按钮默认关闭，点击播放、再次点击暂停，默认音量为 34%。音频只从 EXE 内的本地字节播放，不访问网络、不扫描用户音乐目录，也不提供单独导出入口。
 
 本项目依据官方开放的粉丝二创授权，以非商业、无盈利同人作品形式使用；MIT License 只覆盖代码，不覆盖歌曲录音、角色或美术。禁止把该录音从本项目拆出后单独传播或用于商业用途。
 

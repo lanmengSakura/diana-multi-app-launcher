@@ -1,14 +1,15 @@
 {
   "name": "diana-codex-launcher",
-  "version": "0.1.0-beta.1",
+  "version": "0.1.0-beta.2",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 1421",
-    "build": "tsc --noEmit && vite build",
+    "build": "npm run qa:runtime && tsc --noEmit && vite build",
     "preview": "vite preview --host 127.0.0.1 --port 4173",
     "qa:screenshot": "node scripts/qa-screenshot.mjs",
     "qa:interactions": "node scripts/qa-interactions.mjs",
     "qa:music": "node scripts/qa-music-toggle.mjs",
+    "qa:runtime": "node scripts/verify-codex-runtime.mjs",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",

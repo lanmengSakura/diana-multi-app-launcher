@@ -563,6 +563,68 @@ fn parse_session(contents: &str) -> Option<SessionRecord> {
     serde_json::from_str(contents.trim_start_matches('\u{feff}')).ok()
 }
 
+fn sha256_hex(bytes: &[u8]) -> String {
+    use sha2::{Digest, Sha256};
+
+    Sha256::digest(bytes)
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
+}
+
+fn verify_bundled_runtime_integrity() -> Result<(), String> {
+    use std::collections::{HashMap, HashSet};
+
+    let mut embedded_files = HashMap::new();
+    for (relative, contents) in RUNTIME_FILES {
+        let normalized = relative.replace('\\', "/");
+        if embedded_files
+            .insert(normalized.clone(), *contents)
+            .is_some()
+        {
+            return Err(format!("启动器内置主题包包含重复路径：{normalized}"));
+        }
+    }
+
+    let manifest_bytes = embedded_files
+        .get("manifest.json")
+        .ok_or_else(|| "启动器内置主题包缺少 manifest.json。".to_string())?;
+    let manifest: serde_json::Value = serde_json::from_slice(manifest_bytes)
+        .map_err(|error| format!("无法读取启动器内置主题清单：{error}"))?;
+    let expected_hashes = manifest
+        .get("sha256")
+        .and_then(serde_json::Value::as_object)
+        .ok_or_else(|| "启动器内置主题清单缺少 sha256 表。".to_string())?;
+
+    let mut protected_paths = HashSet::new();
+    for (relative, expected_value) in expected_hashes {
+        let normalized = relative.replace('\\', "/");
+        let expected = expected_value
+            .as_str()
+            .ok_or_else(|| format!("主题清单哈希格式无效：{relative}"))?;
+        let contents = embedded_files
+            .get(&normalized)
+            .ok_or_else(|| format!("启动器内置主题包缺少受保护文件：{relative}"))?;
+        let actual = sha256_hex(contents);
+        if actual != expected {
+            return Err(format!(
+                "启动器内置主题包校验失败：SHA-256 mismatch: {relative}。请更新或重新下载启动器。"
+            ));
+        }
+        protected_paths.insert(normalized);
+    }
+
+    for relative in embedded_files.keys() {
+        if (relative.starts_with("themes/") || relative.starts_with("assets/"))
+            && !protected_paths.contains(relative)
+        {
+            return Err(format!("主题清单未覆盖内置资源：{relative}"));
+        }
+    }
+
+    Ok(())
+}
+
 fn write_session(session: &SessionRecord) -> Result<(), String> {
     let path = session_path()?;
     if let Some(parent) = path.parent() {
@@ -581,6 +643,7 @@ fn session_matches(snapshot: &CodexProcessSnapshot, session: &SessionRecord) -> 
 }
 
 fn ensure_runtime_files() -> Result<PathBuf, String> {
+    verify_bundled_runtime_integrity()?;
     let root = support_root()?;
     for (relative, contents) in RUNTIME_FILES {
         let destination = root.join(relative);
@@ -1157,9 +1220,9 @@ mod tests {
     use super::{
         append_launcher_event, current_music_track_status, extract_codex_version,
         is_codex_package_process, is_main_codex_process, package_cache_is_fresh, parse_debug_port,
-        parse_session, validate_theme_mode, windows_powershell_module_path_for,
-        InstalledCodexCache, InstalledCodexPackage, BUNDLED_MUSIC_BYTES, BUNDLED_MUSIC_FILENAME,
-        BUNDLED_MUSIC_MIME,
+        parse_session, validate_theme_mode, verify_bundled_runtime_integrity,
+        windows_powershell_module_path_for, InstalledCodexCache, InstalledCodexPackage,
+        BUNDLED_MUSIC_BYTES, BUNDLED_MUSIC_FILENAME, BUNDLED_MUSIC_MIME,
     };
     use std::fs;
     use std::path::Path;
@@ -1214,6 +1277,12 @@ mod tests {
         assert!(validate_theme_mode("light").is_ok());
         assert!(validate_theme_mode("system").is_ok());
         assert!(validate_theme_mode("pink").is_err());
+    }
+
+    #[test]
+    fn bundled_runtime_manifest_matches_embedded_bytes() {
+        verify_bundled_runtime_integrity()
+            .expect("embedded Diana runtime must match its SHA-256 manifest");
     }
 
     #[test]
