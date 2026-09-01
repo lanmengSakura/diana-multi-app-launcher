@@ -1,0 +1,50 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Diana Multi-App Launcher",
+  "mainBinaryName": "diana-codex-launcher",
+  "version": "0.1.0-beta.1",
+  "identifier": "io.github.lanmengsakura.dianacodexlauncher",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "devUrl": "http://127.0.0.1:1421",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Diana Multi-App Launcher",
+        "width": 636,
+        "height": 930,
+        "minWidth": 636,
+        "minHeight": 930,
+        "maxWidth": 636,
+        "maxHeight": 930,
+        "resizable": false,
+        "decorations": false,
+        "transparent": true,
+        "center": true,
+        "shadow": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; img-src 'self' data: asset: http://asset.localhost; media-src 'self' blob:; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self' ipc: http://ipc.localhost; base-uri 'none'; object-src 'none'; form-action 'none'; frame-ancestors 'none'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "category": "Utility",
+    "copyright": "Copyright (c) 2026 lanmengSakura",
+    "shortDescription": "Diana multi-app theme launcher.",
+    "longDescription": "A foreground launcher for Diana visual themes across supported desktop apps.",
+    "targets": ["nsis"],
+    "windows": {
+      "nsis": {
+        "displayLanguageSelector": true,
+        "installMode": "currentUser",
+        "languages": ["SimpChinese"]
+      }
+    }
+  }
+}

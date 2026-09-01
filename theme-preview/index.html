@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="zh-CN" data-zcode-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark light" />
+    <link rel="icon" href="data:," />
+    <title>Diana × ZCode 主题视觉样板</title>
+    <link rel="stylesheet" href="./preview.css" />
+  </head>
+  <body>
+    <svg class="svg-symbols" aria-hidden="true">
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4 4" /></symbol>
+      <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14" rx="2" /><path d="M8 3v5M16 3v5M4 10h16M9 14h.01M13 14h.01M9 17h.01" /></symbol>
+      <symbol id="i-wand" viewBox="0 0 24 24"><path d="m4 20 11-11M13 5l1-2 1 2 2 1-2 1-1 2-1-2-2-1 2-1ZM6 9l.8-1.6L8.5 6.5 6.8 5.7 6 4l-.8 1.7-1.7.8 1.7.9L6 9Z" /></symbol>
+      <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3.5 7.5h6l2-2h9v13h-17z" /></symbol>
+      <symbol id="i-filter" viewBox="0 0 24 24"><path d="M5 7h14M8 12h8M10.5 17h3" /></symbol>
+      <symbol id="i-trash" viewBox="0 0 24 24"><path d="M5 7h14M9 7V4h6v3M7.5 7l1 13h7l1-13" /></symbol>
+      <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m8 10 4 4 4-4" /></symbol>
+      <symbol id="i-hand" viewBox="0 0 24 24"><path d="M8.5 11V6.5a1.5 1.5 0 0 1 3 0V10m0 0V5.5a1.5 1.5 0 0 1 3 0V10m0 0V7a1.5 1.5 0 0 1 3 0v5m0 0v-2a1.5 1.5 0 0 1 3 0v4c0 4-2.8 7-7 7h-1.5c-2.2 0-3.6-.8-5-2.5L4.2 15a1.6 1.6 0 0 1 2.3-2.2z" /></symbol>
+      <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16.5h12l-1.5-2.5V10a4.5 4.5 0 0 0-9 0v4zM10 19h4" /></symbol>
+      <symbol id="i-moon" viewBox="0 0 24 24"><path d="M19 15.8A8 8 0 0 1 8.2 5a8 8 0 1 0 10.8 10.8Z" /></symbol>
+      <symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="m7 11 5-5 5 5M12 6v12" /></symbol>
+      <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4" /></symbol>
+      <symbol id="i-phone" viewBox="0 0 24 24"><rect x="7" y="3" width="10" height="18" rx="2" /><path d="M11 18h2" /></symbol>
+      <symbol id="i-close" viewBox="0 0 24 24"><path d="m7 7 10 10M17 7 7 17" /></symbol>
+      <symbol id="i-git" viewBox="0 0 24 24"><circle cx="7" cy="5" r="2" /><circle cx="17" cy="7" r="2" /><circle cx="7" cy="19" r="2" /><path d="M7 7v10M9 10c5 0 6-1 6-3" /></symbol>
+    </svg>
+
+    <main class="preview-stage">
+      <section class="zcode-window" aria-label="Diana ZCode 主题桌面端视觉样板">
+        <header class="window-bar">
+          <div class="window-nav">
+            <div class="z-app-icon" aria-label="ZCode">Z</div>
+            <button class="chrome-button" type="button" aria-label="后退">←</button>
+            <button class="chrome-button" type="button" aria-label="前进">→</button>
+            <span class="environment-chip">青草</span>
+          </div>
+          <div class="window-drag-space" aria-hidden="true"></div>
+          <div class="preview-theme-control" role="group" aria-label="预览主题">
+            <span>Diana ZCode</span>
+            <button type="button" data-theme-button="dark" aria-pressed="true">暗夜</button>
+            <button type="button" data-theme-button="light" aria-pressed="false">日间</button>
+          </div>
+          <div class="window-actions" aria-hidden="true">
+            <span class="terminal-glyph">›_</span><span>⌄</span><span>—</span><span>□</span><span>×</span>
+          </div>
+        </header>
+
+        <div class="zcode-shell">
+          <aside class="sidebar">
+            <nav class="primary-nav" aria-label="主导航">
+              <button type="button" class="nav-row is-accent"><svg><use href="#i-plus" /></svg><span>新建任务</span><kbd>Ctrl+N</kbd></button>
+              <button type="button" class="nav-row"><svg><use href="#i-search" /></svg><span>搜索</span><kbd>Ctrl+K</kbd></button>
+              <button type="button" class="nav-row"><svg><use href="#i-calendar" /></svg><span>自动化</span></button>
+              <button type="button" class="nav-row"><svg><use href="#i-wand" /></svg><span>技能</span></button>
+            </nav>
+
+            <div class="sidebar-tools">
+              <div class="view-switch"><button type="button"># 分组</button><button class="is-active" type="button"><svg><use href="#i-folder" /></svg>项目</button></div>
+              <button class="icon-only" type="button" aria-label="展开"><span>↗</span></button>
+              <button class="icon-only" type="button" aria-label="筛选"><svg><use href="#i-filter" /></svg></button>
+              <button class="icon-only" type="button" aria-label="删除"><svg><use href="#i-trash" /></svg></button>
+            </div>
+
+            <div class="project-list" aria-label="项目列表">
+              <p class="section-label">项目</p>
+              <section class="project-group">
+                <h2><svg><use href="#i-folder" /></svg><span>闪修侠公众号</span></h2>
+                <button type="button" class="task-row"><span>润色靠山科普麦克风响音</span><time>1天</time></button>
+              </section>
+              <section class="project-group">
+                <h2><svg><use href="#i-folder" /></svg><span>Fantasy_Adventure</span></h2>
+                <button type="button" class="task-row"><span>阅读资产与 Codex 规则</span><time>40天</time></button>
+              </section>
+              <section class="project-group">
+                <h2><svg><use href="#i-folder" /></svg><span>语兴数据公众号</span></h2>
+                <button type="button" class="task-row is-selected"><span>语兴数据公众号项目接管</span><time>1天</time></button>
+              </section>
+              <section class="project-group">
+                <h2><svg><use href="#i-folder" /></svg><span>y chatcode</span></h2>
+                <button type="button" class="task-row"><span>阅读架构并撰写文章</span><time>23小时</time></button>
+                <button type="button" class="task-row"><span>接管 Codex 项目与 Grok</span><time>38天</time></button>
+              </section>
+              <section class="project-group">
+                <h2><svg><use href="#i-folder" /></svg><span>ZCodeProject</span></h2>
+                <button type="button" class="task-row"><span>安装 Grok CLI</span><time>40天</time></button>
+                <button type="button" class="task-row"><span>Codex 导致星球重启崩溃</span><time>40天</time></button>
+              </section>
+            </div>
+
+            <footer class="profile-bar">
+              <span class="avatar">蓝</span><strong>宰额</strong><span class="pro-badge">Pro</span>
+              <span class="profile-spacer"></span>
+              <svg><use href="#i-phone" /></svg><svg><use href="#i-settings" /></svg>
+            </footer>
+          </aside>
+
+          <section class="workspace">
+            <nav class="message-rail diana-zcode-message-rail" aria-label="消息导轨"></nav>
+            <div id="diana-zcode-chrome" aria-hidden="true">
+              <span class="diana-corner-line"></span>
+              <span class="diana-upper-line"></span>
+              <span class="diana-doodle"></span>
+              <span class="diana-character-cluster">
+                <span class="diana-star star-a"></span>
+                <span class="diana-star star-b"></span>
+                <span class="diana-candy candy-wrapped"></span>
+                <span class="diana-candy candy-lollipop"></span>
+                <span class="diana-acao acao-heart"></span>
+                <span class="diana-acao acao-cheer"></span>
+                <span class="diana-character"></span>
+              </span>
+            </div>
+
+            <div class="native-workspace-layer">
+              <div class="z-watermark" aria-hidden="true"><i></i><b></b></div>
+              <h1>夜深啦，别忘了照顾好自己哦</h1>
+
+              <form class="composer" onsubmit="return false">
+                <button type="button" class="project-picker"><svg><use href="#i-folder" /></svg><span>选择项目</span><svg class="tiny-chevron"><use href="#i-chevron" /></svg></button>
+                <label class="prompt-field">
+                  <span class="sr-only">向 ZCode 提问</span>
+                  <textarea rows="2" placeholder="向 ZCode 提问，@ 提及文件、文件夹或画板，/ 使用命令或子智能体，$ 使用技能，# 关联对话"></textarea>
+                </label>
+                <div class="composer-actions">
+                  <div class="composer-left"><button type="button" class="mini-button">＋</button><button type="button" class="confirm-mode"><svg><use href="#i-hand" /></svg>变更前确认<svg class="tiny-chevron"><use href="#i-chevron" /></svg></button></div>
+                  <div class="composer-right"><span class="activity-dot"></span><button type="button">GLM-5.3<svg class="tiny-chevron"><use href="#i-chevron" /></svg></button><button type="button"><span class="spark">✺</span>最高<svg class="tiny-chevron"><use href="#i-chevron" /></svg></button><button class="send-button" type="submit" aria-label="发送"><svg><use href="#i-arrow-up" /></svg></button></div>
+                </div>
+              </form>
+
+              <div class="announcement"><svg><use href="#i-bell" /></svg><span>订阅用户新功能体验：创建“闲时任务”，我们将免费在算力富余时段为你完成指派任务。</span><button type="button" aria-label="关闭"><svg><use href="#i-close" /></svg></button></div>
+
+              <div class="starter-cards">
+                <button type="button" class="starter-card"><span><svg><use href="#i-moon" /></svg>Git 站会摘要</span><small>每周五总结这一周发生的事情。</small></button>
+                <button type="button" class="starter-card"><span><svg><use href="#i-moon" /></svg>CI 失败与不稳定测试报告</span><small>汇总近期 CI 失败和不稳定测试，并分析可能原因。</small></button>
+                <button type="button" class="starter-card"><span><svg><use href="#i-moon" /></svg>自定义</span><small>跳过模板，直接告诉它你想做什么。</small></button>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="./preview.js"></script>
+  </body>
+</html>

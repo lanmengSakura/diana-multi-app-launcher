@@ -1,0 +1,563 @@
+/* Diana day/night visual layer. The native Harness structure and semantic
+ * status colors remain authoritative; this sheet only retints the neutral and
+ * brand surfaces and mounts pointer-transparent decorative artwork. */
+
+body {
+  --diana-surface: #fbf8f6;
+  --diana-panel: #ffffff;
+  --diana-panel-soft: #f9f2f4;
+  --diana-ink: #2c2529;
+  --diana-muted: #7e7178;
+  --diana-accent: #b84970;
+  --diana-accent-soft: #f2dce3;
+  --diana-border: #e8dfe2;
+  --diana-line: rgba(184, 73, 112, 0.42);
+  --diana-art-opacity: 0.86;
+  --diana-doodle-opacity: 0.2;
+  --diana-character: url('/diana-brand/diana-corner-cutout-v2.png');
+  --diana-sidebar-safe: 280px;
+  --diana-canvas-gutter: clamp(28px, 4vw, 72px);
+
+  --dsw-static-deepseek-50: rgb(252, 242, 246);
+  --dsw-static-deepseek-100: rgb(247, 226, 234);
+  --dsw-static-deepseek-200: rgb(242, 204, 218);
+  --dsw-static-deepseek-300: rgb(231, 159, 186);
+  --dsw-static-deepseek-400: rgb(216, 110, 145);
+  --dsw-static-deepseek-450: rgb(201, 88, 126);
+  --dsw-static-deepseek-500: rgb(184, 73, 112);
+  --dsw-static-deepseek-600: rgb(153, 57, 91);
+  --dsw-static-deepseek-800: rgb(92, 47, 62);
+  --dsw-static-deepseek-900: rgb(73, 38, 50);
+
+  --dsw-alias-bg-base: var(--diana-surface);
+  --dsw-alias-bg-layer-1: var(--diana-panel);
+  --dsw-alias-bg-layer-2: var(--diana-panel-soft);
+  --dsw-alias-bg-layer-3: #f5e9ed;
+  --dsw-alias-bg-module-platform: #faf4f6;
+  --dsw-alias-bg-multi-select: #f8eef2;
+  --dsw-alias-bg-overlay: #f3e4e9;
+  --dsw-alias-border-l1: rgba(184, 73, 112, 0.1);
+  --dsw-alias-border-l2-darkmode-thin: rgba(184, 73, 112, 0.13);
+  --dsw-alias-border-l2: rgba(184, 73, 112, 0.17);
+  --dsw-alias-border-l3: rgba(184, 73, 112, 0.24);
+  --dsw-alias-border-l4: rgba(184, 73, 112, 0.32);
+  --dsw-alias-brand-primary-invert: #ffffff;
+  --dsw-alias-brand-primary-new-colorprimary-new-color: var(--diana-accent);
+  --dsw-alias-brand-primary: var(--diana-accent);
+  --dsw-alias-brand-text: #95385c;
+  --dsw-alias-button-contrast-fill: #9d3f63;
+  --dsw-alias-button-elevated-fill: rgba(255, 255, 255, 0.88);
+  --dsw-alias-button-floating-fill: rgba(255, 255, 255, 0.9);
+  --dsw-alias-button-floating-hover: #f8e9ee;
+  --dsw-alias-button-ghost-active-border: rgba(184, 73, 112, 0.42);
+  --dsw-alias-button-ghost-active-fill: #f4dfe6;
+  --dsw-alias-button-ghost-active-hover: #efd3dd;
+  --dsw-alias-button-info-fill: var(--diana-accent);
+  --dsw-alias-button-info-hover: #c9587e;
+  --dsw-alias-button-primary-dimmed: #f1dce3;
+  --dsw-alias-button-primary-fill: var(--diana-accent);
+  --dsw-alias-button-primary-hover: #a83f66;
+  --dsw-alias-interactive-bg-active: rgba(184, 73, 112, 0.13);
+  --dsw-alias-interactive-bg-hover-accent: rgba(184, 73, 112, 0.16);
+  --dsw-alias-interactive-bg-hover-solid: #f6e9ed;
+  --dsw-alias-interactive-bg-hover: rgba(184, 73, 112, 0.07);
+  --dsw-alias-label-caption: #ab929d;
+  --dsw-alias-label-dimmed: #d5c4ca;
+  --dsw-alias-label-primary-bluish: #713347;
+  --dsw-alias-label-primary-dimmed: #4a3d42;
+  --dsw-alias-label-primary-foreground: #ffffff;
+  --dsw-alias-label-primary-inverted: #ffffff;
+  --dsw-alias-label-primary: var(--diana-ink);
+  --dsw-alias-label-secondary: #75666d;
+  --dsw-alias-label-tertiary: var(--diana-muted);
+  --dsw-alias-markdown-citation: #f4e3e9;
+  --dsw-alias-markdown-code-block-banner: #f8f1f3;
+  --dsw-alias-markdown-code-block: #fcf7f8;
+  --dsw-alias-markdown-code-segment-selected: #ffffff;
+  --dsw-alias-markdown-code-segment-unselected: #f6ecef;
+  --dsw-alias-markdown-inline-code: #f4e5ea;
+  --dsw-alias-markdown-placeholder: #faf3f5;
+  --dsw-alias-markdown-tag: #f6e8ed;
+  --dsw-alias-scrollbar-bg-l1: rgba(184, 73, 112, 0.22);
+  --dsw-alias-scrollbar-bg-l2: rgba(184, 73, 112, 0.27);
+  --dsw-alias-scrollbar-hover-l1: rgba(184, 73, 112, 0.36);
+  --dsw-alias-scrollbar-hover-l2: rgba(184, 73, 112, 0.42);
+  --dsw-alias-state-business-primary: var(--diana-accent);
+  --dsw-alias-state-business-tertiary: var(--diana-accent-soft);
+  --dsw-specific-bubble-highlight: #efd2dc;
+  --dsw-specific-bubble: #f9e9ee;
+  --dsw-specific-input-major: rgba(255, 255, 255, 0.9);
+  --dsw-specific-login-input: #fbf4f6;
+  --dsw-specific-menu: rgba(255, 255, 255, 0.96);
+  --dsw-specific-selector: #f7ecef;
+  --dsw-specific-sidebar-fill: #faf4f6;
+  --dsw-specific-sidebar-nav-item-active-accent: #f2dce3;
+  --dsw-specific-sidebar-nav-item-active: #f4e4e9;
+  --dsw-specific-sidebar-nav-item-hover: #f7e9ee;
+  --dsw-specific-tip: #faf1f4;
+}
+
+body[data-ds-dark-theme] {
+  --diana-surface: #0d0c0f;
+  --diana-panel: #171419;
+  --diana-panel-soft: #1d181f;
+  --diana-ink: #f3eef0;
+  --diana-muted: #a9a1a7;
+  --diana-accent: #d86e91;
+  --diana-accent-soft: #38242d;
+  --diana-border: #2b262d;
+  --diana-line: rgba(216, 110, 145, 0.5);
+  --diana-art-opacity: 0.78;
+  --diana-doodle-opacity: 0.32;
+  --diana-character: url('/diana-brand/diana-night-v3.png');
+
+  --dsw-static-deepseek-50: rgb(252, 242, 246);
+  --dsw-static-deepseek-100: rgb(247, 226, 234);
+  --dsw-static-deepseek-200: rgb(242, 204, 218);
+  --dsw-static-deepseek-300: rgb(231, 159, 186);
+  --dsw-static-deepseek-400: rgb(216, 110, 145);
+  --dsw-static-deepseek-450: rgb(216, 110, 145);
+  --dsw-static-deepseek-500: rgb(193, 83, 120);
+  --dsw-static-deepseek-600: rgb(169, 68, 102);
+  --dsw-static-deepseek-800: rgb(87, 50, 64);
+  --dsw-static-deepseek-900: rgb(58, 36, 44);
+
+  --dsw-alias-bg-base: var(--diana-surface);
+  --dsw-alias-bg-layer-1: var(--diana-panel);
+  --dsw-alias-bg-layer-2: var(--diana-panel-soft);
+  --dsw-alias-bg-layer-3: #231b23;
+  --dsw-alias-bg-module-platform: #1b171c;
+  --dsw-alias-bg-multi-select: #211a21;
+  --dsw-alias-bg-overlay: #2b2028;
+  --dsw-alias-border-l1: rgba(216, 110, 145, 0.09);
+  --dsw-alias-border-l2-darkmode-thin: rgba(216, 110, 145, 0.12);
+  --dsw-alias-border-l2: rgba(216, 110, 145, 0.18);
+  --dsw-alias-border-l3: rgba(216, 110, 145, 0.26);
+  --dsw-alias-border-l4: rgba(216, 110, 145, 0.36);
+  --dsw-alias-brand-primary-invert: #0d0c0f;
+  --dsw-alias-brand-primary-new-colorprimary-new-color: var(--diana-accent);
+  --dsw-alias-brand-primary: var(--diana-accent);
+  --dsw-alias-brand-text: #e58aaa;
+  --dsw-alias-button-contrast-fill: #f3eef0;
+  --dsw-alias-button-elevated-fill: #211b21;
+  --dsw-alias-button-floating-fill: #201a20;
+  --dsw-alias-button-floating-hover: #30232c;
+  --dsw-alias-button-ghost-active-border: rgba(216, 110, 145, 0.46);
+  --dsw-alias-button-ghost-active-fill: #38242d;
+  --dsw-alias-button-ghost-active-hover: #442a35;
+  --dsw-alias-button-info-fill: var(--diana-accent);
+  --dsw-alias-button-info-hover: #e07f9e;
+  --dsw-alias-button-primary-dimmed: #36262d;
+  --dsw-alias-button-primary-fill: var(--diana-accent);
+  --dsw-alias-button-primary-hover: #e282a2;
+  --dsw-alias-interactive-bg-active: rgba(216, 110, 145, 0.16);
+  --dsw-alias-interactive-bg-hover-accent: rgba(216, 110, 145, 0.2);
+  --dsw-alias-interactive-bg-hover-solid: #261e25;
+  --dsw-alias-interactive-bg-hover: rgba(216, 110, 145, 0.08);
+  --dsw-alias-label-caption: #766c73;
+  --dsw-alias-label-dimmed: #544a51;
+  --dsw-alias-label-primary-bluish: #f2d9e2;
+  --dsw-alias-label-primary-dimmed: #dfd3d8;
+  --dsw-alias-label-primary-foreground: #0d0c0f;
+  --dsw-alias-label-primary-inverted: #241b21;
+  --dsw-alias-label-primary: var(--diana-ink);
+  --dsw-alias-label-secondary: #c7bbc1;
+  --dsw-alias-label-tertiary: var(--diana-muted);
+  --dsw-alias-markdown-citation: #2a2027;
+  --dsw-alias-markdown-code-block-banner: #1f1a1f;
+  --dsw-alias-markdown-code-block: #141216;
+  --dsw-alias-markdown-code-segment-selected: #262028;
+  --dsw-alias-markdown-code-segment-unselected: #19161a;
+  --dsw-alias-markdown-inline-code: #251d23;
+  --dsw-alias-markdown-placeholder: #19161a;
+  --dsw-alias-markdown-tag: #251d23;
+  --dsw-alias-scrollbar-bg-l1: rgba(216, 110, 145, 0.24);
+  --dsw-alias-scrollbar-bg-l2: rgba(216, 110, 145, 0.3);
+  --dsw-alias-scrollbar-hover-l1: rgba(216, 110, 145, 0.42);
+  --dsw-alias-scrollbar-hover-l2: rgba(216, 110, 145, 0.5);
+  --dsw-alias-state-business-primary: var(--diana-accent);
+  --dsw-alias-state-business-tertiary: #4a2936;
+  --dsw-specific-bubble-highlight: #4a2936;
+  --dsw-specific-bubble: #2b1e24;
+  --dsw-specific-input-major: rgba(23, 20, 25, 0.93);
+  --dsw-specific-login-input: #19161a;
+  --dsw-specific-menu: rgba(29, 24, 31, 0.97);
+  --dsw-specific-selector: #211b21;
+  --dsw-specific-sidebar-fill: #131116;
+  --dsw-specific-sidebar-nav-item-active-accent: #422834;
+  --dsw-specific-sidebar-nav-item-active: #30222a;
+  --dsw-specific-sidebar-nav-item-hover: #231b22;
+  --dsw-specific-tip: #1b171c;
+}
+
+body,
+button,
+input,
+textarea {
+  transition-property: color, background-color, border-color, box-shadow;
+  transition-duration: 160ms;
+  transition-timing-function: var(--ds-ease-in-out);
+}
+
+/* The top ornaments use the approved transparent line masks. They sit above
+ * opaque layout columns, so their restrained opacity is intentional. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 19;
+  pointer-events: none;
+  background: var(--diana-line);
+  -webkit-mask-image:
+    url('/diana-brand/diana-left-top-detailed-corner-mask-v7.png'),
+    url('/diana-brand/diana-line-art-approved-upper.png');
+  mask-image:
+    url('/diana-brand/diana-left-top-detailed-corner-mask-v7.png'),
+    url('/diana-brand/diana-line-art-approved-upper.png');
+  -webkit-mask-repeat: no-repeat, no-repeat;
+  mask-repeat: no-repeat, no-repeat;
+  -webkit-mask-position: calc(var(--diana-sidebar-safe) + 8px) top, right top;
+  mask-position: calc(var(--diana-sidebar-safe) + 8px) top, right top;
+  -webkit-mask-size: min(42vw, 680px) 220px, min(36vw, 560px) 180px;
+  mask-size: min(42vw, 680px) 220px, min(36vw, 560px) 180px;
+  clip-path: inset(0 0 0 var(--diana-sidebar-safe));
+}
+
+/* AppFrame's overlay is a stable native slot. Its isolated negative layer
+ * keeps artwork below dialogs and menus while remaining above opaque columns. */
+[data-shell-overlay] {
+  isolation: isolate;
+}
+
+[data-shell-overlay]::before,
+[data-shell-overlay]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-repeat: no-repeat;
+}
+
+[data-shell-overlay]::before {
+  opacity: var(--diana-art-opacity);
+  background-image:
+    url('/diana-brand/diana-hand-star-reference-v2.png'),
+    url('/diana-brand/diana-candy-wrapped-v1.png'),
+    url('/diana-brand/diana-candy-lollipop-v1.png'),
+    url('/diana-brand/acao-heart-v3.png'),
+    url('/diana-brand/acao-cheer-v1.png'),
+    var(--diana-character);
+  background-size:
+    32px auto,
+    42px auto,
+    40px auto,
+    88px auto,
+    82px auto,
+    clamp(230px, 18vw, 280px) auto;
+  background-position:
+    right 250px bottom 305px,
+    right 255px bottom 175px,
+    right 22px bottom 140px,
+    right 275px bottom 14px,
+    right 12px bottom 8px,
+    right 28px bottom -12px;
+  filter: drop-shadow(0 18px 30px rgba(53, 27, 38, 0.13));
+}
+
+[data-shell-overlay]::after {
+  opacity: var(--diana-doodle-opacity);
+  background-image: url('/diana-brand/diana-doodle-chalk-v2-approved.png');
+  background-size: clamp(245px, 24vw, 342px) auto;
+  background-position: left calc(var(--diana-sidebar-safe) + var(--diana-canvas-gutter)) bottom 14px;
+}
+
+@media (max-width: 1100px) {
+  body::before {
+    -webkit-mask-size: 400px 170px, 360px 150px;
+    mask-size: 400px 170px, 360px 150px;
+  }
+
+  [data-shell-overlay]::before {
+    background-size: 25px auto, 34px auto, 32px auto, 66px auto, 60px auto, 210px auto;
+    background-position:
+      right 188px bottom 242px,
+      right 194px bottom 142px,
+      right 16px bottom 118px,
+      right 206px bottom 10px,
+      right 10px bottom 7px,
+      right 20px bottom -10px;
+  }
+
+  [data-shell-overlay]::after {
+    background-size: 238px auto;
+  }
+}
+
+/* Harness keeps the composer near the vertical centre. On laptop-height
+ * canvases, the decorative cluster must contract below that functional band
+ * instead of merely following the viewport edge. */
+@media (max-height: 820px) {
+  [data-shell-overlay]::before {
+    background-size:
+      28px auto,
+      38px auto,
+      36px auto,
+      74px auto,
+      68px auto,
+      clamp(180px, 16vw, 230px) auto;
+    background-position:
+      right clamp(190px, 17vw, 230px) bottom 230px,
+      right clamp(195px, 17.5vw, 235px) bottom 135px,
+      right 18px bottom 112px,
+      right clamp(210px, 18vw, 250px) bottom 10px,
+      right 10px bottom 7px,
+      right 22px bottom -16px;
+  }
+
+  [data-shell-overlay]::after {
+    background-size: clamp(240px, 21vw, 286px) auto;
+    background-position: left calc(var(--diana-sidebar-safe) + var(--diana-canvas-gutter)) bottom 8px;
+  }
+}
+
+@media (max-width: 1000px) {
+  body {
+    --diana-sidebar-safe: 56px;
+  }
+
+  body::before {
+    -webkit-mask-size: min(50vw, 600px) 170px, min(42vw, 480px) 150px;
+    mask-size: min(50vw, 600px) 170px, min(42vw, 480px) 150px;
+  }
+}
+
+@media (max-width: 760px) {
+  body::before {
+    opacity: 0.58;
+    -webkit-mask-size: min(50vw, 420px) 145px, min(42vw, 340px) 120px;
+    mask-size: min(50vw, 420px) 145px, min(42vw, 340px) 120px;
+  }
+
+  [data-shell-overlay]::before {
+    opacity: calc(var(--diana-art-opacity) * 0.42);
+    background-image: var(--diana-character);
+    background-size: 178px auto;
+    background-position: right -22px bottom -8px;
+  }
+
+  [data-shell-overlay]::after {
+    display: none;
+  }
+}
+
+@media (max-height: 660px) {
+  [data-shell-overlay]::before {
+    opacity: calc(var(--diana-art-opacity) * 0.34);
+    background-image: var(--diana-character);
+    background-size: 150px auto;
+    background-position: right -12px bottom -20px;
+  }
+
+  [data-shell-overlay]::after {
+    display: none;
+  }
+}
+
+/* A live session docks the composer at the bottom and installs a 76px header.
+ * Corner artwork moves into the two side gutters above the dock. The approved
+ * top ornaments resume immediately below the native session header instead of
+ * crossing its title and utilities. `conversation.view` is the stable slot
+ * that is present only once a real transcript is mounted. */
+body:has([data-slot='conversation.view'])::before {
+  display: block;
+  opacity: 0.82;
+  -webkit-mask-position:
+    calc(var(--diana-sidebar-safe) + 8px) 76px,
+    right 76px;
+  mask-position:
+    calc(var(--diana-sidebar-safe) + 8px) 76px,
+    right 76px;
+  -webkit-mask-size:
+    clamp(380px, 30vw, 620px) clamp(145px, 12vw, 200px),
+    clamp(360px, 27vw, 520px) clamp(130px, 10vw, 170px);
+  mask-size:
+    clamp(380px, 30vw, 620px) clamp(145px, 12vw, 200px),
+    clamp(360px, 27vw, 520px) clamp(130px, 10vw, 170px);
+  clip-path: inset(76px 0 0 var(--diana-sidebar-safe));
+}
+
+/* Harness places its functional turn navigator on the right edge. Preserve
+ * that native hit area and positioning, while giving each turn mark Diana's
+ * fine dual-tone linework and a quiet, irregular rhythm. */
+nav[aria-label='轮次导航']::before,
+nav[aria-label='轮次导航']::after {
+  content: '';
+  position: absolute;
+  right: 1px;
+  width: 4px;
+  height: 4px;
+  border-radius: 1px;
+  background: var(--diana-line);
+  transform: rotate(45deg);
+  opacity: 0.58;
+  pointer-events: none;
+}
+
+nav[aria-label='轮次导航']::before {
+  top: -5px;
+}
+
+nav[aria-label='轮次导航']::after {
+  bottom: -5px;
+}
+
+nav[aria-label='轮次导航'] button[aria-label^='跳转到第']::before {
+  left: auto;
+  right: 0;
+  width: 12px;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    var(--dsw-alias-scrollbar-bg-l1) 0 34%,
+    var(--diana-line) 34% 100%
+  );
+  box-shadow: 0 0 4px transparent;
+  transition:
+    width 180ms var(--ds-ease-in-out),
+    background 180ms var(--ds-ease-in-out),
+    box-shadow 180ms var(--ds-ease-in-out),
+    opacity 180ms var(--ds-ease-in-out);
+}
+
+nav[aria-label='轮次导航']
+  > div
+  > div:nth-child(5n + 1)
+  button:not([aria-current='true'])::before {
+  width: 9px;
+}
+
+nav[aria-label='轮次导航']
+  > div
+  > div:nth-child(5n + 2)
+  button:not([aria-current='true'])::before {
+  width: 14px;
+}
+
+nav[aria-label='轮次导航']
+  > div
+  > div:nth-child(5n + 3)
+  button:not([aria-current='true'])::before {
+  width: 11px;
+}
+
+nav[aria-label='轮次导航']
+  > div
+  > div:nth-child(5n + 4)
+  button:not([aria-current='true'])::before {
+  width: 16px;
+}
+
+nav[aria-label='轮次导航']
+  > div
+  > div:nth-child(5n + 5)
+  button:not([aria-current='true'])::before {
+  width: 12px;
+}
+
+nav[aria-label='轮次导航'] button[aria-current='true']::before {
+  width: 22px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--diana-ink) 78%, transparent) 0 30%,
+    var(--diana-accent) 30% 100%
+  );
+  box-shadow: 0 0 7px color-mix(in srgb, var(--diana-accent) 34%, transparent);
+}
+
+nav[aria-label='轮次导航']:hover
+  button:not([aria-current='true'])::before {
+  opacity: 0.92;
+  box-shadow: 0 0 5px color-mix(in srgb, var(--diana-accent) 22%, transparent);
+}
+
+body:has([data-slot='conversation.view']) [data-shell-overlay]::before {
+  opacity: calc(var(--diana-art-opacity) * 0.72);
+  background-image:
+    url('/diana-brand/diana-hand-star-reference-v2.png'),
+    url('/diana-brand/diana-candy-wrapped-v1.png'),
+    url('/diana-brand/diana-candy-lollipop-v1.png'),
+    var(--diana-character);
+  background-size: 28px auto, 34px auto, 32px auto, 190px auto;
+  background-position:
+    right 158px bottom 430px,
+    right 156px bottom 230px,
+    right 12px bottom 170px,
+    right 0 bottom 132px;
+}
+
+body:has([data-slot='conversation.view']) [data-shell-overlay]::after {
+  display: block;
+  background-size: 170px auto;
+  background-position: left calc(var(--diana-sidebar-safe) + 14px) bottom 148px;
+}
+
+/* A live transcript keeps a narrow reading column even on a 2K display, so
+ * fixed-size corner art looks like a thumbnail inside the enlarged gutters.
+ * Scale only the genuinely wide, full-height layout; ordinary window sizes
+ * retain the carefully fitted session composition above. */
+@media (min-width: 1600px) and (min-height: 821px) {
+  body:has([data-slot='conversation.view']) [data-shell-overlay]::before {
+    --diana-session-character-size: clamp(240px, 15vw, 390px);
+    background-size:
+      clamp(34px, 1.9vw, 48px) auto,
+      clamp(40px, 2.2vw, 56px) auto,
+      clamp(38px, 2.05vw, 52px) auto,
+      var(--diana-session-character-size) auto;
+    background-position:
+      right calc(var(--diana-session-character-size) - 38px)
+        bottom calc(var(--diana-session-character-size) + 235px),
+      right calc(var(--diana-session-character-size) - 38px)
+        bottom calc(var(--diana-session-character-size) + 45px),
+      right 14px bottom calc(var(--diana-session-character-size) - 36px),
+      right 0 bottom 132px;
+  }
+
+  body:has([data-slot='conversation.view']) [data-shell-overlay]::after {
+    background-size: clamp(210px, 13vw, 340px) auto;
+    background-position: left calc(var(--diana-sidebar-safe) + 18px) bottom 148px;
+  }
+}
+
+@media (max-height: 820px) {
+  body:has([data-slot='conversation.view']) [data-shell-overlay]::before {
+    background-size: 24px auto, 30px auto, 28px auto, 160px auto;
+    background-position:
+      right 166px bottom 310px,
+      right 165px bottom 190px,
+      right 6px bottom 150px,
+      right 0 bottom 128px;
+  }
+
+  body:has([data-slot='conversation.view']) [data-shell-overlay]::after {
+    background-size: 148px auto;
+    background-position: left calc(var(--diana-sidebar-safe) + 12px) bottom 136px;
+  }
+}
+
+@media (max-width: 1000px), (max-height: 660px) {
+  body:has([data-slot='conversation.view'])::before,
+  body:has([data-slot='conversation.view']) [data-shell-overlay]::before,
+  body:has([data-slot='conversation.view']) [data-shell-overlay]::after {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body,
+  button,
+  input,
+  textarea {
+    transition: none;
+  }
+}

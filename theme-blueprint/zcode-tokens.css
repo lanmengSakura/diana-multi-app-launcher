@@ -1,0 +1,76 @@
+/*
+ * Diana × ZCode paired token blueprint.
+ * This file intentionally contains no build-hash selectors and changes no app bundle.
+ * A future user-space adapter may add `diana-zcode-host` to <html> after validating
+ * the active ZCode version and obtaining separate approval for any live inspection.
+ */
+
+html.diana-zcode-host.theme-zai-dark {
+  --diana-zcode-surface: #0d0c0f;
+  --diana-zcode-panel: #171419;
+  --diana-zcode-panel-strong: #1d191f;
+  --diana-zcode-sidebar: #19161a;
+  --diana-zcode-ink: #f3eef0;
+  --diana-zcode-muted: #aaa1a7;
+  --diana-zcode-accent: #d86e91;
+  --diana-zcode-accent-soft: #38242d;
+  --diana-zcode-border: #302930;
+
+  --color-background: var(--diana-zcode-surface);
+  --color-background-win-alt: var(--diana-zcode-panel-strong);
+  --color-header: var(--diana-zcode-panel);
+  --color-panel: var(--diana-zcode-panel);
+  --color-sidebar: var(--diana-zcode-sidebar);
+  --color-card: var(--diana-zcode-panel-strong);
+  --color-popover: var(--diana-zcode-panel-strong);
+  --color-popover-header: var(--diana-zcode-panel);
+  --color-input: var(--diana-zcode-panel-strong);
+  --color-border: rgb(216 110 145 / 17%);
+  --color-border-hover: rgb(216 110 145 / 28%);
+  --color-hover: rgb(216 110 145 / 9%);
+  --color-selected: rgb(216 110 145 / 17%);
+  --color-surface: rgb(216 110 145 / 7%);
+  --color-surface-hover: rgb(216 110 145 / 14%);
+  --color-accent: var(--diana-zcode-accent-soft);
+  --color-brand: var(--diana-zcode-ink);
+  --color-primary: var(--diana-zcode-ink);
+  --color-primary-foreground: var(--diana-zcode-surface);
+  --color-foreground: var(--diana-zcode-ink);
+  --color-foreground-subtle: var(--diana-zcode-muted);
+  --color-foreground-subtlest: rgb(170 161 167 / 58%);
+}
+
+html.diana-zcode-host.theme-zai-light {
+  --diana-zcode-surface: #fbf8f6;
+  --diana-zcode-panel: #ffffff;
+  --diana-zcode-panel-strong: #fff8fa;
+  --diana-zcode-sidebar: #f8f3f5;
+  --diana-zcode-ink: #2c2529;
+  --diana-zcode-muted: #74686f;
+  --diana-zcode-accent: #b84970;
+  --diana-zcode-accent-soft: #f2dce3;
+  --diana-zcode-border: #e8dfe2;
+
+  --color-background: var(--diana-zcode-surface);
+  --color-background-win-alt: #f2ecef;
+  --color-header: var(--diana-zcode-panel);
+  --color-panel: var(--diana-zcode-panel);
+  --color-sidebar: var(--diana-zcode-sidebar);
+  --color-card: var(--diana-zcode-panel);
+  --color-popover: var(--diana-zcode-panel);
+  --color-popover-header: var(--diana-zcode-panel-strong);
+  --color-input: var(--diana-zcode-panel);
+  --color-border: rgb(184 73 112 / 16%);
+  --color-border-hover: rgb(184 73 112 / 27%);
+  --color-hover: rgb(184 73 112 / 7%);
+  --color-selected: rgb(184 73 112 / 13%);
+  --color-surface: rgb(184 73 112 / 5%);
+  --color-surface-hover: rgb(184 73 112 / 10%);
+  --color-accent: var(--diana-zcode-accent-soft);
+  --color-brand: var(--diana-zcode-ink);
+  --color-primary: var(--diana-zcode-ink);
+  --color-primary-foreground: var(--diana-zcode-panel);
+  --color-foreground: var(--diana-zcode-ink);
+  --color-foreground-subtle: var(--diana-zcode-muted);
+  --color-foreground-subtlest: rgb(116 104 111 / 56%);
+}

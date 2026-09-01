@@ -1,0 +1,142 @@
+:root {
+  --diana-vscode-line: rgba(216, 110, 145, 0.34);
+  --diana-vscode-line-soft: rgba(232, 132, 166, 0.2);
+}
+
+.monaco-workbench {
+  isolation: isolate;
+}
+
+.monaco-workbench::before,
+.monaco-workbench::after,
+.monaco-workbench .part.sidebar::after,
+.monaco-workbench .part.editor::after {
+  content: "";
+  position: absolute;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* 横跨左上两条边的细线角花。使用透明蒙版统一日夜颜色，不压住标题栏。 */
+.monaco-workbench::before {
+  z-index: 41;
+  top: 34px;
+  left: 47px;
+  width: min(43vw, 660px);
+  height: min(16vw, 174px);
+  background: var(--diana-vscode-line);
+  -webkit-mask: url("./diana-assets/diana-corner-line.png") left top / contain no-repeat;
+  mask: url("./diana-assets/diana-corner-line.png") left top / contain no-repeat;
+  opacity: 0.72;
+}
+
+/* 右下立绘只占编辑器边缘，整体低对比，不夺取代码阅读焦点。 */
+.monaco-workbench::after {
+  z-index: 39;
+  right: 10px;
+  bottom: 20px;
+  width: clamp(220px, 23vw, 350px);
+  height: min(77vh, 660px);
+  background: url("./diana-assets/diana-portrait.png") right bottom / contain no-repeat;
+  opacity: 0.2;
+  filter: saturate(0.82) brightness(0.82);
+  -webkit-mask-image: linear-gradient(to top, transparent 0, #000 8%, #000 88%, transparent 100%);
+  mask-image: linear-gradient(to top, transparent 0, #000 8%, #000 88%, transparent 100%);
+}
+
+/* 左侧栏底部保留简笔画；暗夜粉笔线、日间彩色细线分别承载。 */
+.monaco-workbench .part.sidebar {
+  overflow: hidden;
+}
+
+.monaco-workbench .part.sidebar::after {
+  z-index: 30;
+  left: 10px;
+  bottom: 26px;
+  width: min(86%, 275px);
+  aspect-ratio: 1 / 1;
+  background-position: left bottom;
+  background-repeat: no-repeat;
+  background-size: contain;
+  opacity: 0.13;
+  filter: saturate(0.72);
+  -webkit-mask-image: linear-gradient(to top, #000 0 76%, transparent 100%);
+  mask-image: linear-gradient(to top, #000 0 76%, transparent 100%);
+}
+
+.monaco-workbench.vs-dark .part.sidebar::after,
+.monaco-workbench.hc-black .part.sidebar::after {
+  background-image: url("./diana-assets/diana-doodle-chalk.png");
+}
+
+.monaco-workbench.vs .part.sidebar::after,
+.monaco-workbench.hc-light .part.sidebar::after {
+  background-image: url("./diana-assets/diana-doodle-color.png");
+  opacity: 0.095;
+  filter: saturate(0.58) contrast(0.92);
+}
+
+/* 两颗正式手绘星、糖果和棒棒糖共用一个视口绘制层。 */
+.monaco-workbench .part.editor::after {
+  position: fixed;
+  z-index: 38;
+  right: 10px;
+  bottom: 20px;
+  width: clamp(220px, 23vw, 350px);
+  height: min(77vh, 660px);
+  background-image:
+    url("./diana-assets/diana-star.png"),
+    url("./diana-assets/diana-star.png"),
+    url("./diana-assets/diana-candy.png"),
+    url("./diana-assets/diana-lollipop.png");
+  background-position: 12% 57%, 96% 27%, 9% 79%, 92% 78%;
+  background-repeat: no-repeat;
+  background-size: 34px 34px, 46px 46px, 44px auto, 52px auto;
+  opacity: 0.62;
+  filter: brightness(0.8) saturate(0.84) contrast(0.97) drop-shadow(0 0 7px rgb(216 110 145 / 6%));
+}
+
+.monaco-workbench.vs::before,
+.monaco-workbench.hc-light::before {
+  --diana-vscode-line: rgba(170, 91, 117, 0.3);
+  opacity: 0.62;
+}
+
+.monaco-workbench.vs::after,
+.monaco-workbench.hc-light::after {
+  opacity: 0.105;
+  filter: saturate(0.62) brightness(1.05);
+}
+
+.monaco-workbench.vs .part.editor::after,
+.monaco-workbench.hc-light .part.editor::after {
+  opacity: 0.4;
+  filter: saturate(0.68) contrast(0.92);
+}
+
+@media (max-width: 1080px) {
+  .monaco-workbench::after {
+    width: 210px;
+    opacity: 0.12;
+  }
+
+  .monaco-workbench .part.editor::after {
+    width: 210px;
+    opacity: 0.48;
+  }
+}
+
+@media (max-width: 860px), (max-height: 620px) {
+  .monaco-workbench::after,
+  .monaco-workbench .part.sidebar::after,
+  .monaco-workbench .part.editor::after {
+    display: none;
+  }
+
+  .monaco-workbench::before {
+    width: 320px;
+    height: 104px;
+    opacity: 0.48;
+  }
+}

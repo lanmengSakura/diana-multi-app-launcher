@@ -1,0 +1,84 @@
+/*
+ * Adapter-owned artwork layer. The adapter must mount this element inside the
+ * validated main workspace surface, never over the sidebar or window controls.
+ */
+
+html.diana-zcode-host #diana-zcode-chrome {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+  container-type: inline-size;
+}
+
+html.diana-zcode-host #diana-zcode-chrome > * {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+}
+
+html.diana-zcode-host #diana-zcode-chrome > .diana-zcode-corner-line {
+  top: 11px;
+  left: 10px;
+  width: clamp(310px, 48cqw, 520px);
+  aspect-ratio: 1600 / 485;
+  background: var(--diana-zcode-line-berry, var(--diana-zcode-accent));
+  -webkit-mask: var(--diana-zcode-image-corner) left top / contain no-repeat;
+  mask: var(--diana-zcode-image-corner) left top / contain no-repeat;
+  opacity: .24;
+}
+
+html.diana-zcode-host #diana-zcode-chrome > .diana-zcode-upper-line {
+  top: 6px;
+  right: 16px;
+  width: clamp(250px, 35cqw, 342px);
+  aspect-ratio: 2.7 / 1;
+  background: var(--diana-zcode-line-coral, var(--diana-zcode-accent));
+  -webkit-mask: var(--diana-zcode-image-upper) right top / contain no-repeat;
+  mask: var(--diana-zcode-image-upper) right top / contain no-repeat;
+  opacity: .25;
+}
+
+html.diana-zcode-host #diana-zcode-chrome > .diana-zcode-doodle {
+  left: 14px;
+  bottom: -30px;
+  width: clamp(190px, 27cqw, 235px);
+  aspect-ratio: 1267 / 1241;
+  background: var(--diana-zcode-line-berry, var(--diana-zcode-accent));
+  -webkit-mask: var(--diana-zcode-image-doodle) center / contain no-repeat;
+  mask: var(--diana-zcode-image-doodle) center / contain no-repeat;
+  opacity: .38;
+}
+
+html.diana-zcode-host #diana-zcode-chrome > .diana-zcode-character {
+  right: 14px;
+  bottom: -30px;
+  width: clamp(235px, 32cqw, 286px);
+  height: min(54cqh, 410px);
+  background: var(--diana-zcode-image-character) right bottom / contain no-repeat;
+  opacity: .66;
+  filter: brightness(.92) saturate(.88) drop-shadow(0 18px 36px rgb(0 0 0 / 24%));
+}
+
+html.diana-zcode-host.theme-zai-light #diana-zcode-chrome > .diana-zcode-corner-line,
+html.diana-zcode-host.theme-zai-light #diana-zcode-chrome > .diana-zcode-upper-line {
+  opacity: .28;
+}
+
+html.diana-zcode-host.theme-zai-light #diana-zcode-chrome > .diana-zcode-character {
+  opacity: .76;
+  filter: saturate(.94) brightness(1.01) drop-shadow(0 18px 34px rgb(70 42 52 / 16%));
+}
+
+@media (max-width: 900px), (max-height: 620px) {
+  html.diana-zcode-host #diana-zcode-chrome > .diana-zcode-character {
+    opacity: .38;
+    transform: translateX(18%);
+  }
+
+  html.diana-zcode-host #diana-zcode-chrome > .diana-zcode-doodle {
+    opacity: .2;
+  }
+}

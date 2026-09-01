@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "adapterVersion": "1.3.0-runtime-probe-rc13",
+  "compatibilityMode": "runtime-probe-v1",
+  "packageName": "OpenAI.Codex",
+  "packageFamily": "OpenAI.Codex_2p2nqsd0c76g0",
+  "appId": "OpenAI.Codex_2p2nqsd0c76g0!App",
+  "executableRelativePath": "app\\ChatGPT.exe",
+  "portRange": {
+    "minimum": 49152,
+    "maximumExclusive": 65536
+  },
+  "themes": {
+    "dark": "themes\\diana-dark.css",
+    "light": "themes\\diana-light.css"
+  },
+  "assets": {
+    "characterDark": "assets\\diana-night-v3.png",
+    "characterLight": "assets\\diana-corner-cutout-v2.png",
+    "lineArtUpper": "assets\\diana-line-art-approved-upper.png",
+    "lineArtCorner": "assets\\diana-left-top-detailed-corner-mask-v7.png",
+    "lineArtLower": "assets\\diana-doodle-chalk-v2-approved.png",
+    "handStar": "assets\\diana-hand-star-reference-v2.png",
+    "candyWrapped": "assets\\diana-candy-wrapped-v1.png",
+    "candyLollipop": "assets\\diana-candy-lollipop-v1.png",
+    "acaoHeart": "assets\\acao-heart-v3.png",
+    "acaoCheer": "assets\\acao-cheer-v1.png"
+  },
+  "sha256": {
+    "themes\\diana-dark.css": "a0138b7390e29ee433d3f26e4c79d634e5d359a64b56a6ea2a220968bbfa7927",
+    "themes\\diana-light.css": "de1acc78b8fa79dcaea2a2fc1e5bb061b7c4da54fd1f3cdff485ba4a1c800dbe",
+    "assets\\acao-cheer-v1.png": "811a7743503b2b71d73a7b11f1735ce2055f022dda98fde496fe253a0523b518",
+    "assets\\acao-heart-v3.png": "c085d42ff86d44110322a876c9136e0624fa3b14dbe8f2c1720e0b4d9e468a9e",
+    "assets\\diana-candy-lollipop-v1.png": "cce1868c5093df0de144304708dcaf5be71321a5e11cf6d260ad025b401a2e38",
+    "assets\\diana-candy-wrapped-v1.png": "3850f628fa8851785c98f4dc261613e87b9323b7fc1733bdad09c5392dbe613d",
+    "assets\\diana-corner-cutout-v2.png": "ca6244f511562151ed5077b95824540a6641005aaf2fe745c5c9d7d0d9862a92",
+    "assets\\diana-doodle-chalk-v2-approved.png": "aaaef48851c36db4cfb1ef1df120ef86e284d23e7fb8269d7bfc567ce0f4c07b",
+    "assets\\diana-hand-star-reference-v2.png": "95ae6f760aa8ecb7695fd7242c74f8c0982b86d6b8df4aa181bc85730360a5f3",
+    "assets\\diana-left-top-detailed-corner-mask-v7.png": "f84ddb08faa4e2d6700f6264e6e78995b29cce7ddd6fb2971f2b8e83859b82aa",
+    "assets\\diana-line-art-approved-upper.png": "d0349cbc590f814a7463cdfc736b442bca8e224059f979de43dcda93d7c73f0a",
+    "assets\\diana-night-v3.png": "a40220eaf6bbe814460c4382c63ca2ac24159c3123215d762619fb900287a38a"
+  }
+}

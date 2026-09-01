@@ -1,0 +1,87 @@
+{
+  "schema": 1,
+  "channel": "multi-app-v1",
+  "targets": [
+    {
+      "id": "codex",
+      "name": "Codex Desktop",
+      "deployment": "foreground-runtime",
+      "artwork": "complete",
+      "modes": ["dark", "light", "system"],
+      "requiresThirdPartyBinary": true
+    },
+    {
+      "id": "terminal",
+      "name": "Windows Terminal",
+      "deployment": "native-fragment",
+      "artwork": "complete",
+      "modes": ["dark"],
+      "requiresThirdPartyBinary": true
+    },
+    {
+      "id": "doubao",
+      "name": "豆包浏览器",
+      "deployment": "chromium-user-extension",
+      "artwork": "complete",
+      "modes": ["native"],
+      "requiresThirdPartyBinary": true
+    },
+    {
+      "id": "vscode",
+      "name": "Visual Studio Code",
+      "deployment": "official-color-theme",
+      "artwork": "blueprint-only",
+      "modes": ["dark", "light", "system"],
+      "requiresThirdPartyBinary": true
+    },
+    {
+      "id": "cursor",
+      "name": "Cursor",
+      "deployment": "registered-local-loopback-adapter-with-color-fallback",
+      "artwork": "complete-on-tested-local-adapter",
+      "modes": ["dark", "light", "system"],
+      "requiresThirdPartyBinary": true,
+      "testedVersion": "3.17.21",
+      "requiresPerLaunchRiskConfirmation": true,
+      "bundlesAdapterRuntime": false
+    },
+    {
+      "id": "grokbot",
+      "name": "Grok Bot",
+      "deployment": "registered-local-loopback-adapter",
+      "artwork": "complete-on-tested-local-adapter",
+      "modes": ["dark", "light", "system"],
+      "requiresThirdPartyBinary": true,
+      "testedVersion": "0.28.0",
+      "requiresPerLaunchRiskConfirmation": true,
+      "bundlesAdapterRuntime": false
+    },
+    {
+      "id": "deepseek",
+      "name": "DeepSeek Harness",
+      "deployment": "themed-source-checkout",
+      "artwork": "complete-when-source-is-prepared",
+      "modes": ["native"],
+      "requiresThirdPartyBinary": true
+    },
+    {
+      "id": "zcode",
+      "name": "ZCode",
+      "deployment": "local-approved-loopback-adapter",
+      "artwork": "complete",
+      "modes": ["dark", "light", "system"],
+      "requiresThirdPartyBinary": true,
+      "testedVersion": "3.6.5.4145",
+      "requiresPerLaunchRiskConfirmation": true
+    }
+  ],
+  "safety": {
+    "bundlesThirdPartyApplications": false,
+    "bundlesLoginState": false,
+    "createsBackgroundWatcher": false,
+    "patchesInstalledApplicationBundlesByDefault": false,
+    "cursorLoopbackDebugIsLocalExperimental": true,
+    "grokBotLoopbackDebugIsLocalExperimental": true,
+    "zcodeLoopbackDebugIsLocalExperimental": true
+  }
+}

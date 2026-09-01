@@ -1,0 +1,37 @@
+{
+  "name": "diana-vscode-theme",
+  "displayName": "Diana VS Code Theme",
+  "description": "嘉然 Diana 日间与暗夜双主题，保留 VS Code 原生工作区辨识度。",
+  "version": "0.2.0",
+  "publisher": "lanmengSakura",
+  "license": "UNLICENSED",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Themes"
+  ],
+  "keywords": [
+    "Diana",
+    "嘉然",
+    "theme",
+    "pink",
+    "day",
+    "night"
+  ],
+  "icon": "assets/diana-pixel-dango.png",
+  "contributes": {
+    "themes": [
+      {
+        "label": "Diana Night",
+        "uiTheme": "vs-dark",
+        "path": "./themes/diana-night-color-theme.json"
+      },
+      {
+        "label": "Diana Day",
+        "uiTheme": "vs",
+        "path": "./themes/diana-day-color-theme.json"
+      }
+    ]
+  }
+}

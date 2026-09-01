@@ -1,0 +1,660 @@
+html.diana-theme-host {
+  --diana-surface: #0d0c0f;
+  --diana-panel: #171419;
+  --diana-ink: #f3eef0;
+  --diana-muted: #a9a1a7;
+  --diana-accent: #d86e91;
+  --diana-accent-soft: #38242d;
+  --diana-accent-wash: rgb(216 110 145 / 12%);
+  --diana-accent-wash-strong: rgb(216 110 145 / 21%);
+  --diana-accent-ring: rgb(216 110 145 / 46%);
+  --diana-rail-seed: #643548;
+  --diana-rail-major: #754057;
+  --diana-rail-hover: #b96583;
+  --diana-rail-seed-strong: #e884a6;
+  --diana-border: #2b262d;
+  --diana-work-panel: #1a161b;
+  --diana-work-panel-border: rgb(216 110 145 / 18%);
+  --diana-work-divider: rgb(216 110 145 / 13%);
+  --diana-scroll-thumb: rgb(216 110 145 / 34%);
+  --diana-scroll-thumb-hover: rgb(232 132 166 / 58%);
+  --diana-account-surface: #121014;
+  color-scheme: dark;
+}
+
+html.diana-theme-host body {
+  background-color: var(--diana-surface);
+  color: var(--diana-ink);
+}
+
+html.diana-theme-host #diana-theme-chrome {
+  position: absolute;
+  z-index: 0;
+  overflow: hidden;
+  container-type: inline-size;
+  pointer-events: none;
+  user-select: none;
+}
+
+html.diana-theme-host .diana-skin-surface > .diana-skin-foreground {
+  position: relative;
+  z-index: 1;
+}
+
+html.diana-theme-host #diana-theme-chrome > * {
+  display: none;
+}
+
+html.diana-theme-host #diana-theme-chrome > :is(.diana-doodle-layer, .diana-corner-line, .diana-character-stars) {
+  display: block;
+}
+
+html.diana-theme-host:is(.compact-window, .diana-auxiliary-window) #diana-theme-chrome {
+  display: none;
+}
+
+html.diana-theme-host #diana-theme-chrome::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background: var(--diana-accent);
+  -webkit-mask-image: var(--diana-image-line-art-upper);
+  -webkit-mask-position: top 44px right 18px;
+  -webkit-mask-size: clamp(230px, 45cqw, 350px) auto;
+  -webkit-mask-repeat: no-repeat;
+  mask-image: var(--diana-image-line-art-upper);
+  mask-position: top 44px right 18px;
+  mask-size: clamp(230px, 45cqw, 350px) auto;
+  mask-repeat: no-repeat;
+  opacity: .27;
+  pointer-events: none;
+}
+
+html.diana-theme-host #diana-theme-chrome::after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  right: -12px;
+  bottom: -6px;
+  width: clamp(270px, 46cqw, 440px);
+  height: min(78vh, 720px);
+  background: var(--diana-image-character) right bottom / contain no-repeat;
+  opacity: .66;
+  filter: brightness(.98) saturate(.9) contrast(.99) drop-shadow(0 24px 46px rgb(0 0 0 / 26%));
+  pointer-events: none;
+  user-select: none;
+  transition: opacity 180ms ease;
+}
+
+html.diana-theme-host #diana-theme-chrome > .diana-doodle-layer {
+  position: absolute;
+  z-index: 0;
+  left: 18px;
+  bottom: clamp(90px, 9vh, 118px);
+  width: clamp(230px, 44cqw, 340px);
+  aspect-ratio: 1267 / 1241;
+  background: var(--diana-image-line-art-lower) center / contain no-repeat;
+  opacity: .42;
+  filter: brightness(.72) saturate(.78) contrast(.92);
+  pointer-events: none;
+}
+
+html.diana-theme-host #diana-theme-chrome > .diana-corner-line {
+  position: absolute;
+  z-index: 0;
+  top: 54px;
+  left: 34px;
+  width: clamp(300px, 50cqw, 820px);
+  aspect-ratio: 1600 / 485;
+  background: var(--diana-accent);
+  -webkit-mask: var(--diana-image-line-art-corner) left center / contain no-repeat;
+  mask: var(--diana-image-line-art-corner) left center / contain no-repeat;
+  opacity: .27;
+  pointer-events: none;
+}
+
+html.diana-theme-host #diana-theme-chrome > .diana-character-stars {
+  position: absolute;
+  z-index: 0;
+  right: -12px;
+  bottom: -6px;
+  width: clamp(270px, 46cqw, 440px);
+  height: min(78vh, 720px);
+  pointer-events: none;
+}
+
+html.diana-theme-host .diana-character-star {
+  position: absolute;
+  display: block;
+  aspect-ratio: 1;
+  background: var(--diana-image-hand-star) center / contain no-repeat;
+  opacity: .7;
+  filter: brightness(.78) saturate(.82) contrast(.96) drop-shadow(0 0 7px rgb(216 110 145 / 6%));
+}
+
+html.diana-theme-host .diana-character-star-small {
+  left: 7%;
+  top: 44%;
+  width: clamp(25px, 3.8cqw, 34px);
+  transform: rotate(-11deg);
+}
+
+html.diana-theme-host .diana-character-star-large {
+  right: 3%;
+  top: 27%;
+  width: clamp(34px, 5cqw, 46px);
+  transform: rotate(9deg);
+}
+
+html.diana-theme-host .diana-character-candy {
+  position: absolute;
+  z-index: 2;
+  display: block;
+  aspect-ratio: 1;
+  opacity: .78;
+  filter: brightness(.84) saturate(.88) contrast(.98) drop-shadow(0 0 7px rgb(216 110 145 / 7%));
+}
+
+html.diana-theme-host .diana-character-candy-wrapped {
+  left: 2%;
+  top: 55%;
+  width: clamp(56px, 7.5cqw, 74px);
+  background: var(--diana-image-candy-wrapped) center / contain no-repeat;
+  transform: rotate(-12deg);
+}
+
+html.diana-theme-host .diana-character-candy-lollipop {
+  right: 5%;
+  top: 59%;
+  width: clamp(60px, 8.2cqw, 80px);
+  background: var(--diana-image-candy-lollipop) center / contain no-repeat;
+  filter: brightness(.72) saturate(.88) contrast(.98) drop-shadow(0 0 7px rgb(216 110 145 / 6%));
+  transform: rotate(8deg);
+}
+
+html.diana-theme-host .diana-character-acao {
+  position: absolute;
+  z-index: 2;
+  display: block;
+  aspect-ratio: 1;
+  opacity: .58;
+  filter: brightness(.7) saturate(.76) contrast(.96) drop-shadow(0 0 7px rgb(216 110 145 / 5%));
+}
+
+html.diana-theme-host .diana-character-acao-heart {
+  left: 16.3%;
+  top: 69%;
+  width: clamp(92px, 12cqw, 118px);
+  background: var(--diana-image-acao-heart) center / contain no-repeat;
+  transform: rotate(-4deg);
+}
+
+html.diana-theme-host .diana-character-acao-cheer {
+  right: 6%;
+  top: 73%;
+  width: clamp(90px, 11.4cqw, 112px);
+  background: var(--diana-image-acao-cheer) center / contain no-repeat;
+  transform: rotate(4deg);
+}
+
+html.diana-theme-host #diana-theme-chrome.dream-home-shell::after {
+  opacity: .82;
+  right: clamp(-18px, 1cqw, 10px);
+  width: clamp(280px, 49cqw, 390px);
+  height: min(78vh, 700px);
+}
+
+html.diana-theme-host #diana-theme-chrome.dream-home-shell > .diana-character-stars {
+  right: clamp(-18px, 1cqw, 10px);
+  width: clamp(280px, 49cqw, 390px);
+  height: min(78vh, 700px);
+}
+
+html.diana-theme-host :where(button, [role="button"]):focus-visible {
+  outline-color: var(--diana-accent);
+}
+
+/* Diana control language. Main conversation typography intentionally remains native. */
+html.diana-theme-host :where(header.draggable, aside.app-shell-left-panel)
+  :where(button, [role="button"]):not(:disabled):hover,
+html.diana-theme-host :where(header.draggable, aside.app-shell-left-panel)
+  :where(button, [role="button"])[data-state="open"] {
+  background-color: var(--diana-accent-wash) !important;
+}
+
+html.diana-theme-host aside.app-shell-left-panel
+  :where(.sidebar-item, [role="button"])[data-app-action-sidebar-thread-selected="true"] {
+  background-color: var(--diana-accent-wash-strong) !important;
+  color: var(--diana-accent) !important;
+  box-shadow: inset 2px 0 0 var(--diana-accent);
+}
+
+html.diana-theme-host aside.app-shell-left-panel
+  :where(button[class*="section-toggle"], [class*="sidebar-icon-button"]):not(:disabled):hover {
+  color: var(--diana-accent) !important;
+}
+
+html.diana-theme-host aside.app-shell-left-panel button[class*="section-toggle"] {
+  color: color-mix(in srgb, var(--diana-accent) 58%, var(--diana-ink));
+}
+
+html.diana-theme-host [class*="_ComposerLayoutRoot_"] {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--diana-border) 84%, transparent),
+    0 14px 34px rgb(0 0 0 / 12%);
+  transition: box-shadow 140ms ease, background-color 140ms ease;
+}
+
+html.diana-theme-host [class*="_ComposerLayoutRoot_"]:focus-within {
+  box-shadow:
+    inset 0 0 0 1px var(--diana-accent-ring),
+    0 14px 38px rgb(0 0 0 / 16%);
+}
+
+html.diana-theme-host [class*="_ComposerLayoutRoot_"]
+  :where(button, [role="button"]):not(:disabled):hover,
+html.diana-theme-host [class*="_ComposerLayoutRoot_"]
+  :where(button, [role="button"])[data-state="open"] {
+  background-color: var(--diana-accent-wash-strong) !important;
+  color: var(--diana-accent) !important;
+}
+
+html.diana-theme-host [class*="_ComposerLayoutRoot_"]
+  :where(button.bg-primary-solid, button[aria-label="发送"], button[aria-label="停止"]) {
+  background-color: var(--diana-accent) !important;
+  color: #fff !important;
+  box-shadow: 0 5px 16px rgb(216 110 145 / 24%);
+}
+
+html.diana-theme-host [class*="_ComposerLayoutRoot_"]
+  :where(button.bg-primary-solid, button[aria-label="发送"], button[aria-label="停止"]):active {
+  transform: scale(.97);
+}
+
+html.diana-theme-host [role="textbox"][contenteditable="true"] {
+  caret-color: var(--diana-accent);
+}
+
+html.diana-theme-host button[class*="summary-panel-item"]:not(:disabled):hover::before {
+  background-color: var(--diana-accent-wash) !important;
+}
+
+html.diana-theme-host header button[class*="section-toggle"]:not(:disabled):hover {
+  color: var(--diana-accent) !important;
+}
+
+html.diana-theme-host .diana-panel-heading-star {
+  display: block;
+  flex: 0 0 auto;
+  width: 21px;
+  height: 21px;
+  background-color: var(--diana-accent);
+  -webkit-mask: var(--diana-image-hand-star) center / contain no-repeat;
+  mask: var(--diana-image-hand-star) center / contain no-repeat;
+  opacity: .72;
+  transform: rotate(-8deg);
+  pointer-events: none;
+}
+
+/* Diana app chrome: navigation, desktop menus, project folders, and panel toggles. */
+html.diana-theme-host header.draggable
+  :where(button[aria-label="隐藏边栏"], button[aria-label="Hide sidebar"], button[aria-label="返回"], button[aria-label="Back"], button[aria-label="前进"], button[aria-label="Forward"]) {
+  color: color-mix(in srgb, var(--diana-accent) 50%, var(--diana-ink));
+  transition: color 140ms ease, background-color 140ms ease, box-shadow 140ms ease;
+}
+
+html.diana-theme-host header.draggable
+  :where(button[aria-label="隐藏边栏"], button[aria-label="Hide sidebar"], button[aria-label="返回"], button[aria-label="Back"], button[aria-label="前进"], button[aria-label="Forward"]):not(:disabled):hover {
+  color: var(--diana-accent) !important;
+  box-shadow: inset 0 0 0 1px var(--diana-accent-ring);
+}
+
+html.diana-theme-host header.draggable button[role="menuitem"] {
+  color: color-mix(in srgb, var(--diana-accent) 34%, var(--diana-ink));
+  transition: color 140ms ease, background-color 140ms ease, box-shadow 140ms ease;
+}
+
+html.diana-theme-host header.draggable button[role="menuitem"]:is(:hover, :focus-visible, [data-state="open"]) {
+  background-color: var(--diana-accent-wash) !important;
+  color: var(--diana-accent) !important;
+}
+
+html.diana-theme-host header.draggable button[role="menuitem"][data-state="open"] {
+  box-shadow: inset 0 -1px 0 var(--diana-accent);
+}
+
+html.diana-theme-host aside.app-shell-left-panel
+  [data-app-action-sidebar-project-row]
+  [data-sidebar-project-drop-zone="project-icon"] {
+  color: color-mix(in srgb, var(--diana-accent) 58%, var(--diana-ink));
+  transition: color 140ms ease, filter 140ms ease;
+}
+
+html.diana-theme-host aside.app-shell-left-panel
+  [data-app-action-sidebar-project-row]
+  [data-sidebar-project-drop-zone="project-icon"] svg {
+  transition: transform 140ms ease;
+}
+
+html.diana-theme-host aside.app-shell-left-panel
+  [data-app-action-sidebar-project-row]:is(:hover, [aria-expanded="true"])
+  [data-sidebar-project-drop-zone="project-icon"] {
+  color: var(--diana-accent);
+  filter: drop-shadow(0 2px 5px color-mix(in srgb, var(--diana-accent) 20%, transparent));
+}
+
+html.diana-theme-host aside.app-shell-left-panel
+  [data-app-action-sidebar-project-row]:hover
+  [data-sidebar-project-drop-zone="project-icon"] svg {
+  transform: translateY(-1px);
+}
+
+html.diana-theme-host
+  :where(button[aria-label="切换置顶摘要"], button[aria-label="Toggle pinned summary"], button[aria-label="切换底部面板显示"], button[aria-label="Toggle bottom panel"], button[aria-label="显示/隐藏侧边栏"], button[aria-label="Show/hide sidebar"]) {
+  position: relative;
+  transition: color 140ms ease, background-color 140ms ease, box-shadow 140ms ease;
+}
+
+html.diana-theme-host
+  :where(button[aria-label="切换置顶摘要"], button[aria-label="Toggle pinned summary"], button[aria-label="切换底部面板显示"], button[aria-label="Toggle bottom panel"], button[aria-label="显示/隐藏侧边栏"], button[aria-label="Show/hide sidebar"]):not(:disabled):hover {
+  color: var(--diana-accent) !important;
+  background-color: var(--diana-accent-wash) !important;
+}
+
+html.diana-theme-host
+  :where(button[aria-label="切换置顶摘要"], button[aria-label="Toggle pinned summary"], button[aria-label="切换底部面板显示"], button[aria-label="Toggle bottom panel"], button[aria-label="显示/隐藏侧边栏"], button[aria-label="Show/hide sidebar"])[aria-pressed="true"] {
+  color: var(--diana-accent) !important;
+  background-color: var(--diana-accent-wash-strong) !important;
+  box-shadow: inset 0 0 0 1px var(--diana-accent-ring);
+}
+
+html.diana-theme-host
+  :where(button[aria-label="切换置顶摘要"], button[aria-label="Toggle pinned summary"], button[aria-label="切换底部面板显示"], button[aria-label="Toggle bottom panel"], button[aria-label="显示/隐藏侧边栏"], button[aria-label="Show/hide sidebar"])[aria-pressed="true"]::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 4px;
+  height: 4px;
+  border-radius: 1px;
+  background: var(--diana-accent);
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+html.diana-theme-host ::selection {
+  background: var(--diana-accent-wash-strong);
+}
+
+/* Starberry message rail: solid hybrid rhythm over Codex's native jump targets. */
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) {
+  isolation: isolate;
+  overflow: visible;
+}
+
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"])::before,
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"])::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  left: 1px;
+  width: 5px;
+  height: 5px;
+  border-radius: 1px;
+  background: var(--diana-accent);
+  opacity: .42;
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"])::before {
+  top: -7px;
+}
+
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"])::after {
+  bottom: -7px;
+}
+
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button {
+  --diana-art-scale-base: .23;
+  --diana-density-offset: 0;
+  --diana-major-offset: 0;
+  --diana-art-scale-fallback: calc(var(--diana-art-scale-base) + var(--diana-density-offset));
+  position: relative;
+  border-radius: 4px;
+}
+
+/* Total message count selects a restrained sparse, balanced, or dense profile. */
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]):not(:has(button:nth-child(33))) button {
+  --diana-density-offset: .03;
+  --diana-major-offset: .12;
+}
+
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]):has(button:nth-child(33)):not(:has(button:nth-child(97))) button {
+  --diana-density-offset: .01;
+  --diana-major-offset: .07;
+}
+
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]):has(button:nth-child(97)) button {
+  --diana-density-offset: 0;
+  --diana-major-offset: 0;
+}
+
+/* A long, art-directed sequence avoids both a ruler and a sine-wave rhythm. */
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button:nth-child(29n + 1) { --diana-art-scale-base: .23; }
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button:nth-child(29n + 2) { --diana-art-scale-base: .31; }
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button:nth-child(29n + 3) { --diana-art-scale-base: .26; }
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button:nth-child(29n + 4) { --diana-art-scale-base: .36; }
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button:nth-child(29n + 5) { --diana-art-scale-base: .28; }
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button:nth-child(29n + 6) { --diana-art-scale-base: .33; }
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button:nth-child(29n + 7) { --diana-art-scale-base: .24; }
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button:nth-child(29n + 8) { --diana-art-scale-base: .35; }
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button:nth-child(29n + 9) { --diana-art-scale-base: .29; }
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button:nth-child(29n + 10) { --diana-art-scale-base: .27; }
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button:nth-child(29n + 11) { --diana-art-scale-base: .37; }
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button:nth-child(29n + 12) { --diana-art-scale-base: .25; }
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button:nth-child(29n + 13) { --diana-art-scale-base: .32; }
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button:nth-child(29n + 14) { --diana-art-scale-base: .28; }
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button:nth-child(29n + 15) { --diana-art-scale-base: .34; }
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button:nth-child(29n + 16) { --diana-art-scale-base: .24; }
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button:nth-child(29n + 17) { --diana-art-scale-base: .36; }
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button:nth-child(29n + 18) { --diana-art-scale-base: .30; }
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button:nth-child(29n + 19) { --diana-art-scale-base: .26; }
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button:nth-child(29n + 20) { --diana-art-scale-base: .33; }
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button:nth-child(29n + 21) { --diana-art-scale-base: .23; }
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button:nth-child(29n + 22) { --diana-art-scale-base: .35; }
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button:nth-child(29n + 23) { --diana-art-scale-base: .27; }
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button:nth-child(29n + 24) { --diana-art-scale-base: .31; }
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button:nth-child(29n + 25) { --diana-art-scale-base: .25; }
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button:nth-child(29n + 26) { --diana-art-scale-base: .34; }
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button:nth-child(29n + 27) { --diana-art-scale-base: .29; }
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button:nth-child(29n + 28) { --diana-art-scale-base: .24; }
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button:nth-child(29n + 29) { --diana-art-scale-base: .32; }
+
+/* Every fifth message is a division, while the divisions still vary by hand. */
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button:nth-child(45n + 1) { --diana-art-scale-fallback: calc(.42 + var(--diana-major-offset)); }
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button:nth-child(45n + 6) { --diana-art-scale-fallback: calc(.47 + var(--diana-major-offset)); }
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button:nth-child(45n + 11) { --diana-art-scale-fallback: calc(.40 + var(--diana-major-offset)); }
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button:nth-child(45n + 16) { --diana-art-scale-fallback: calc(.45 + var(--diana-major-offset)); }
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button:nth-child(45n + 21) { --diana-art-scale-fallback: calc(.43 + var(--diana-major-offset)); }
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button:nth-child(45n + 26) { --diana-art-scale-fallback: calc(.48 + var(--diana-major-offset)); }
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button:nth-child(45n + 31) { --diana-art-scale-fallback: calc(.41 + var(--diana-major-offset)); }
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button:nth-child(45n + 36) { --diana-art-scale-fallback: calc(.46 + var(--diana-major-offset)); }
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"]) button:nth-child(45n + 41) { --diana-art-scale-fallback: calc(.44 + var(--diana-major-offset)); }
+
+/* Legacy one-layer marker fallback. */
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"])
+  button > span > span {
+  height: 2px !important;
+  border-radius: 999px !important;
+  background: var(--diana-rail-seed) !important;
+  color: var(--diana-rail-seed) !important;
+  opacity: 1 !important;
+  transform: scaleX(var(--diana-art-scale, var(--diana-art-scale-fallback))) !important;
+  transform-origin: left center !important;
+  transition:
+    transform 160ms linear(0, .398 10%, .682 20%, .843 30%, .925 40%, .972 50%, 1.004 60%, 1.008 70%, 1.003 80%, 1),
+    background-color 140ms ease !important;
+  filter: none !important;
+  box-shadow: none !important;
+}
+
+/* Current Codex adds a MarkerLine below Marker; keep the outer marker inert. */
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"])
+  button > span > span:has(> span) {
+  background: transparent !important;
+  transform: none !important;
+}
+
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"])
+  button > span > span > span {
+  height: 2px !important;
+  border-radius: 999px !important;
+  background: var(--diana-rail-seed) !important;
+  background-image: none !important;
+  opacity: 1 !important;
+  transform: scaleX(max(var(--diana-art-scale, var(--diana-art-scale-fallback)), calc(.2308 + .7692 * var(--marker-progress, 0)))) !important;
+  transform-origin: left center !important;
+  transition:
+    transform 160ms linear(0, .398 10%, .682 20%, .843 30%, .925 40%, .972 50%, 1.004 60%, 1.008 70%, 1.003 80%, 1),
+    background-color 140ms ease !important;
+  filter: none !important;
+  box-shadow: none !important;
+}
+
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"])
+  :is(button:nth-child(5n + 1), button[data-diana-rail-major="true"]) > span > span:not(:has(> span)),
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"])
+  :is(button:nth-child(5n + 1), button[data-diana-rail-major="true"]) > span > span > span {
+  background: var(--diana-rail-major) !important;
+}
+
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"])
+  button:not([data-diana-viewport-current="true"]):hover > span > span:not(:has(> span)) {
+  transform: scaleX(.72) !important;
+  background: var(--diana-rail-hover) !important;
+}
+
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"])
+  button:not([data-diana-viewport-current="true"]):hover > span > span > span {
+  background: var(--diana-rail-hover) !important;
+}
+
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"])
+  button[data-diana-viewport-current="true"]::before {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  left: -1px;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  background: var(--diana-rail-seed-strong);
+  clip-path: polygon(50% 0, 61% 36%, 100% 50%, 61% 64%, 50% 100%, 39% 64%, 0 50%, 39% 36%);
+  transform: translateY(-50%);
+  filter: drop-shadow(0 0 5px rgb(216 110 145 / 42%));
+  pointer-events: none;
+}
+
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"])
+  button[data-diana-viewport-current="true"] > span > span {
+  --marker-progress: 1;
+  color: var(--diana-rail-seed-strong) !important;
+}
+
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"])
+  button[data-diana-viewport-current="true"] > span > span:not(:has(> span)) {
+  transform: scaleX(1) !important;
+  background: var(--diana-rail-seed-strong) !important;
+}
+
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"])
+  button[data-diana-viewport-current="true"] > span > span > span {
+  background: var(--diana-rail-seed-strong) !important;
+}
+
+html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User messages"])
+  button:focus-visible {
+  outline: 1px solid var(--diana-accent-ring) !important;
+  outline-offset: -1px;
+}
+
+/* Native work surfaces: color-only integration, with the original controls intact. */
+html.diana-theme-host
+  div.relative.flex.max-h-full.min-h-0.flex-col.overflow-hidden.rounded-3xl.bg-surface-elevated-secondary:has(section[role="presentation"]) {
+  background-color: var(--diana-work-panel) !important;
+  border-color: var(--diana-work-panel-border) !important;
+  box-shadow: 0 16px 36px rgb(0 0 0 / 26%), 0 0 0 1px var(--diana-work-panel-border) !important;
+}
+
+html.diana-theme-host
+  div.relative.flex.max-h-full.min-h-0.flex-col.overflow-hidden.rounded-3xl.bg-surface-elevated-secondary:has(section[role="presentation"])
+  section[role="presentation"] > header {
+  background-color: var(--diana-work-panel) !important;
+}
+
+html.diana-theme-host
+  div.relative.flex.max-h-full.min-h-0.flex-col.overflow-hidden.rounded-3xl.bg-surface-elevated-secondary:has(section[role="presentation"])
+  section[role="presentation"]::after {
+  background-color: var(--diana-work-divider) !important;
+}
+
+html.diana-theme-host :where(.thread-scroll-container, .overflow-y-auto):not(.hide-scrollbar) {
+  scrollbar-color: var(--diana-scroll-thumb) transparent;
+}
+
+html.diana-theme-host
+  :where(.thread-scroll-container, .overflow-y-auto):not(.hide-scrollbar)::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+html.diana-theme-host
+  :where(.thread-scroll-container, .overflow-y-auto):not(.hide-scrollbar)::-webkit-scrollbar-thumb {
+  background-color: var(--diana-scroll-thumb);
+}
+
+html.diana-theme-host
+  :where(.thread-scroll-container, .overflow-y-auto):not(.hide-scrollbar)::-webkit-scrollbar-thumb:hover {
+  background-color: var(--diana-scroll-thumb-hover);
+}
+
+html.diana-theme-host aside.app-shell-left-panel div.absolute.inset-x-0.bottom-0.z-20 {
+  background-color: var(--diana-account-surface);
+  border-top: 1px solid var(--diana-work-panel-border);
+}
+
+html.diana-theme-host aside.app-shell-left-panel
+  button:is([aria-label="打开个人资料菜单"], [aria-label="Open profile menu"]) {
+  color: color-mix(in srgb, var(--diana-ink) 82%, var(--diana-accent)) !important;
+}
+
+html.diana-theme-host aside.app-shell-left-panel
+  button:is(
+    [aria-label="开始新的语音聊天"],
+    [aria-label="Start a new voice chat"],
+    [aria-label="打开帮助菜单"],
+    [aria-label="Open help menu"]
+  ) {
+  color: color-mix(in srgb, var(--diana-muted) 72%, var(--diana-accent)) !important;
+}
+
+html.diana-theme-host aside.app-shell-left-panel
+  button:is(
+    [aria-label="打开个人资料菜单"],
+    [aria-label="Open profile menu"],
+    [aria-label="开始新的语音聊天"],
+    [aria-label="Start a new voice chat"],
+    [aria-label="打开帮助菜单"],
+    [aria-label="Open help menu"]
+  ):hover {
+  color: var(--diana-accent) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.diana-theme-host *,
+  html.diana-theme-host *::before,
+  html.diana-theme-host *::after {
+    transition-duration: .01ms !important;
+  }
+}

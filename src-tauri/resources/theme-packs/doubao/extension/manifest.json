@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "Diana for Doubao",
+  "version": "0.1.1",
+  "description": "Diana / 嘉然用户态视觉层，仅作用于豆包网页界面。",
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.doubao.com/*",
+        "https://*.doubao.com/*"
+      ],
+      "css": [
+        "diana.css"
+      ],
+      "js": [
+        "diana.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "assets/*"
+      ],
+      "matches": [
+        "https://www.doubao.com/*",
+        "https://*.doubao.com/*"
+      ]
+    }
+  ]
+}
