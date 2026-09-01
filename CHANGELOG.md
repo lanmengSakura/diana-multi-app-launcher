@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.0-beta.2 - 2026-09-01
+## 0.1.0-beta.2 - 2026-09-02
 
 - 修复 Windows 检出源码时 CSS 从 LF 转为 CRLF，导致 Codex 适配器报 `SHA-256 mismatch` 并在启动前中止的问题。
 - 用 `.gitattributes` 固定受保护的 Codex 运行时 CSS 为 LF。
