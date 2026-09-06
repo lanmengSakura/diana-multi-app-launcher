@@ -26,43 +26,37 @@ try {
   assert.equal(await frame.locator(".music-toggle").getAttribute("aria-pressed"), "false");
   check("music off on entry; iframe ready");
   await page.screenshot({ path: `${output}/desktop-dark.png`, fullPage: true });
-  await frame.locator(".primary-action").click();
-  await frame.locator(".runtime-chip").filter({ hasText: "MOUNTED" }).waitFor();
-  assert.match(await frame.locator(".status-overlay p").innerText(), /模拟/);
-  check("Codex mount is explicitly simulated");
-  await frame.getByRole("button", { name: "日间", exact: true }).click();
-  await frame.locator(".primary-action").click();
-  await frame.locator(".runtime-chip").filter({ hasText: "WAITING" }).waitFor();
-  await page.locator("#simulate-exit").click();
-  await frame.locator(".runtime-chip").filter({ hasText: "MOUNTED" }).waitFor();
-  check("day change waits for simulated exit, then resumes");
-  await frame.locator(".secondary-action").click();
-  await frame.locator(".runtime-chip").filter({ hasText: "WAITING" }).waitFor();
-  await page.locator("#simulate-exit").click();
-  await frame.locator(".status-overlay p").filter({ hasText: "原版入口" }).waitFor();
-  check("native launch preserves exit-before-restart semantics");
-  const select = frame.locator("select");
-  for (const target of ["doubao", "terminal", "vscode", "cursor", "grokbot", "deepseek", "zcode", "codex"]) {
-    await select.selectOption(target);
-    await page.waitForTimeout(120);
-    if (target === "grokbot") {
-      assert.equal(await frame.locator(".primary-action").isDisabled(), true);
-      assert.match(await page.locator("#target-note").innerText(), /不含/);
-    } else if (target !== "codex") {
-      await frame.locator(".primary-action").click();
-      await page.waitForTimeout(1100);
-      assert.match(await frame.locator(".status-overlay p").innerText(), /模拟/);
-      if (["cursor", "vscode"].includes(target)) assert.equal(await frame.locator(".runtime-chip").innerText(), "COLOR");
+  const targetApps = {codex:'codex', doubao:'doubao', terminal:'terminal', vscode:'vscode', cursor:'cursor', grokbot:'grok', deepseek:'deepseek', zcode:'zcode'};
+  for (const [target, app] of Object.entries(targetApps)) {
+    await page.goto(new URL('/?app=' + app + '&theme=dark', base).href, {waitUntil:'networkidle'});
+    await frame.locator('.launcher-stage[data-selected-target="' + target + '"]').waitFor();
+    await frame.locator('.primary-action').click();
+    await page.waitForURL(url => url.pathname === '/themes' && url.searchParams.get('app') === app);
+    assert.equal(new URL(page.url()).searchParams.get('theme'), 'dark');
+    const theme = page.frameLocator('.theme-viewport iframe');
+    await theme.locator(app === 'codex' ? '.stage' : '.application').waitFor();
+    if (app !== 'terminal') {
+      await page.getByRole('button', {name:'☼ 日间', exact:true}).click();
+      await page.waitForURL(url => url.searchParams.get('theme') === 'light');
     }
+    await page.getByRole('button', {name:'原版参考', exact:true}).click();
+    await page.waitForURL(url => url.searchParams.get('theme') === 'original');
+    await page.getByRole('link', {name:'← 返回启动器', exact:true}).click();
+    await frame.locator('.launcher-stage[data-selected-target="' + target + '"]').waitFor();
+    await frame.locator('.secondary-action').click();
+    await page.waitForURL(url => url.pathname === '/themes' && url.searchParams.get('app') === app && url.searchParams.get('theme') === 'original');
   }
-  check("eight targets preserve public capability boundaries");
-  await select.selectOption("vscode");
-  await page.locator("#simulate-error").click();
-  await frame.locator(".primary-action").click();
-  await frame.locator(".runtime-chip").filter({ hasText: "ERROR" }).waitFor();
-  await frame.locator(".primary-action").click();
-  await frame.locator(".runtime-chip").filter({ hasText: "COLOR" }).waitFor();
-  check("raw error display and retry recover");
+  check('all eight launch / restore links open the matching demo and return to the selected app');
+  await page.goto(new URL('/?app=vscode&theme=dark', base).href, {waitUntil:'networkidle'});
+  await page.locator('#simulate-error').click();
+  await frame.locator('.primary-action').click();
+  await frame.locator('.runtime-chip').filter({hasText:'ERROR'}).waitFor();
+  await frame.locator('.primary-action').click();
+  await page.waitForURL(url => url.pathname === '/themes' && url.searchParams.get('app') === 'vscode');
+  check('error feedback blocks navigation; retry enters the demo');
+  await page.goto(base, {waitUntil:'networkidle'});
+  const select = frame.locator('select');
+  // Continue visual-only launcher checks without leaving the page.
   await frame.getByRole("button", { name: "隐藏目标应用列表", exact: true }).click();
   await frame.locator(".launcher-stage[data-selector-state=collapsed]").waitFor();
   assert.equal(await select.isDisabled(), true);

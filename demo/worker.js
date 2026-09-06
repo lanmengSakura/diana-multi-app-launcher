@@ -5,7 +5,8 @@ export default {
     const htmlAsset = ["/", "/index.html"].includes(url.pathname) ? "/_diana-shell.page"
       : ["/launcher", "/launcher.html", "/launcher/"].includes(url.pathname) ? "/_diana-launcher.page"
       : ["/themes", "/themes.html", "/themes/"].includes(url.pathname) ? "/_diana-themes.page"
-      : ["/theme-app", "/theme-app.html", "/theme-app/"].includes(url.pathname) ? "/_diana-theme-app.page" : null;
+      : ["/theme-app", "/theme-app.html", "/theme-app/"].includes(url.pathname) ? "/_diana-theme-app.page"
+      : ["/codex", "/codex.html", "/codex/"].includes(url.pathname) ? "/_diana-codex.page" : null;
     // Sites serves matching static files before the Worker. Keep HTML under
     // non-navigation asset names so every public page receives a fresh nonce.
     const assetUrl = new URL(request.url);

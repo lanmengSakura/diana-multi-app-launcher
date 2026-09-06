@@ -41,6 +41,7 @@ const resolveAsset = (map: Record<string, string>, name: string) => {
   return map[name];
 };
 const css = {
+  codex: '',
   cursor: cursorCss.replace(/__\w+__/g, key => resolveAsset(placeholders, key)),
   grok: grokCss.replace(/__\w+__/g, key => resolveAsset(placeholders, key)),
   zcode: zcodeCss, doubao: doubaoCss,
@@ -54,7 +55,7 @@ export function applyTheme(config: DemoConfig) {
   const themed = config.mode !== 'original';
   html.className = themed ? {
     cursor: 'diana-cursor-host', grok: 'diana-grok-host', zcode: `diana-zcode-host theme-zai-${config.mode}`,
-    doubao: '', vscode: '', deepseek: '', terminal: '',
+    codex: '', doubao: '', vscode: '', deepseek: '', terminal: '',
   }[config.app] : '';
   html.dataset.app = config.app;
   html.dataset.mode = config.mode;

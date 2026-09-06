@@ -35,7 +35,7 @@ export default defineConfig({
     sourcemap: false,
     rolldownOptions: { input: {
       index: resolve("demo/index.html"), launcher: resolve("demo/launcher.html"),
-      themes: resolve("demo/themes.html"), themeApp: resolve("demo/theme-app.html")
+      themes: resolve("demo/themes.html"), themeApp: resolve("demo/theme-app.html"), codex: resolve("demo/codex.html")
     } }
   }
 });

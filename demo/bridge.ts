@@ -1,10 +1,25 @@
 /** Browser-only, in-memory simulator. No native adapter, process or localhost access. */
-export {};
+import { configQuery, fromLauncher, launcherTargets, parseConfig, type DemoConfig } from './theme-catalog';
 declare const __DEMO_MUSIC_BYTES__: number;
 type Mode = "dark" | "light" | "system";
 type Target = "codex" | "doubao" | "terminal" | "vscode" | "cursor" | "grokbot" | "deepseek" | "zcode";
 const send = (type: string, detail: unknown = null) => window.parent.postMessage({ source: "diana-demo", type, detail }, window.location.origin);
 const delay = (ms: number) => new Promise<void>(resolve => window.setTimeout(resolve, ms));
+const query = new URLSearchParams(location.search || window.parent.location.search);
+if (query.has('app')) {
+  const config = parseConfig(query.toString());
+  const target = Object.entries(launcherTargets).find(([, app]) => app === config.app)![0];
+  try {
+    localStorage.setItem('diana-launcher-target', target);
+    if (config.mode !== 'original') localStorage.setItem('diana-launcher-theme', config.mode);
+  } catch { /* Optional preferences; disabled storage must not block the demo. */ }
+}
+function navigate(target: Target, mode: string, original: boolean) {
+  const config: DemoConfig | null = fromLauncher(target, mode, original, matchMedia('(prefers-color-scheme: dark)').matches);
+  if (!config) return;
+  if (window.parent === window) location.assign(`/themes?${configQuery(config)}`);
+  else send('navigate', config);
+}
 const titles: Record<Target, string> = { codex: "Codex", doubao: "豆包", terminal: "Windows Terminal", vscode: "VS Code", cursor: "Cursor", grokbot: "Grok Bot", deepseek: "DeepSeek Harness", zcode: "ZCode" };
 let selected: Target = "codex";
 let failNext = false;
@@ -19,21 +34,19 @@ let codex = {
 const states = new Map<string, Record<string, unknown>>();
 function external(target: Target) {
   if (!states.has(target)) states.set(target, {
-    target, stage: target === "grokbot" ? "grokbot_runtime_missing" : target === "deepseek" ? "deepseek_theme_needs_deploy" : `${target}_pack_ready`,
+    target, stage: `${target}_pack_ready`,
     running: false, themed: false,
-    themeState: target === "grokbot" ? "blocked" : "available",
+    themeState: "available",
     themeScope: "demo", processCount: 0, mainProcessId: null,
     executable: null, themeRoot: "模拟资源（没有本机文件）",
-    message: target === "grokbot" ? "交互演示：公开包不含 Grok Bot 专用适配器；未登记时拒绝挂载。"
-      : target === "cursor" ? "交互演示：未登记专用适配器时，仅应用官方颜色主题。"
-      : target === "deepseek" ? "交互演示：未检测本地源码部署时，仅提供视觉蓝图。"
-      : `交互演示：${titles[target]} 已选择；点击按钮查看模拟操作流程。`
+    message: `网页演示：${titles[target]} 已选择；点击主按钮进入对应主题页面。不操作本机。`
   });
   return structuredClone(states.get(target)!);
 }
 
-const originalConfirm = window.confirm.bind(window);
-window.confirm = message => originalConfirm(`【网页交互演示】以下是桌面版的操作说明。本页不会访问本机，也不会真正挂载或重启应用。\n\n${message}`);
+// Desktop confirmations concern processes/CDP. This isolated web bridge only
+// navigates to the demo; do not ask visitors to approve fictitious native work.
+window.confirm = () => true;
 
 let callbackId = 1;
 const bridge = {
@@ -60,38 +73,27 @@ const bridge = {
         return response.arrayBuffer();
       }
       case "run_launcher_action": {
-        send("activity", "正在模拟安全核验与外观切换……");
-        await delay(1050);
+        send("activity", "正在打开 Codex 主题演示……");
+        await delay(180);
         if (failNext) { failNext = false; throw new Error("演示异常：主题资源校验未通过。已中止模拟流程，未修改任何本机内容。"); }
         const mounted = args.action === "mount";
-        codex = { ...codex, stage: mounted ? "mounted" : "plain_running",
-          codexRunning: true, themeChannelConnected: mounted, nativeAppearanceManaged: mounted,
-          activeThemeMode: mounted ? args.themeMode as Mode : null, processCount: 1, mainProcessId: 10001,
-          message: mounted ? "模拟完成：Diana 外观已挂载。更换日夜需先模拟退出，再重新启动。" : "模拟完成：已从原版入口重新启动；没有对本机执行操作。"
-        };
+        codex = { ...codex, message: `网页演示已准备：Codex ${mounted ? 'Diana 主题' : '原版参考'}。未挂载本机。` };
         send("activity", codex.message);
+        if (args.action === 'mount' || args.action === 'restore') navigate('codex', args.themeMode, !mounted);
         return structuredClone(codex);
       }
       case "run_external_target_action": {
         const target = args.target as Target;
         const status = external(target);
-        send("activity", `正在模拟 ${titles[target]} 的操作……`);
-        await delay(900);
+        send("activity", `正在打开 ${titles[target]} 的网页演示……`);
+        await delay(180);
         if (failNext) { failNext = false; throw new Error("演示异常：运行时核验未通过。操作已中止，请查看状态信息。"); }
         const themed = args.action === "launch_theme";
-        const state = !themed ? "plain" : target === "cursor" || target === "vscode" ? "selected"
-          : target === "terminal" ? "installed" : target === "deepseek" ? "available" : target === "grokbot" ? "blocked" : "mounted";
-        const message = !themed ? `模拟完成：${titles[target]} ${target === "doubao" ? "原版启动" : "恢复入口"}。未操作本机应用。`
-          : target === "deepseek" ? "模拟完成：蓝图已准备；实际使用仍需本地源码部署。"
-          : target === "cursor" || target === "vscode" ? "模拟完成：已应用 Diana 颜色主题；这不代表完整美术已挂载。"
-          : target === "grokbot" ? "交互演示：公开包不含 Grok Bot 专用适配器，无法模拟为已挂载。"
-          : `模拟完成：${titles[target]} 的 Diana 外观已启用。本页没有访问或启动应用。`;
-        const next = { ...status, stage: !themed ? `${target}_plain_running` : target === "deepseek" ? "deepseek_theme_needs_deploy" : target === "grokbot" ? "grokbot_runtime_missing" : `${target}_diana_ready`,
-          themed: themed && state !== "blocked" && state !== "available", themeState: state,
-          running: target !== "deepseek" && state !== "blocked", processCount: target === "deepseek" ? 0 : 1,
-          mainProcessId: target === "deepseek" ? null : 10002, message };
+        const message = `网页演示已准备：${titles[target]} ${themed ? 'Diana 主题' : '原版参考'}。未挂载本机。`;
+        const next = { ...status, message };
         states.set(target, next);
         send("activity", message);
+        if (args.action === 'launch_theme' || args.action === 'launch_native') navigate(target, args.themeMode, !themed);
         return structuredClone(next);
       }
       default: throw new Error(`演示未实现此命令：${command}`);

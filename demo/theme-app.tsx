@@ -1,10 +1,12 @@
 import React, { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { apps, configQuery, isConfig, parseConfig, type AppId, type DemoConfig, type ThemeMode } from './theme-catalog';
+import { apps, configQuery, framePath, isConfig, parseConfig, type AppId, type DemoConfig, type ThemeMode } from './theme-catalog';
 import { applyTheme, art } from './theme-art';
 import './theme-app.css';
+import './native-layouts.css';
 
 const initial = parseConfig(location.search);
+if (initial.app === 'codex') location.replace(framePath(initial));
 applyTheme(initial);
 type IconName = 'plus' | 'search' | 'chat' | 'folder' | 'settings' | 'panel' | 'arrow' | 'code' | 'globe' | 'file' | 'branch' | 'check' | 'close' | 'copy' | 'clock';
 const iconPaths: Record<IconName, ReactNode> = {
@@ -18,7 +20,7 @@ const iconPaths: Record<IconName, ReactNode> = {
 };
 function Icon({ name }: { name: IconName }) { return <svg className="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{iconPaths[name]}</svg>; }
 function IconButton({ name, label, onClick, active }: { name: IconName; label: string; onClick: () => void; active?: boolean }) {
-  return <button className="icon-button ui-icon-button" aria-label={label} title={label} onClick={onClick} aria-pressed={active}><Icon name={name}/></button>;
+  return <button type="button" className="icon-button ui-icon-button" aria-label={label} title={label} onClick={onClick} aria-pressed={active}><Icon name={name}/></button>;
 }
 function WindowControls() { return <div className="window-controls" aria-hidden="true"><span>─</span><span>□</span><span>×</span></div>; }
 
@@ -179,6 +181,93 @@ function ChatApp({ config, change }: { config: DemoConfig; change: (config: Demo
   </div>;
 }
 
+// Layouts reconstructed from the saved native captures, never their private text.
+function useNativeConversation(config: DemoConfig, change: (next: DemoConfig) => void, samples: Message[]) {
+  const [messages, setMessages] = useState<Message[]>(config.scene === 'home' ? [] : samples);
+  const [selected, setSelected] = useState(0);
+  const [draft, setDraft] = useState('');
+  const [panel, setPanel] = useState('');
+  const scene = useRef(config.scene);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const pendingScroll = useRef(false);
+  useEffect(() => {
+    if (scene.current !== config.scene) { setMessages(config.scene === 'home' ? [] : samples); scene.current = config.scene; }
+  }, [config.scene, samples]);
+  useLayoutEffect(() => {
+    if (pendingScroll.current && scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    pendingScroll.current = false;
+  }, [messages]);
+  const moveScene = (next: DemoConfig['scene']) => { scene.current = next; if (next !== config.scene) change({ ...config, scene: next }); };
+  const select = (index: number) => { setSelected(index); moveScene('conversation'); setMessages(samples.slice(index % 3 * 2)); if (scrollRef.current) scrollRef.current.scrollTop = 0; };
+  const newChat = () => { moveScene('home'); setMessages([]); setDraft(''); };
+  const send = () => {
+    if (!draft.trim()) return;
+    moveScene('conversation'); pendingScroll.current = true;
+    setMessages(old => [...old, { role: 'user', text: draft.trim().slice(0, 2000) }, { role: 'assistant', text: '这条消息仅在当前演示页显示，没有连接模型服务。可以继续查看配色、输入和滚动效果。' }].slice(-24) as Message[]);
+    setDraft('');
+  };
+  return { messages, selected, draft, setDraft, panel, setPanel, scrollRef, select, newChat, send };
+}
+const grokMessages: Message[] = [
+  { role: 'assistant', text: '可以把阅读手账当成一个轻松的小习惯。挑一本正在读的书，从今天最喜欢的一句话开始。' },
+  ...chatMessages,
+];
+function GrokBotApp({ config, change }: { config: DemoConfig; change: (config: DemoConfig) => void }) {
+  const chat = useNativeConversation(config, change, grokMessages);
+  const [search, setSearch] = useState('');
+  const contacts = ['聊天', '阅读手账'];
+  return <div className="application app-grok native-grok"><div className="application-body">
+    <aside className="grok-contacts">
+      <div className="grok-toolbar"><IconButton name="plus" label="新建示例聊天" onClick={chat.newChat}/></div>
+      <label className="grok-search"><Icon name="search"/><input aria-label="搜索示例联系人" placeholder="搜索" value={search} onChange={event => setSearch(event.target.value)}/></label>
+      <div className="grok-contact-list">{contacts.map((name, index) => name.includes(search) && <button className="grok-contact" key={name} aria-current={chat.selected === index ? 'page' : undefined} onClick={() => chat.select(index)}><span className={`contact-avatar avatar-${index}`}>{index ? '阅' : '聊'}</span><span className="contact-description"><span><strong>{name}</strong><time>{index ? '昨天' : '12:06'}</time></span><small>{index ? '留下今天的一小块心情' : '给我一个阅读手账的小模板'}</small></span></button>)}{search && !contacts.some(name => name.includes(search)) && <p className="grok-no-result">没有匹配的示例联系人</p>}</div>
+      <div className="grok-profile"><button onClick={() => chat.setPanel('插件示例')}><Icon name="code"/>插件</button><div><span className="avatar">D</span><span>示例用户</span><IconButton name="settings" label="外观设置" onClick={() => chat.setPanel('外观设置')}/></div></div>
+    </aside>
+    <main className="app-workspace"><ThemeArtwork app="grok" enabled={config.mode !== 'original'}/>
+      <header className="grok-chat-header"><span className="contact-avatar avatar-0">聊</span><strong>{contacts[chat.selected]}</strong><IconButton name="panel" label="聊天资料示例" onClick={() => chat.setPanel('聊天资料示例')}/></header>
+      <div className="grok-chat-scroll" ref={chat.scrollRef} tabIndex={0} aria-label="示例聊天记录，可滚动">
+        {chat.messages.length > 0 ? <div className="grok-bubbles">{chat.messages.map((message, index) => <article key={index} data-turn={index} className={`grok-message ${message.role}`}>{message.text}</article>)}</div> : <div className="grok-empty">给聊天发一条消息</div>}
+      </div>
+      <form className="grok-input" onSubmit={event => { event.preventDefault(); chat.send(); }}>
+        <IconButton name="plus" label="附件示例，不读取本机" onClick={() => chat.setPanel('附件示例')}/>
+        <input aria-label="示例消息，只在本页显示" placeholder={`给${contacts[chat.selected]}发消息`} maxLength={2000} value={chat.draft} onChange={event => chat.setDraft(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && event.nativeEvent.isComposing) event.preventDefault(); }}/>
+        {chat.draft.trim() ? <button className="grok-send" type="submit" aria-label="发送到本页演示"><Icon name="arrow"/></button> : <button className="grok-send" type="button" aria-label="语音按钮，仅展示，不录音" onClick={() => chat.setPanel('语音输入仅作外观演示')}><svg className="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><rect x="8" y="3" width="8" height="12" rx="4"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M9 22h6"/></svg></button>}
+      </form>
+    </main>
+  </div>{chat.panel && <DialogPanel name={chat.panel} close={() => chat.setPanel('')} config={config} change={change} select={chat.select}/>}</div>;
+}
+
+function ZCodeApp({ config, change }: { config: DemoConfig; change: (config: DemoConfig) => void }) {
+  const chat = useNativeConversation(config, change, codingMessages);
+  const [details, setDetails] = useState(true);
+  const [model, setModel] = useState('GLM-5.3');
+  const [grouped, setGrouped] = useState(true);
+  const home = chat.messages.length === 0;
+  const projects = ['主题制作', 'Diana Playground', '展示页面', '开源发布'];
+  const composer = <form className="z-task-input" onSubmit={event => { event.preventDefault(); chat.send(); }}>
+    {home && <button className="z-project-picker" type="button" onClick={() => chat.setPanel('选择示例项目')}><Icon name="folder"/>选择项目 <span>⌄</span></button>}
+    <div className="z-input-body"><textarea aria-label="描述示例任务，只在本页显示" rows={2} maxLength={2000} value={chat.draft} onChange={event => chat.setDraft(event.target.value)} placeholder={home ? '向 ZCode 提问，@ 提及文件、文件夹或画板，/ 使用命令或子智能体，$ 使用技能，# 关联对话' : '提出后续修改要求'} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); chat.send(); } }}/>
+      <div className="z-input-tools"><IconButton name="plus" label="添加示例上下文" onClick={() => chat.setPanel('示例上下文')}/><button type="button" onClick={() => chat.setPanel('权限文字仅作外观演示')}>{home ? '♧ 变更前确认' : '♧ 完全访问'} <span>⌄</span></button><span className="z-input-spacer"/><span className="z-context-ring" aria-hidden="true"/><label><span className="sr-only">示例模型，不连接服务</span><select value={model} onChange={event => setModel(event.target.value)}><option>GLM-5.3</option><option>Auto</option></select></label><label><span className="sr-only">示例推理强度</span><select defaultValue="最高"><option>最高</option><option>高</option><option>中</option></select></label><button className="z-send" type="submit" disabled={!chat.draft.trim()} aria-label="发送到本页演示"><Icon name="arrow"/></button></div>
+    </div>
+  </form>;
+  return <div className={`application app-zcode native-zcode ${home ? 'z-home' : 'z-conversation'}`}><div className="application-body">
+    <aside className="z-project-sidebar" data-workspace-sidebar-panel="true">
+      <div className="z-app-toolbar"><strong className="z-app-mark">Z</strong><span aria-hidden="true">←</span><span aria-hidden="true">→</span><button onClick={() => chat.setPanel('版本信息示例')}>更新</button></div>
+      <nav className="z-quick-nav"><button onClick={chat.newChat}><Icon name="chat"/>新建任务 <kbd>Ctrl+N</kbd></button><button onClick={() => chat.setPanel('搜索示例会话')}><Icon name="search"/>搜索 <kbd>Ctrl+K</kbd></button><button onClick={() => chat.setPanel('自动化示例')}><Icon name="clock"/>自动化</button><button onClick={() => chat.setPanel('技能示例')}><Icon name="code"/>技能</button></nav>
+      <div className="z-project-tabs"><button aria-pressed={!grouped} onClick={() => setGrouped(false)}># 分组</button><button aria-pressed={grouped} onClick={() => setGrouped(true)}><Icon name="folder"/>项目</button><span>⌁</span><IconButton name="panel" label="切换右侧信息栏" onClick={() => setDetails(!details)}/></div>
+      <div className="z-project-list"><p>{grouped ? '项目' : '任务'}</p>{projects.map((project, index) => <section key={project}>{grouped && <button className="z-folder" onClick={() => chat.select(index)}><Icon name="folder"/>{project}</button>}<button className="z-project-task" aria-current={!home && chat.selected === index ? 'page' : undefined} onClick={() => chat.select(index)}>{['整理主题配置', '按钮与输入框细节', '检查窄屏布局', '整理发布说明'][index]}<time>{index ? '2天' : '1天'}</time></button>{grouped && <button className="z-project-task" onClick={() => chat.select(index)}>日夜外观对照 <time>3天</time></button>}</section>)}</div>
+      <div className="z-account"><span className="avatar">D</span><span>示例用户</span><small>Pro</small><IconButton name="settings" label="外观设置" onClick={() => chat.setPanel('外观设置')}/></div>
+    </aside>
+    <main className="app-workspace z-main"><ThemeArtwork app="zcode" enabled={config.mode !== 'original'}/>
+      <header className="z-workspace-top">{!home && <><strong>整理主题配置</strong><button onClick={() => chat.setPanel('示例项目')}><Icon name="folder"/>theme-playground</button><button onClick={() => chat.setPanel('示例分支')}><Icon name="branch"/>main ⌄</button></>}<div className="z-top-actions"><IconButton name="panel" label={details ? '收起 Git 工具' : '展开 Git 工具'} onClick={() => setDetails(!details)}/><WindowControls/></div></header>
+      {home ? <div className="z-start"><div className="z-watermark" aria-hidden="true"><i/><b/></div><h1>有什么想让我帮忙的吗</h1>{composer}<div className="z-template-area"><p><Icon name="globe"/>创建闲时任务，把重复的整理留给明天。</p><div>{['Git 站会摘要', 'CI 失败与不稳定测试报告', '自定义'].map((name, index) => <button key={name} onClick={() => chat.setDraft(['整理这个项目一周内的重要变更。', '列出需要关注的测试与排查顺序。', ''][index])}><strong><Icon name="clock"/>{name}</strong><span>{['每周五总结这一周发生的事情。', '汇总近期的测试状态，并整理排查方向。', '跳过模板，直接告诉它你想做什么。'][index]}</span></button>)}</div></div></div> : <div className={`z-session ${details ? 'with-details' : ''}`}>
+        <section className="z-thread"><div className="z-messages" ref={chat.scrollRef} tabIndex={0} aria-label="示例任务记录，可滚动">{chat.messages.map((message, index) => <article key={index} data-turn={index} className={`z-message ${message.role}`}>{message.role === 'assistant' && <div className="z-elapsed">已工作 {index * 3 + 7} 秒 <span>›</span></div>}<p>{message.text}</p>{message.kind === 'code' && <pre>{sampleCode}</pre>}{message.role === 'assistant' && <details className="z-change-card"><summary>›　1 个文件已更改 <b>+8</b> <i>−2</i><span>示例变更</span></summary><pre>{sampleCode}</pre></details>}</article>)}</div><MessageRail messages={chat.messages} scrollRef={chat.scrollRef}/>{composer}</section>
+        {details && <aside className="z-git-tools"><header>Git 工具 <IconButton name="close" label="收起 Git 工具" onClick={() => setDetails(false)}/></header><button onClick={() => chat.setPanel('示例变更')}><Icon name="file"/>更改 <b>+32</b><i>−8</i></button><button onClick={() => chat.setPanel('示例分支')}><Icon name="branch"/>main ⌄</button><button onClick={() => chat.setPanel('提交功能仅作演示')}>⌁ 提交或推送</button><hr/><p>进程 <b>4/4</b></p>{['梳理日夜颜色变量', '保留按钮与输入状态', '确认装饰避让正文', '整理视觉对照清单'].map(text => <div className="z-done" key={text}><Icon name="check"/><s>{text}</s></div>)}<hr/><p>智能体</p></aside>}
+      </div>}
+    </main>
+  </div>{chat.panel && <DialogPanel name={chat.panel} close={() => chat.setPanel('')} config={config} change={change} select={chat.select}/>}</div>;
+}
+
 const codeFiles: Record<string, string> = {
   'theme.ts': `// Diana — one component system, two palettes\n\nexport type ThemeMode = 'dark' | 'light';\n\nexport const themes = {\n  dark: {\n    background: '#0d0c0f',\n    surface: '#171419',\n    foreground: '#f3eef0',\n    accent: '#d86e91',\n  },\n  light: {\n    background: '#fbf8f6',\n    surface: '#ffffff',\n    foreground: '#2c2529',\n    accent: '#b84970',\n  },\n};\n\nexport function applyTheme(mode: ThemeMode) {\n  const palette = themes[mode];\n  const root = document.documentElement;\n\n  root.dataset.theme = mode;\n  Object.entries(palette).forEach(([key, color]) => {\n    root.style.setProperty('--' + key, color);\n  });\n}\n\n// Keep artwork below the reading and input layers.\n// Decorative elements never receive pointer events.`,
   'App.tsx': `import { useState } from 'react';\nimport { applyTheme, type ThemeMode } from './theme';\nimport './styles.css';\n\nexport function App() {\n  const [mode, setMode] = useState<ThemeMode>('dark');\n\n  function toggleTheme() {\n    const next = mode === 'dark' ? 'light' : 'dark';\n    applyTheme(next);\n    setMode(next);\n  }\n\n  return (\n    <main className="workspace">\n      <h1>A little space for your ideas.</h1>\n      <button onClick={toggleTheme}>\n        {mode === 'dark' ? '日间' : '暗夜'}\n      </button>\n    </main>\n  );\n}`,
@@ -248,6 +337,6 @@ function ThemeApp() {
     window.addEventListener('message', receive); return () => window.removeEventListener('message', receive);
   }, []);
   const standalone = window.parent === window;
-  return <>{standalone && <div className="standalone-note"><a href={`/themes?${configQuery(config)}`}>← 返回主题体验 / 切换应用与配色</a><span>网页视觉演示 · 非真实客户端</span></div>}{config.app === 'vscode' ? <VSCodeApp config={config} change={change}/> : config.app === 'terminal' ? <TerminalApp config={config}/> : <ChatApp key={config.app} config={config} change={change}/>}</>;
+  return <>{standalone && <div className="standalone-note"><a href={`/themes?${configQuery(config)}`}>← 返回主题体验 / 切换应用与配色</a><span>网页视觉演示 · 非真实客户端</span></div>}{config.app === 'grok' ? <GrokBotApp config={config} change={change}/> : config.app === 'zcode' ? <ZCodeApp config={config} change={change}/> : config.app === 'vscode' ? <VSCodeApp config={config} change={change}/> : config.app === 'terminal' ? <TerminalApp config={config}/> : <ChatApp key={config.app} config={config} change={change}/>}</>;
 }
 createRoot(document.getElementById('root')!).render(<ThemeApp/>);

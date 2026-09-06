@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { apps, configQuery, isConfig, parseConfig, type DemoConfig } from './theme-catalog';
+import { apps, configQuery, framePath, launcherPath, isConfig, parseConfig, type DemoConfig } from './theme-catalog';
 import './themes.css';
 
 function Gallery() {
@@ -40,7 +40,7 @@ function Gallery() {
   const frameApp = useRef('');
   if (frameApp.current !== config.app) {
     frameApp.current = config.app;
-    frameSrc.current = `/theme-app.html?${configQuery(config)}`;
+    frameSrc.current = framePath(config);
   }
   const copyLink = async () => {
     try { await navigator.clipboard.writeText(location.href); setCopied(true); window.setTimeout(() => setCopied(false), 1800); }
@@ -49,7 +49,7 @@ function Gallery() {
   return <main className="theme-gallery">
     <header className="gallery-top">
       <a className="gallery-brand" href="/">DIANA <span> / THEMES</span></a>
-      <nav aria-label="演示入口"><a href="/">启动器演示</a><a href="https://lanmengsakura.github.io/diana-codex-theme/" target="_blank" rel="noopener noreferrer">Codex 已有演示 ↗</a><a href="https://github.com/lanmengSakura/diana-multi-app-launcher/releases/tag/v0.1.0-beta.3" target="_blank" rel="noopener noreferrer">下载启动器 ↗</a></nav>
+      <nav aria-label="演示入口"><a href={launcherPath(config)}>← 返回启动器</a><a href="https://github.com/lanmengSakura/diana-multi-app-launcher/releases/tag/v0.1.0-beta.3" target="_blank" rel="noopener noreferrer">下载启动器 ↗</a></nav>
     </header>
     <div className="gallery-controls">
       <div className="app-tabs" role="group" aria-label="选择应用">{apps.map(app => <button key={app.id} aria-pressed={config.app === app.id} onClick={() => setConfig({ ...config, app: app.id, mode: config.mode === 'light' && !app.day ? 'dark' : config.mode })}>{app.short}</button>)}</div>
@@ -71,7 +71,7 @@ function Gallery() {
         <iframe key={config.app} ref={frame} title={`${selected.name} 主题示例，非真实应用`} src={frameSrc.current} style={{ width, height, transform: `scale(${scale})` }} onLoad={() => frame.current?.contentWindow?.postMessage({ type: 'diana-theme-config', config }, location.origin)} sandbox="allow-scripts allow-same-origin" />
       </div>
     </section>
-    <footer className="gallery-footer"><p>{selected.note}</p><a href={`https://github.com/lanmengSakura/${selected.repo}`} target="_blank" rel="noopener noreferrer">对应主题仓库 ↗</a><a href={`/theme-app.html?${configQuery(config)}`} target="_blank" rel="noopener noreferrer">单独打开 ↗</a><span>非商业粉丝二创 · 非官方</span></footer>
+    <footer className="gallery-footer"><p>{selected.note}</p><a href={`https://github.com/lanmengSakura/${selected.repo}`} target="_blank" rel="noopener noreferrer">对应主题仓库 ↗</a><a href={framePath(config)} target="_blank" rel="noopener noreferrer">单独打开 ↗</a><span>非商业粉丝二创 · 非官方</span></footer>
   </main>;
 }
 

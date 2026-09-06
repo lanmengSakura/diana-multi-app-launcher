@@ -26,10 +26,10 @@ test("static assets are preserved and writes are refused", async () => {
 test("public HTML routes map to internal pages before applying the nonce", async () => {
   const seen = [];
   const assets = { ASSETS: { fetch: async request => { seen.push(new URL(request.url).pathname); return new Response(html); } } };
-  for (const path of ["/", "/launcher.html", "/themes", "/themes.html", "/theme-app.html", "/theme-app/"]) {
+  for (const path of ["/", "/launcher.html", "/themes", "/themes.html", "/theme-app.html", "/theme-app/", "/codex", "/codex.html", "/codex/"]) {
     const response = await worker.fetch(new Request("https://example.test" + path), assets);
     assert.match(response.headers.get("Content-Type"), /text\/html/);
     assert.match(response.headers.get("Content-Security-Policy"), /nonce-/);
   }
-  assert.deepEqual(seen, ["/_diana-shell.page", "/_diana-launcher.page", "/_diana-themes.page", "/_diana-themes.page", "/_diana-theme-app.page", "/_diana-theme-app.page"]);
+  assert.deepEqual(seen, ["/_diana-shell.page", "/_diana-launcher.page", "/_diana-themes.page", "/_diana-themes.page", "/_diana-theme-app.page", "/_diana-theme-app.page", "/_diana-codex.page", "/_diana-codex.page", "/_diana-codex.page"]);
 });

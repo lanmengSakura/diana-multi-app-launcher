@@ -1,4 +1,5 @@
 import "./shell.css";
+import { apps, configQuery, fromLauncher, isConfig, launcherTargets, type LauncherTarget } from './theme-catalog';
 const frame = document.querySelector<HTMLIFrameElement>("#launcher-frame")!;
 const fit = document.querySelector<HTMLElement>("#launcher-fit")!;
 const activity = document.querySelector<HTMLElement>("#activity")!;
@@ -33,7 +34,7 @@ exitButton.addEventListener("click", () => post("simulate-exit"));
 errorButton.addEventListener("click", () => post("fail-next"));
 function reopen(reset = false) {
   if (reset) for (const key of ["diana-launcher-target", "diana-launcher-theme", "diana-launcher-selector-collapsed"]) localStorage.removeItem(key);
-  frame.src = "/launcher.html";
+  frame.src = reset ? "/launcher.html?reset=1" : "/launcher.html";
   frame.hidden = false;
   closed.hidden = true;
   activity.textContent = "演示已重新开始；音乐关闭。所有操作仅影响网页。";
@@ -48,10 +49,15 @@ window.addEventListener("message", event => {
   if (event.origin !== window.location.origin || event.source !== frame.contentWindow || event.data?.source !== "diana-demo") return;
   const { type, detail } = event.data;
   if (type === "activity" && typeof detail === "string") activity.textContent = detail;
+  if (type === 'navigate' && isConfig(detail)) location.assign(`/themes?${configQuery(detail)}`);
   if (type === "selection" && detail && typeof detail.target === "string") {
-    targetNote.textContent = boundary[detail.target] ?? boundary.codex;
-    exitButton.hidden = detail.target !== "codex";
-    errorButton.disabled = detail.target === "grokbot";
+    const app = apps.find(item => item.id === launcherTargets[detail.target as LauncherTarget]);
+    targetNote.textContent = `点击主按钮进入 ${app?.name ?? 'Codex'} 主题演示；恢复按钮进入原版参考。不访问或启动本机应用。`;
+    targetNote.title = boundary[detail.target] ?? boundary.codex;
+    const config = fromLauncher(detail.target, detail.mode, false, matchMedia('(prefers-color-scheme: dark)').matches);
+    if (config) history.replaceState(null, '', `/?${configQuery(config)}`);
+    exitButton.hidden = true;
+    errorButton.disabled = false;
   }
   if (type === "close" || type === "minimize") {
     frame.hidden = true;
