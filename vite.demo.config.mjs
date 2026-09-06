@@ -33,6 +33,9 @@ export default defineConfig({
     emptyOutDir: true,
     target: "es2022",
     sourcemap: false,
-    rolldownOptions: { input: { index: resolve("demo/index.html"), launcher: resolve("demo/launcher.html") } }
+    rolldownOptions: { input: {
+      index: resolve("demo/index.html"), launcher: resolve("demo/launcher.html"),
+      themes: resolve("demo/themes.html"), themeApp: resolve("demo/theme-app.html")
+    } }
   }
 });

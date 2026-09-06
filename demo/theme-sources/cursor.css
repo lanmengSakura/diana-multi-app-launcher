@@ -1,0 +1,354 @@
+/* Diana Cursor 3.17.21 local visual layer.
+   The artwork is anchored to Cursor's agent panel; controls stay native and interactive. */
+html.diana-cursor-host {
+  --diana-surface: #0d0c0f;
+  --diana-panel: #171419;
+  --diana-panel-raised: #1d181e;
+  --diana-ink: #f3eef0;
+  --diana-muted: #a9a1a7;
+  --diana-accent: #d86e91;
+  --diana-accent-bright: #ee8aab;
+  --diana-accent-soft: rgb(216 110 145 / 16%);
+  --diana-accent-faint: rgb(216 110 145 / 8%);
+  --diana-border: #2b262d;
+  --diana-line-berry: #d86e91;
+  --diana-line-coral: #d86e91;
+}
+
+html.diana-cursor-host[data-diana-cursor-mode="light"],
+html.diana-cursor-host .monaco-workbench.vs,
+html.diana-cursor-host .monaco-workbench.hc-light {
+  --diana-surface: #fbf8f6;
+  --diana-panel: #ffffff;
+  --diana-panel-raised: #fffafd;
+  --diana-ink: #2c2529;
+  --diana-muted: #7e7178;
+  --diana-accent: #b84970;
+  --diana-accent-bright: #cf6288;
+  --diana-accent-soft: rgb(184 73 112 / 13%);
+  --diana-accent-faint: rgb(184 73 112 / 7%);
+  --diana-border: #e8dfe2;
+  --diana-line-berry: #b85f7c;
+  --diana-line-coral: #cf7f88;
+}
+
+html.diana-cursor-host #diana-cursor-theme-chrome,
+html.diana-cursor-host #diana-cursor-theme-chrome * {
+  box-sizing: border-box;
+  pointer-events: none !important;
+  user-select: none !important;
+}
+
+html.diana-cursor-host #diana-cursor-theme-chrome {
+  position: fixed;
+  inset: 0;
+  z-index: 38;
+  overflow: hidden;
+  background: transparent !important;
+}
+
+html.diana-cursor-host #diana-cursor-theme-chrome .diana-cursor-editor-layer,
+html.diana-cursor-host #diana-cursor-theme-chrome .diana-cursor-sidebar-layer {
+  position: absolute;
+  left: var(--diana-part-left, 0px);
+  top: var(--diana-part-top, 36px);
+  width: var(--diana-part-width, 0px);
+  height: var(--diana-part-height, 0px);
+  overflow: hidden;
+  background: transparent !important;
+}
+
+html.diana-cursor-host #diana-cursor-theme-chrome .diana-cursor-editor-layer > span {
+  position: absolute;
+  display: block;
+  background-repeat: no-repeat;
+}
+
+/* Left contour: kept inside the conversation panel instead of crossing the app menu/sidebar. */
+html.diana-cursor-host #diana-cursor-theme-chrome .diana-cursor-corner {
+  top: 54px;
+  left: 34px;
+  width: clamp(300px, 50%, 820px);
+  aspect-ratio: 1600 / 485;
+  background: var(--diana-line-berry);
+  -webkit-mask: url("__DIANA_CORNER__") left center / contain no-repeat;
+  mask: url("__DIANA_CORNER__") left center / contain no-repeat;
+  opacity: 0.34;
+}
+
+/* Preserve the native 490:315 composition; a shallow box shrinks this asset dramatically. */
+html.diana-cursor-host #diana-cursor-theme-chrome .diana-cursor-upper {
+  top: 44px;
+  right: 18px;
+  width: clamp(230px, 45%, 350px);
+  aspect-ratio: 490 / 315;
+  background: var(--diana-line-coral);
+  -webkit-mask: url("__DIANA_UPPER__") center / contain no-repeat;
+  mask: url("__DIANA_UPPER__") center / contain no-repeat;
+  opacity: 0.34;
+  filter: drop-shadow(0 0 4px rgb(216 110 145 / 9%));
+}
+
+/* Codex-series composition: figure sits above the composer and within the right blank field. */
+html.diana-cursor-host #diana-cursor-theme-chrome .diana-cursor-character,
+html.diana-cursor-host #diana-cursor-theme-chrome .diana-cursor-ornaments {
+  right: 26px;
+  bottom: 92px;
+  width: clamp(230px, 27%, 345px);
+  height: min(64%, 620px);
+}
+
+html.diana-cursor-host #diana-cursor-theme-chrome .diana-cursor-character {
+  background-image: url("__DIANA_NIGHT_PORTRAIT__");
+  background-position: right bottom;
+  background-size: contain;
+  opacity: 0.52;
+  filter: saturate(0.9) brightness(0.92) contrast(1.01);
+  -webkit-mask-image: linear-gradient(to top, transparent 0, #000 5%, #000 94%, transparent 100%);
+  mask-image: linear-gradient(to top, transparent 0, #000 5%, #000 94%, transparent 100%);
+}
+
+html.diana-cursor-host #diana-cursor-theme-chrome .diana-cursor-ornaments {
+  background-image:
+    url("__DIANA_STAR__"),
+    url("__DIANA_STAR__"),
+    url("__DIANA_CANDY__"),
+    url("__DIANA_LOLLIPOP__");
+  background-position: 7% 59%, 96% 25%, 5% 81%, 96% 80%;
+  background-size: 34px 34px, 46px 46px, 44px auto, 54px auto;
+  opacity: 0.7;
+  filter: brightness(0.9) saturate(0.92) drop-shadow(0 0 8px rgb(216 110 145 / 10%));
+}
+
+/* One lower-left sketch, mirroring the accepted Codex composition. */
+html.diana-cursor-host #diana-cursor-theme-chrome .diana-cursor-doodle {
+  left: 18px;
+  bottom: 104px;
+  width: min(27%, 292px);
+  aspect-ratio: 1 / 1;
+  background-image: url("__DIANA_DOODLE__");
+  background-position: left bottom;
+  background-size: contain;
+  opacity: 0.22;
+  filter: saturate(0.78) brightness(0.92);
+  -webkit-mask-image: linear-gradient(to top, #000 0 83%, transparent 100%);
+  mask-image: linear-gradient(to top, #000 0 83%, transparent 100%);
+}
+
+/* Kept as a structural hook for later assets; hidden to avoid duplicate lower-left characters. */
+html.diana-cursor-host #diana-cursor-theme-chrome .diana-cursor-acao {
+  display: none;
+}
+
+/* Cursor surfaces, without recolouring message/code text. */
+html.diana-cursor-host .agent-panel,
+html.diana-cursor-host .agent-panel-conversation-shell {
+  background-color: var(--diana-surface) !important;
+}
+
+/* Only the verified transcript shell is raised above the art. */
+html.diana-cursor-host [data-diana-cursor-foreground="true"] {
+  position: relative;
+  z-index: 39;
+  background-color: transparent !important;
+}
+
+html.diana-cursor-host nav.ui-sidebar,
+html.diana-cursor-host .ui-sidebar {
+  background-color: var(--diana-panel) !important;
+  border-right-color: var(--diana-border) !important;
+}
+
+html.diana-cursor-host .ui-sidebar-menu-button {
+  border-radius: 8px !important;
+  transition:
+    color 150ms ease,
+    background-color 150ms ease,
+    box-shadow 150ms ease !important;
+}
+
+html.diana-cursor-host .ui-sidebar-menu-button:hover {
+  background-color: var(--diana-accent-faint) !important;
+}
+
+html.diana-cursor-host .ui-sidebar-menu-button[data-active="true"],
+html.diana-cursor-host .ui-sidebar-menu-button[aria-current="page"],
+html.diana-cursor-host .ui-sidebar-menu-button[aria-selected="true"] {
+  color: var(--diana-ink) !important;
+  background-color: var(--diana-accent-soft) !important;
+  box-shadow:
+    inset 3px 0 0 var(--diana-accent),
+    inset 0 0 0 1px rgb(216 110 145 / 10%) !important;
+}
+
+html.diana-cursor-host .ui-button,
+html.diana-cursor-host .ui-icon-button {
+  border-radius: 8px !important;
+  transition:
+    color 150ms ease,
+    background-color 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease !important;
+}
+
+html.diana-cursor-host .ui-button[data-variant="primary"] {
+  color: #fff !important;
+  background-color: var(--diana-accent) !important;
+  border-color: var(--diana-accent) !important;
+  box-shadow: 0 4px 16px rgb(216 110 145 / 18%) !important;
+}
+
+html.diana-cursor-host .ui-button[data-variant="primary"]:hover {
+  background-color: var(--diana-accent-bright) !important;
+  border-color: var(--diana-accent-bright) !important;
+}
+
+html.diana-cursor-host .ui-button[data-variant="tint"] {
+  color: var(--diana-ink) !important;
+  background-color: var(--diana-accent-soft) !important;
+  border-color: rgb(216 110 145 / 18%) !important;
+}
+
+html.diana-cursor-host .ui-icon-button:hover,
+html.diana-cursor-host .ui-icon-button[data-state="open"],
+html.diana-cursor-host .ui-icon-button[aria-pressed="true"] {
+  color: var(--diana-accent-bright) !important;
+  background-color: var(--diana-accent-soft) !important;
+}
+
+html.diana-cursor-host .ui-button:focus-visible,
+html.diana-cursor-host .ui-icon-button:focus-visible,
+html.diana-cursor-host .ui-sidebar-menu-button:focus-visible {
+  outline: 2px solid var(--diana-accent) !important;
+  outline-offset: 2px !important;
+}
+
+/* Composer keeps Cursor semantics but adopts the established Diana card geometry. */
+html.diana-cursor-host .ui-prompt-input__container {
+  color: var(--diana-ink) !important;
+  background-color: var(--diana-panel-raised) !important;
+  border: 1px solid rgb(216 110 145 / 32%) !important;
+  border-radius: 14px !important;
+  box-shadow:
+    0 10px 28px rgb(0 0 0 / 22%),
+    inset 0 1px 0 rgb(255 255 255 / 4%) !important;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease !important;
+}
+
+html.diana-cursor-host .ui-prompt-input__container:focus-within {
+  border-color: var(--diana-accent) !important;
+  box-shadow:
+    0 10px 30px rgb(0 0 0 / 24%),
+    0 0 0 2px rgb(216 110 145 / 10%),
+    0 0 20px rgb(216 110 145 / 9%) !important;
+}
+
+html.diana-cursor-host .ui-prompt-input-plus-button {
+  color: var(--diana-accent-bright) !important;
+  background-color: var(--diana-accent-soft) !important;
+  border-radius: 8px !important;
+}
+
+html.diana-cursor-host .ui-prompt-input-submit-button {
+  color: #fff !important;
+  background-color: var(--diana-accent) !important;
+  border-color: var(--diana-accent) !important;
+  box-shadow: 0 0 14px rgb(216 110 145 / 22%) !important;
+}
+
+html.diana-cursor-host .agent-panel-followup-input {
+  background: linear-gradient(to top, var(--diana-surface) 56%, transparent) !important;
+}
+
+html.diana-cursor-host[data-diana-cursor-mode="light"] #diana-cursor-theme-chrome .diana-cursor-character,
+html.diana-cursor-host .monaco-workbench.vs #diana-cursor-theme-chrome .diana-cursor-character,
+html.diana-cursor-host .monaco-workbench.hc-light #diana-cursor-theme-chrome .diana-cursor-character {
+  background-image: url("__DIANA_DAY_PORTRAIT__");
+  opacity: 0.5;
+  filter: saturate(0.84) brightness(0.99) contrast(1.01);
+}
+
+html.diana-cursor-host[data-diana-cursor-mode="light"] #diana-cursor-theme-chrome .diana-cursor-upper,
+html.diana-cursor-host .monaco-workbench.vs #diana-cursor-theme-chrome .diana-cursor-upper,
+html.diana-cursor-host .monaco-workbench.hc-light #diana-cursor-theme-chrome .diana-cursor-upper {
+  opacity: 0.35;
+  filter: drop-shadow(0 0 3px rgb(184 73 112 / 7%));
+}
+
+html.diana-cursor-host[data-diana-cursor-mode="light"] #diana-cursor-theme-chrome .diana-cursor-corner,
+html.diana-cursor-host .monaco-workbench.vs #diana-cursor-theme-chrome .diana-cursor-corner,
+html.diana-cursor-host .monaco-workbench.hc-light #diana-cursor-theme-chrome .diana-cursor-corner {
+  opacity: 0.35;
+}
+
+html.diana-cursor-host[data-diana-cursor-mode="light"] #diana-cursor-theme-chrome .diana-cursor-doodle,
+html.diana-cursor-host .monaco-workbench.vs #diana-cursor-theme-chrome .diana-cursor-doodle,
+html.diana-cursor-host .monaco-workbench.hc-light #diana-cursor-theme-chrome .diana-cursor-doodle {
+  opacity: 0.24;
+  filter: saturate(0.74) brightness(0.94) contrast(0.98);
+}
+
+html.diana-cursor-host[data-diana-cursor-mode="light"] #diana-cursor-theme-chrome .diana-cursor-ornaments,
+html.diana-cursor-host .monaco-workbench.vs #diana-cursor-theme-chrome .diana-cursor-ornaments,
+html.diana-cursor-host .monaco-workbench.hc-light #diana-cursor-theme-chrome .diana-cursor-ornaments {
+  opacity: 0.7;
+  filter: saturate(0.8) contrast(0.98);
+}
+
+html.diana-cursor-host[data-diana-cursor-mode="light"] .ui-prompt-input__container,
+html.diana-cursor-host .monaco-workbench.vs .ui-prompt-input__container,
+html.diana-cursor-host .monaco-workbench.hc-light .ui-prompt-input__container {
+  box-shadow:
+    0 8px 24px rgb(94 56 72 / 12%),
+    inset 0 1px 0 rgb(255 255 255 / 72%) !important;
+}
+
+html.diana-cursor-host[data-diana-cursor-mode="light"] .ui-prompt-input__container:focus-within,
+html.diana-cursor-host .monaco-workbench.vs .ui-prompt-input__container:focus-within,
+html.diana-cursor-host .monaco-workbench.hc-light .ui-prompt-input__container:focus-within {
+  box-shadow:
+    0 8px 24px rgb(94 56 72 / 14%),
+    0 0 0 2px rgb(184 73 112 / 9%),
+    0 0 18px rgb(184 73 112 / 8%) !important;
+}
+
+@media (max-width: 1080px) {
+  html.diana-cursor-host #diana-cursor-theme-chrome .diana-cursor-character,
+  html.diana-cursor-host #diana-cursor-theme-chrome .diana-cursor-ornaments {
+    right: 18px;
+    width: 222px;
+  }
+
+  html.diana-cursor-host #diana-cursor-theme-chrome .diana-cursor-corner {
+    width: 320px;
+  }
+}
+
+@media (max-width: 860px), (max-height: 620px) {
+  html.diana-cursor-host #diana-cursor-theme-chrome .diana-cursor-character,
+  html.diana-cursor-host #diana-cursor-theme-chrome .diana-cursor-ornaments,
+  html.diana-cursor-host #diana-cursor-theme-chrome .diana-cursor-acao,
+  html.diana-cursor-host #diana-cursor-theme-chrome .diana-cursor-doodle {
+    display: none;
+  }
+
+  html.diana-cursor-host #diana-cursor-theme-chrome .diana-cursor-corner {
+    width: 300px;
+    height: 102px;
+    opacity: 0.3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.diana-cursor-host #diana-cursor-theme-chrome *,
+  html.diana-cursor-host .ui-button,
+  html.diana-cursor-host .ui-icon-button,
+  html.diana-cursor-host .ui-sidebar-menu-button,
+  html.diana-cursor-host .ui-prompt-input__container {
+    animation: none !important;
+    transition: none !important;
+  }
+}

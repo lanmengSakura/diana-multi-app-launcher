@@ -2,9 +2,11 @@
 
 嘉然 Diana 多应用主题启动器。当前公开版本为 **`v0.1.0-beta.3`**，仅面向 Windows 测试用户；安装器和便携版均未签名。
 
-[在线交互演示](https://diana-launcher-demo.szbluedream01.chatgpt.site) · [下载 Beta.3](https://github.com/lanmengSakura/diana-multi-app-launcher/releases/tag/v0.1.0-beta.3)
+[应用内主题体验](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes) · [启动器演示](https://diana-launcher-demo.szbluedream01.chatgpt.site) · [Codex 主题演示](https://lanmengsakura.github.io/diana-codex-theme/) · [下载 Beta.3](https://github.com/lanmengSakura/diana-multi-app-launcher/releases/tag/v0.1.0-beta.3)
 
 网页复用 EXE 的定稿美术和界面代码，可体验连接臂展开/隐藏、按钮交互、外发光和音乐粒子。**网页中的挂载、版本与进程状态都是模拟，不检测或操作访客的本机应用。** 模拟成功不代表本机兼容。
+
+应用主题体验另提供豆包浏览器、Cursor、Grok Bot、ZCode、VS Code、Windows Terminal（PowerShell/CMD）和 DeepSeek Harness 的独立界面。可切换日夜、查看无主题参考、浏览预设会话或示例文件。终端仅展示已有暗夜主题；原版参考是网页重建，不是真实客户端。演示使用正式主题 CSS/素材，不捆绑用户会话或目标应用运行时，完整美术演示不等于公开包自动提供完整挂载能力。说明见 [网页主题演示](demo/THEME_DEMOS.md)。本次仅更新网页，Windows Beta.3 安装包不变。
 
 > 这是非商业同人项目，不隶属于 OpenAI、A-SOUL、字节跳动、Microsoft、Anysphere、DeepSeek 或 ZCode。Beta 版可能因目标应用更新而拒绝挂载；拒绝旧适配器属于安全行为，不代表目标应用损坏。
 

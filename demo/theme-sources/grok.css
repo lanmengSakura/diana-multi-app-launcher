@@ -1,0 +1,295 @@
+html.diana-grok-host {
+  --diana-grok-rose: #d86e91;
+  --diana-grok-rose-strong: #f08bad;
+  --diana-grok-line: rgba(216, 110, 145, 0.72);
+  --diana-grok-glow: rgba(234, 114, 159, 0.28);
+  --diana-grok-ink: rgba(69, 25, 46, 0.78);
+}
+
+html.diana-grok-host[data-diana-grok-mode="light"] {
+  --diana-grok-line: rgba(184, 73, 112, 0.7);
+  --diana-grok-glow: rgba(197, 86, 130, 0.18);
+  --diana-grok-ink: rgba(100, 48, 69, 0.62);
+}
+
+html.diana-grok-host #diana-grok-theme-chrome,
+html.diana-grok-host #diana-grok-theme-chrome *,
+html.diana-grok-host #diana-grok-theme-chrome *::before,
+html.diana-grok-host #diana-grok-theme-chrome *::after,
+html.diana-grok-host #diana-grok-theme-underlay,
+html.diana-grok-host #diana-grok-theme-underlay * {
+  pointer-events: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  box-sizing: border-box !important;
+}
+
+html.diana-grok-host #diana-grok-theme-underlay {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 0 !important;
+  overflow: hidden !important;
+  contain: paint !important;
+}
+
+html.diana-grok-host #diana-grok-theme-underlay .diana-grok-black-hole {
+  --diana-grok-hole-size: min(600px, 62vw, 62vh);
+  position: absolute !important;
+  display: block !important;
+  width: var(--diana-grok-hole-size) !important;
+  height: var(--diana-grok-hole-size) !important;
+  right: max(-340px, -35vw, -35vh) !important;
+  bottom: max(-282px, -29vw, -29vh) !important;
+  z-index: 0 !important;
+  border-radius: 999px !important;
+  background: rgba(4, 3, 6, 0.97) !important;
+  box-shadow: 0 0 0 1px rgba(240, 139, 173, 0.17), 0 0 12px 3px var(--diana-grok-glow) !important;
+  opacity: 0.88 !important;
+}
+
+html.diana-grok-host[data-diana-grok-mode="light"] #diana-grok-theme-underlay .diana-grok-black-hole {
+  background: #fbf8f6 !important;
+  box-shadow: 0 0 0 1px rgba(184, 73, 112, 0.34), 0 0 10px 2px rgba(197, 86, 130, 0.28) !important;
+  opacity: 0.58 !important;
+}
+
+html.diana-grok-host #diana-grok-theme-chrome {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 2147483000 !important;
+  overflow: hidden !important;
+  contain: layout paint style !important;
+}
+
+html.diana-grok-host .diana-grok-workarea {
+  position: fixed !important;
+  left: var(--diana-left, 286px) !important;
+  top: var(--diana-top, 36px) !important;
+  width: var(--diana-width, calc(100vw - 286px)) !important;
+  height: var(--diana-height, calc(100vh - 36px)) !important;
+  overflow: hidden !important;
+  isolation: isolate !important;
+  border-radius: 0 0 10px 0 !important;
+}
+
+html.diana-grok-host .diana-grok-workarea > span {
+  position: absolute !important;
+  display: block !important;
+  background-repeat: no-repeat !important;
+  transform-origin: center !important;
+}
+
+html.diana-grok-host .diana-grok-corner {
+  left: 12px !important;
+  top: 48px !important;
+  width: min(620px, 52vw) !important;
+  height: min(188px, 16vw) !important;
+  background: var(--diana-grok-line) !important;
+  -webkit-mask: url("__DIANA_CORNER__") left top / 100% auto no-repeat !important;
+  mask: url("__DIANA_CORNER__") left top / 100% auto no-repeat !important;
+  clip-path: polygon(0 0, 100% 0, 100% 34%, 25% 34%, 25% 100%, 0 100%) !important;
+  opacity: 0.36 !important;
+  filter: drop-shadow(0 0 8px var(--diana-grok-glow)) !important;
+}
+
+html.diana-grok-host .diana-grok-upper {
+  right: 18px !important;
+  top: 52px !important;
+  width: min(480px, 40vw) !important;
+  height: 116px !important;
+  background: var(--diana-grok-line) !important;
+  -webkit-mask: url("__DIANA_UPPER__") right top / 100% auto no-repeat !important;
+  mask: url("__DIANA_UPPER__") right top / 100% auto no-repeat !important;
+  opacity: 0.54 !important;
+  filter: drop-shadow(0 0 10px var(--diana-grok-glow)) !important;
+}
+
+html.diana-grok-host .diana-grok-character {
+  right: clamp(-34px, -1.7vw, -22px) !important;
+  bottom: clamp(64px, 6.8vh, 76px) !important;
+  width: clamp(250px, 20vw, 340px) !important;
+  height: min(58vh, 560px) !important;
+  background-image: url("__DIANA_NIGHT_PORTRAIT__") !important;
+  background-size: contain !important;
+  background-position: right bottom !important;
+  opacity: 0.48 !important;
+  filter: brightness(0.94) saturate(0.96) contrast(1.02) drop-shadow(0 0 18px var(--diana-grok-glow)) !important;
+  -webkit-mask-image: linear-gradient(to top, #000 0%, #000 88%, transparent 100%) !important;
+  mask-image: linear-gradient(to top, #000 0%, #000 88%, transparent 100%) !important;
+}
+
+html.diana-grok-host[data-diana-grok-mode="light"] .diana-grok-character {
+  background-image: url("__DIANA_DAY_PORTRAIT__") !important;
+  width: clamp(270px, 21vw, 360px) !important;
+  opacity: 0.54 !important;
+  filter: brightness(0.98) saturate(0.98) contrast(1.05) drop-shadow(0 0 20px rgba(169, 73, 111, 0.24)) !important;
+}
+
+html.diana-grok-host[data-diana-grok-mode="light"] .diana-grok-corner,
+html.diana-grok-host[data-diana-grok-mode="light"] .diana-grok-upper {
+  opacity: 0.4 !important;
+  mix-blend-mode: multiply !important;
+  filter: drop-shadow(0 0 7px rgba(169, 73, 111, 0.2)) !important;
+}
+
+html.diana-grok-host[data-diana-grok-mode="light"] .diana-grok-ornaments {
+  opacity: 0.58 !important;
+  mix-blend-mode: multiply !important;
+  filter: sepia(0.28) saturate(1.18) hue-rotate(292deg) brightness(0.92) drop-shadow(0 0 6px rgba(169, 73, 111, 0.18)) !important;
+}
+
+html.diana-grok-host .diana-grok-ornaments {
+  right: clamp(-24px, -1.2vw, -14px) !important;
+  bottom: clamp(64px, 6.8vh, 76px) !important;
+  width: clamp(280px, 22vw, 370px) !important;
+  height: min(58vh, 560px) !important;
+  background-image:
+    url("__DIANA_STAR__"),
+    url("__DIANA_STAR__"),
+    url("__DIANA_CANDY__"),
+    url("__DIANA_LOLLIPOP__"),
+    url("__ACAO_HEART__"),
+    url("__ACAO_CHEER__") !important;
+  background-size: 34px auto, 46px auto, 62px auto, 64px auto, 94px auto, 90px auto !important;
+  background-position:
+    8% 38%,
+    95% 22%,
+    1% 52%,
+    94% 59%,
+    15% 76%,
+    92% 79% !important;
+  opacity: 0.68 !important;
+  filter: brightness(0.84) saturate(0.88) contrast(0.98) drop-shadow(0 0 8px var(--diana-grok-glow)) !important;
+}
+
+html.diana-grok-host .diana-grok-acao {
+  display: none !important;
+}
+
+html.diana-grok-host[data-diana-grok-mode="light"] .diana-grok-acao {
+  opacity: 0.17 !important;
+  mix-blend-mode: multiply !important;
+}
+
+html.diana-grok-host .diana-grok-doodle {
+  left: 4px !important;
+  bottom: 74px !important;
+  width: min(300px, 30vw) !important;
+  height: min(280px, 30vh) !important;
+  background-image: url("__DIANA_DOODLE__") !important;
+  background-size: contain !important;
+  background-position: left bottom !important;
+  opacity: 0.4 !important;
+  filter: brightness(0.78) saturate(0.82) contrast(0.96) drop-shadow(0 0 8px var(--diana-grok-glow)) !important;
+  -webkit-mask-image: linear-gradient(42deg, #000 0%, #000 55%, transparent 92%) !important;
+  mask-image: linear-gradient(42deg, #000 0%, #000 55%, transparent 92%) !important;
+}
+
+html.diana-grok-host[data-diana-grok-mode="light"] .diana-grok-doodle {
+  background-image: none !important;
+  background-color: var(--diana-grok-line) !important;
+  -webkit-mask: url("__DIANA_DOODLE__") left bottom / contain no-repeat !important;
+  mask: url("__DIANA_DOODLE__") left bottom / contain no-repeat !important;
+  opacity: 0.44 !important;
+  mix-blend-mode: multiply !important;
+  filter: drop-shadow(0 0 7px rgba(168, 72, 109, 0.16)) !important;
+}
+
+html.diana-grok-host .diana-grok-workarea::after {
+  content: "" !important;
+  position: absolute !important;
+  z-index: -1 !important;
+  border-radius: 999px !important;
+  opacity: 0.5 !important;
+}
+
+html.diana-grok-host .diana-grok-workarea::after {
+  width: 36vw !important;
+  height: 1px !important;
+  right: 8vw !important;
+  top: 66px !important;
+  background: linear-gradient(90deg, transparent, var(--diana-grok-line), transparent) !important;
+  box-shadow: 0 0 9px 1px var(--diana-grok-glow) !important;
+}
+
+html.diana-grok-host[data-diana-grok-mode="dark"] .diana-grok-upper,
+html.diana-grok-host[data-diana-grok-mode="dark"] .diana-grok-corner,
+html.diana-grok-host[data-diana-grok-mode="dark"] .diana-grok-ornaments {
+  animation: diana-grok-soft-breathe 4.8s ease-in-out infinite !important;
+}
+
+html.diana-grok-host[data-diana-grok-mode="dark"] .diana-grok-character {
+  animation: diana-grok-character-breathe 6.2s ease-in-out infinite !important;
+}
+
+html.diana-grok-host:has([role="dialog"]) .diana-grok-workarea {
+  opacity: 0.3 !important;
+  transition: opacity 160ms ease !important;
+}
+
+@keyframes diana-grok-soft-breathe {
+  0%, 100% { filter: drop-shadow(0 0 5px rgba(234,114,159,.18)); }
+  50% { filter: drop-shadow(0 0 12px rgba(234,114,159,.42)); }
+}
+
+@keyframes diana-grok-character-breathe {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(0.995); filter: drop-shadow(0 0 12px rgba(234,114,159,.18)) saturate(.9); }
+  50% { transform: translate3d(0, -3px, 0) scale(1.006); filter: drop-shadow(0 0 23px rgba(234,114,159,.36)) saturate(.98); }
+}
+
+html.diana-grok-host ::selection {
+  background: rgba(219, 109, 151, 0.3) !important;
+}
+
+@media (max-width: 1200px) {
+  html.diana-grok-host .diana-grok-corner {
+    left: 8px !important;
+    top: 48px !important;
+    width: 330px !important;
+    height: 104px !important;
+    opacity: 0.22 !important;
+  }
+
+  html.diana-grok-host .diana-grok-upper {
+    right: 8px !important;
+    top: 3px !important;
+    width: 310px !important;
+    height: 50px !important;
+    opacity: 0.36 !important;
+  }
+
+  html.diana-grok-host .diana-grok-character {
+    right: -20px !important;
+    bottom: 62px !important;
+    width: 238px !important;
+    height: 430px !important;
+    opacity: 0.3 !important;
+  }
+
+  html.diana-grok-host[data-diana-grok-mode="light"] .diana-grok-character {
+    width: 248px !important;
+    opacity: 0.4 !important;
+  }
+
+  html.diana-grok-host .diana-grok-ornaments {
+    right: -12px !important;
+    bottom: 62px !important;
+    width: 264px !important;
+    height: 430px !important;
+    background-size: 26px auto, 36px auto, 46px auto, 48px auto, 72px auto, 68px auto !important;
+    opacity: 0.5 !important;
+  }
+
+  html.diana-grok-host .diana-grok-doodle {
+    display: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.diana-grok-host .diana-grok-workarea *,
+  html.diana-grok-host .diana-grok-workarea *::before,
+  html.diana-grok-host .diana-grok-workarea *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
