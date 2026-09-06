@@ -27,7 +27,7 @@ npm run build:demo
 
 QA 只驱动隔离浏览器，不实际启动目标应用。设置 `DEMO_URL` 可以验证静态构建或已发布站点。未提供音频时可以构建无音乐版本；含音乐的完整 QA 需要该媒体。
 
-构建产物在 `site-build/dist/client`；Worker 与配置在 `site-build/dist/server`。原生 `dist` 保持不变。静态文件也可部署到支持 HTTPS 的静态服务器，不需要 Worker 业务后端。
+构建产物在 `site-build/dist/client`；Worker 与配置在 `site-build/dist/server`。原生 `dist` 保持不变。Sites 为避免静态路由绕过响应安全策略，将两份 HTML 暂存为 `.page`，由 Worker 映射到公开地址；用 `node scripts/serve-demo.mjs` 可以本地预览同一映射。若只需普通静态导出，单独执行 `npx vite build --config vite.demo.config.mjs`，不运行打包脚本即可保留标准 HTML 文件。
 
 本仓库 `.openai/hosting.json` 只记录维护者站点 ID，没有凭据。Fork 后若部署到自己的 Sites 项目，需要替换为自己创建的站点 ID，不能向本项目站点发布。发布凭据仅通过短期、单次命令认证使用，不写入源码、Git remote 或构建产物。
 

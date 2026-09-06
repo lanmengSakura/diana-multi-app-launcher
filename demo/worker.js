@@ -1,8 +1,16 @@
 export default {
   async fetch(request, env) {
     if (request.method !== "GET" && request.method !== "HEAD") return new Response("Method not allowed", { status: 405 });
-    const response = await env.ASSETS.fetch(request);
+    const url = new URL(request.url);
+    const htmlAsset = ["/", "/index.html"].includes(url.pathname) ? "/_diana-shell.page"
+      : ["/launcher", "/launcher.html", "/launcher/"].includes(url.pathname) ? "/_diana-launcher.page" : null;
+    // Sites serves matching static files before the Worker. Keep HTML under
+    // non-navigation asset names so every public page receives a fresh nonce.
+    const assetUrl = new URL(request.url);
+    if (htmlAsset) assetUrl.pathname = htmlAsset;
+    const response = await env.ASSETS.fetch(new Request(assetUrl, request));
     const headers = new Headers(response.headers);
+    if (htmlAsset && response.ok) headers.set("Content-Type", "text/html; charset=utf-8");
     headers.set("X-Content-Type-Options", "nosniff");
     headers.set("Referrer-Policy", "no-referrer");
     headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");

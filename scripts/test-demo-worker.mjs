@@ -23,3 +23,13 @@ test("static assets are preserved and writes are refused", async () => {
   assert.equal(css.headers.get("Content-Security-Policy"), null);
   assert.equal((await worker.fetch(new Request("https://example.test/", { method: "POST" }), env)).status, 405);
 });
+test("public HTML routes map to internal pages before applying the nonce", async () => {
+  const seen = [];
+  const assets = { ASSETS: { fetch: async request => { seen.push(new URL(request.url).pathname); return new Response(html); } } };
+  for (const path of ["/", "/launcher.html"]) {
+    const response = await worker.fetch(new Request("https://example.test" + path), assets);
+    assert.match(response.headers.get("Content-Type"), /text\/html/);
+    assert.match(response.headers.get("Content-Security-Policy"), /nonce-/);
+  }
+  assert.deepEqual(seen, ["/_diana-shell.page", "/_diana-launcher.page"]);
+});
