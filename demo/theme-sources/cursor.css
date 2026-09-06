@@ -287,8 +287,20 @@ html.diana-cursor-host .monaco-workbench.hc-light #diana-cursor-theme-chrome .di
 html.diana-cursor-host[data-diana-cursor-mode="light"] #diana-cursor-theme-chrome .diana-cursor-doodle,
 html.diana-cursor-host .monaco-workbench.vs #diana-cursor-theme-chrome .diana-cursor-doodle,
 html.diana-cursor-host .monaco-workbench.hc-light #diana-cursor-theme-chrome .diana-cursor-doodle {
-  opacity: 0.24;
-  filter: saturate(0.74) brightness(0.94) contrast(0.98);
+  /* Tint the approved alpha linework instead of fading pale chalk onto white. */
+  background: var(--diana-line-berry);
+  -webkit-mask-image: url("__DIANA_DOODLE__"), linear-gradient(to top, #000 0 83%, transparent 100%);
+  mask-image: url("__DIANA_DOODLE__"), linear-gradient(to top, #000 0 83%, transparent 100%);
+  -webkit-mask-position: left bottom, center;
+  mask-position: left bottom, center;
+  -webkit-mask-size: contain, 100% 100%;
+  mask-size: contain, 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+  opacity: 0.62;
+  filter: none;
 }
 
 html.diana-cursor-host[data-diana-cursor-mode="light"] #diana-cursor-theme-chrome .diana-cursor-ornaments,

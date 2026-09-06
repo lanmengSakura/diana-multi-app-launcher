@@ -22,12 +22,14 @@ Cursor/Grok 的 CSS 只复制公开视觉蓝图，不复制适配器。Cursor �
 
 ## CSS 源文件溯源
 
-新增在 `demo/theme-sources/` 的文件保留原样，SHA-256：
+新增在 `demo/theme-sources/` 的蓝图最初复制来源 SHA-256：
 
 - `cursor.css`：`697325613823578821d9a4c795d6576b1a23a4703b29ee3561321716a1858508`
 - `grok.css`：`0dad28bd7eeb5ecc11e7ef3f9592e5d29a21e98db1cbc8b7b3ca5171f875bac7`
 
 对应公开源仓库：[Cursor](https://github.com/lanmengSakura/diana-cursor-theme)、[Grok Bot](https://github.com/lanmengSakura/diana-grok-bot-theme)。结构参考还包括已有 ZCode/Terminal 静态预览，以及 DeepSeek Harness 的 AppFrame/Sidebar 布局；本页宿主代码为独立示例实现，没有复制上游组件运行时。
+
+2026-09-06 日间校色：Cursor 与 DeepSeek 左侧简笔画改用原始透明线稿蒙版着色，沿用莓粉 `#b85f7c`，透明度改为 `0.62`。Cursor 保留顶部渐隐，DeepSeek 的日夜共用同一组尺寸/位置变量，所有断点保持原布局。夜间与其他装饰不变，不新增图片，不更新 EXE；上面的 Cursor 校验值记录初始来源，不是校色后的文件值。
 
 ## 使用与边界
 

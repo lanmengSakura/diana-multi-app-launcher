@@ -13,7 +13,8 @@ body {
   --diana-border: #e8dfe2;
   --diana-line: rgba(184, 73, 112, 0.42);
   --diana-art-opacity: 0.86;
-  --diana-doodle-opacity: 0.2;
+  --diana-doodle-opacity: 0.62;
+  --diana-doodle-color: #b85f7c;
   --diana-character: url('/diana-brand/diana-corner-cutout-v2.png');
   --diana-sidebar-safe: 280px;
   --diana-canvas-gutter: clamp(28px, 4vw, 72px);
@@ -266,10 +267,27 @@ body::before {
 }
 
 [data-shell-overlay]::after {
+  --diana-doodle-size: clamp(245px, 24vw, 342px) auto;
+  --diana-doodle-position: left calc(var(--diana-sidebar-safe) + var(--diana-canvas-gutter)) bottom 14px;
   opacity: var(--diana-doodle-opacity);
   background-image: url('/diana-brand/diana-doodle-chalk-v2-approved.png');
-  background-size: clamp(245px, 24vw, 342px) auto;
-  background-position: left calc(var(--diana-sidebar-safe) + var(--diana-canvas-gutter)) bottom 14px;
+  background-size: var(--diana-doodle-size);
+  background-position: var(--diana-doodle-position);
+}
+
+/* Day artwork uses the existing alpha texture as berry-coloured linework.
+ * Background and mask share geometry, including all home/session breakpoints. */
+body:not([data-ds-dark-theme]) [data-shell-overlay]::after {
+  background-image: none;
+  background-color: var(--diana-doodle-color);
+  -webkit-mask-image: url('/diana-brand/diana-doodle-chalk-v2-approved.png');
+  mask-image: url('/diana-brand/diana-doodle-chalk-v2-approved.png');
+  -webkit-mask-size: var(--diana-doodle-size);
+  mask-size: var(--diana-doodle-size);
+  -webkit-mask-position: var(--diana-doodle-position);
+  mask-position: var(--diana-doodle-position);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
 }
 
 @media (max-width: 1100px) {
@@ -290,7 +308,7 @@ body::before {
   }
 
   [data-shell-overlay]::after {
-    background-size: 238px auto;
+    --diana-doodle-size: 238px auto;
   }
 }
 
@@ -316,8 +334,8 @@ body::before {
   }
 
   [data-shell-overlay]::after {
-    background-size: clamp(240px, 21vw, 286px) auto;
-    background-position: left calc(var(--diana-sidebar-safe) + var(--diana-canvas-gutter)) bottom 8px;
+    --diana-doodle-size: clamp(240px, 21vw, 286px) auto;
+    --diana-doodle-position: left calc(var(--diana-sidebar-safe) + var(--diana-canvas-gutter)) bottom 8px;
   }
 }
 
@@ -498,8 +516,8 @@ body:has([data-slot='conversation.view']) [data-shell-overlay]::before {
 
 body:has([data-slot='conversation.view']) [data-shell-overlay]::after {
   display: block;
-  background-size: 170px auto;
-  background-position: left calc(var(--diana-sidebar-safe) + 14px) bottom 148px;
+  --diana-doodle-size: 170px auto;
+  --diana-doodle-position: left calc(var(--diana-sidebar-safe) + 14px) bottom 148px;
 }
 
 /* A live transcript keeps a narrow reading column even on a 2K display, so
@@ -524,8 +542,8 @@ body:has([data-slot='conversation.view']) [data-shell-overlay]::after {
   }
 
   body:has([data-slot='conversation.view']) [data-shell-overlay]::after {
-    background-size: clamp(210px, 13vw, 340px) auto;
-    background-position: left calc(var(--diana-sidebar-safe) + 18px) bottom 148px;
+    --diana-doodle-size: clamp(210px, 13vw, 340px) auto;
+    --diana-doodle-position: left calc(var(--diana-sidebar-safe) + 18px) bottom 148px;
   }
 }
 
@@ -540,8 +558,8 @@ body:has([data-slot='conversation.view']) [data-shell-overlay]::after {
   }
 
   body:has([data-slot='conversation.view']) [data-shell-overlay]::after {
-    background-size: 148px auto;
-    background-position: left calc(var(--diana-sidebar-safe) + 12px) bottom 136px;
+    --diana-doodle-size: 148px auto;
+    --diana-doodle-position: left calc(var(--diana-sidebar-safe) + 12px) bottom 136px;
   }
 }
 
