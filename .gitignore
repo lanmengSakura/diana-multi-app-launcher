@@ -1,5 +1,7 @@
 /node_modules/
 /dist/
+/site-build/
+/demo-media/
 /src-tauri/target/
 /src-tauri/private-assets/*
 !/src-tauri/private-assets/README.md

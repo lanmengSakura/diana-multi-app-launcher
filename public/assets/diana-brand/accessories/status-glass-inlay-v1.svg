@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="626" height="115" viewBox="212 1373 626 115" fill="none">
+  <defs>
+    <linearGradient id="glass" x1="245" y1="1373" x2="747" y2="1510" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#302630"/><stop offset=".28" stop-color="#25202B"/><stop offset=".67" stop-color="#1B1822"/><stop offset="1" stop-color="#29202B"/>
+    </linearGradient>
+    <linearGradient id="reflection" x1="263" y1="1373" x2="564" y2="1488" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFE5DD" stop-opacity=".07"/><stop offset="1" stop-color="#FFE5DD" stop-opacity="0"/>
+    </linearGradient>
+    <mask id="face" maskUnits="userSpaceOnUse" x="212" y="1373" width="626" height="115">
+      <path d="M243 1374H811Q817 1374 821 1378L833 1391Q837 1395 835 1402L824 1461Q823 1468 818 1472L805 1483Q801 1486 793 1486H246Q240 1486 237 1483L218 1464Q213 1460 214 1454L226 1392Q227 1385 232 1381L237 1376Q240 1374 243 1374Z" fill="white"/>
+      <!-- Keep the original rose-metal hanging rings intact and in front. -->
+      <ellipse cx="287" cy="1362" rx="23" ry="27" fill="black"/>
+      <ellipse cx="723" cy="1362" rx="23" ry="27" fill="black"/>
+    </mask>
+  </defs>
+  <!-- Trace the original face in master pixels. No extra outline: the source
+       artwork supplies the bevel. Opaque glass covers all old baked lettering. -->
+  <g mask="url(#face)">
+    <path d="M212 1373H838V1488H212Z" fill="url(#glass)"/>
+    <path d="M210 1373H598L442 1488H210Z" fill="url(#reflection)"/>
+  </g>
+</svg>

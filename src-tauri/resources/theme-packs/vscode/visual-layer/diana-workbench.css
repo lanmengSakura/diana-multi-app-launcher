@@ -3,14 +3,14 @@
   --diana-vscode-line-soft: rgba(232, 132, 166, 0.2);
 }
 
-.monaco-workbench {
+.monaco-workbench[class*="diana-vscode-theme-themes-diana-"] {
   isolation: isolate;
 }
 
-.monaco-workbench::before,
-.monaco-workbench::after,
-.monaco-workbench .part.sidebar::after,
-.monaco-workbench .part.editor::after {
+.monaco-workbench[class*="diana-vscode-theme-themes-diana-"]::before,
+.monaco-workbench[class*="diana-vscode-theme-themes-diana-"]::after,
+.monaco-workbench[class*="diana-vscode-theme-themes-diana-"] .part.sidebar::after,
+.monaco-workbench[class*="diana-vscode-theme-themes-diana-"] .part.editor::after {
   content: "";
   position: absolute;
   display: block;
@@ -19,7 +19,7 @@
 }
 
 /* 横跨左上两条边的细线角花。使用透明蒙版统一日夜颜色，不压住标题栏。 */
-.monaco-workbench::before {
+.monaco-workbench[class*="diana-vscode-theme-themes-diana-"]::before {
   z-index: 41;
   top: 34px;
   left: 47px;
@@ -32,7 +32,7 @@
 }
 
 /* 右下立绘只占编辑器边缘，整体低对比，不夺取代码阅读焦点。 */
-.monaco-workbench::after {
+.monaco-workbench[class*="diana-vscode-theme-themes-diana-"]::after {
   z-index: 39;
   right: 10px;
   bottom: 20px;
@@ -45,12 +45,12 @@
   mask-image: linear-gradient(to top, transparent 0, #000 8%, #000 88%, transparent 100%);
 }
 
-/* 左侧栏底部保留简笔画；暗夜粉笔线、日间彩色细线分别承载。 */
-.monaco-workbench .part.sidebar {
+/* 日间直接为正式简笔画的透明线条着色，不叠加灰黑色填充或白底色块。 */
+.monaco-workbench[class*="diana-vscode-theme-themes-diana-"] .part.sidebar {
   overflow: hidden;
 }
 
-.monaco-workbench .part.sidebar::after {
+.monaco-workbench[class*="diana-vscode-theme-themes-diana-"] .part.sidebar::after {
   z-index: 30;
   left: 10px;
   bottom: 26px;
@@ -65,20 +65,22 @@
   mask-image: linear-gradient(to top, #000 0 76%, transparent 100%);
 }
 
-.monaco-workbench.vs-dark .part.sidebar::after,
-.monaco-workbench.hc-black .part.sidebar::after {
+.monaco-workbench[class*="diana-vscode-theme-themes-diana-"].vs-dark .part.sidebar::after,
+.monaco-workbench[class*="diana-vscode-theme-themes-diana-"].hc-black .part.sidebar::after {
   background-image: url("./diana-assets/diana-doodle-chalk.png");
 }
 
-.monaco-workbench.vs .part.sidebar::after,
-.monaco-workbench.hc-light .part.sidebar::after {
-  background-image: url("./diana-assets/diana-doodle-color.png");
-  opacity: 0.095;
-  filter: saturate(0.58) contrast(0.92);
+.monaco-workbench[class*="diana-vscode-theme-themes-diana-"].vs .part.sidebar::after,
+.monaco-workbench[class*="diana-vscode-theme-themes-diana-"].hc-light .part.sidebar::after {
+  background: #a35774;
+  -webkit-mask: url("./diana-assets/diana-doodle-chalk.png") left bottom / contain no-repeat;
+  mask: url("./diana-assets/diana-doodle-chalk.png") left bottom / contain no-repeat;
+  opacity: 0.44;
+  filter: none;
 }
 
 /* 两颗正式手绘星、糖果和棒棒糖共用一个视口绘制层。 */
-.monaco-workbench .part.editor::after {
+.monaco-workbench[class*="diana-vscode-theme-themes-diana-"] .part.editor::after {
   position: fixed;
   z-index: 38;
   right: 10px;
@@ -97,44 +99,45 @@
   filter: brightness(0.8) saturate(0.84) contrast(0.97) drop-shadow(0 0 7px rgb(216 110 145 / 6%));
 }
 
-.monaco-workbench.vs::before,
-.monaco-workbench.hc-light::before {
+.monaco-workbench[class*="diana-vscode-theme-themes-diana-"].vs::before,
+.monaco-workbench[class*="diana-vscode-theme-themes-diana-"].hc-light::before {
   --diana-vscode-line: rgba(170, 91, 117, 0.3);
   opacity: 0.62;
 }
 
-.monaco-workbench.vs::after,
-.monaco-workbench.hc-light::after {
-  opacity: 0.105;
-  filter: saturate(0.62) brightness(1.05);
+.monaco-workbench[class*="diana-vscode-theme-themes-diana-"].vs::after,
+.monaco-workbench[class*="diana-vscode-theme-themes-diana-"].hc-light::after {
+  background-image: url("./diana-assets/diana-portrait-day.png");
+  opacity: 0.34;
+  filter: saturate(0.96) brightness(1);
 }
 
-.monaco-workbench.vs .part.editor::after,
-.monaco-workbench.hc-light .part.editor::after {
+.monaco-workbench[class*="diana-vscode-theme-themes-diana-"].vs .part.editor::after,
+.monaco-workbench[class*="diana-vscode-theme-themes-diana-"].hc-light .part.editor::after {
   opacity: 0.4;
   filter: saturate(0.68) contrast(0.92);
 }
 
 @media (max-width: 1080px) {
-  .monaco-workbench::after {
+  .monaco-workbench[class*="diana-vscode-theme-themes-diana-"]::after {
     width: 210px;
     opacity: 0.12;
   }
 
-  .monaco-workbench .part.editor::after {
+  .monaco-workbench[class*="diana-vscode-theme-themes-diana-"] .part.editor::after {
     width: 210px;
     opacity: 0.48;
   }
 }
 
 @media (max-width: 860px), (max-height: 620px) {
-  .monaco-workbench::after,
-  .monaco-workbench .part.sidebar::after,
-  .monaco-workbench .part.editor::after {
+  .monaco-workbench[class*="diana-vscode-theme-themes-diana-"]::after,
+  .monaco-workbench[class*="diana-vscode-theme-themes-diana-"] .part.sidebar::after,
+  .monaco-workbench[class*="diana-vscode-theme-themes-diana-"] .part.editor::after {
     display: none;
   }
 
-  .monaco-workbench::before {
+  .monaco-workbench[class*="diana-vscode-theme-themes-diana-"]::before {
     width: 320px;
     height: 104px;
     opacity: 0.48;

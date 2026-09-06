@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="165 1206 556 100">
+  <!-- Inner acrylic contour in the 1024 x 1536 master image coordinates.
+       The bevel and four bright corner facets remain outside this mask. -->
+  <defs>
+    <filter id="inward-feather" x="-5%" y="-20%" width="110%" height="140%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="2"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="2" intercept="-1"/>
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <path d="M196 1208 H709 L718 1217 L705 1292 L694 1304 H180 L169.5 1292 L185 1220 Z" fill="white" filter="url(#inward-feather)"/>
+</svg>

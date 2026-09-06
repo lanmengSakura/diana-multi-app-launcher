@@ -7,8 +7,10 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::env;
 use std::fs;
+use std::io::{Read, Write};
+use std::net::{SocketAddr, TcpStream};
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::time::Duration;
 use sysinfo::System;
 
@@ -23,7 +25,7 @@ const CURSOR_ADAPTER_MANIFEST_SHA256: &str =
 const EXPECTED_GROK_VERSION: &str = "0.28.0";
 const GROK_ADAPTER_VERSION: &str = "experimental-grok-bot-0.28.0-v2";
 const GROK_ADAPTER_MANIFEST_SHA256: &str =
-    "255887DC2931DD19ACEA990A1D3CDF7DC588C9420BAEA017A7C7513467D912DE";
+    "0823F21D31FBE0CC3407747689DBA3FDA33E6EB56609313EC451AE606D98A653";
 const EXPECTED_ZCODE_VERSION: &str = "3.6.5.4145";
 const EXPECTED_ZCODE_SIGNER_THUMBPRINT: &str = "6F7B147DC610F91425750D2449C46002C3385BCF";
 const ZCODE_ADAPTER_VERSION: &str = "experimental-3.6.5-v3";
@@ -218,6 +220,10 @@ const DOUBAO_ASSET_MAP: &[(&str, &str)] = &[
 
 const VSCODE_ART_MAP: &[(&str, &str)] = &[
     ("diana-portrait.png", "assets/diana-night-v3.png"),
+    (
+        "diana-portrait-day.png",
+        "assets/diana-corner-cutout-v2.png",
+    ),
     (
         "diana-doodle-chalk.png",
         "assets/diana-doodle-chalk-v2-approved.png",
@@ -505,37 +511,46 @@ fn spawn_detached(executable: &Path, args: &[String]) -> Result<(), String> {
         .map_err(|error| format!("无法启动 {}：{error}", executable.display()))
 }
 
-#[cfg(windows)]
-fn spawn_visible_console(executable: &Path, args: &[String], cwd: &Path) -> Result<(), String> {
-    use std::os::windows::process::CommandExt;
-    const CREATE_NEW_CONSOLE: u32 = 0x0000_0010;
-    let mut command = Command::new(executable);
+fn browser_open_command(url: &str) -> Result<Command, String> {
+    let parsed = tauri::Url::parse(url).map_err(|_| "网页地址无效。".to_string())?;
+    if !matches!(parsed.scheme(), "http" | "https")
+        || parsed.host_str().is_none()
+        || !parsed.username().is_empty()
+        || parsed.password().is_some()
+        || url.chars().any(char::is_control)
+    {
+        return Err("仅允许通过默认浏览器打开 HTTP(S) 网页。".to_string());
+    }
+    // Let the registered URL handler open the page, rather than passing it to
+    // explorer.exe as a filesystem target. Keep DSH's bootstrap token out of
+    // the PowerShell command line and any errors.
+    let mut command = Command::new(powershell_runtime()?);
+    configure_windows_powershell_environment(&mut command)?;
     command
-        .args(args)
-        .current_dir(cwd)
-        .creation_flags(CREATE_NEW_CONSOLE);
-    command
-        .spawn()
-        .map(|_| ())
-        .map_err(|error| format!("无法启动本地服务：{error}"))
-}
-
-#[cfg(not(windows))]
-fn spawn_visible_console(executable: &Path, args: &[String], cwd: &Path) -> Result<(), String> {
-    Command::new(executable)
-        .args(args)
-        .current_dir(cwd)
-        .spawn()
-        .map(|_| ())
-        .map_err(|error| format!("无法启动本地服务：{error}"))
+        .args([
+            "-NoLogo",
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            r#"$ErrorActionPreference='Stop'; try { $launch=[System.Diagnostics.ProcessStartInfo]::new(); $launch.FileName=$env:DIANA_BROWSER_URL; $launch.UseShellExecute=$true; [System.Diagnostics.Process]::Start($launch) | Out-Null } catch { exit 1 }"#,
+        ])
+        .env("DIANA_BROWSER_URL", url)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
+    hide_console(&mut command);
+    Ok(command)
 }
 
 fn open_url(url: &str) -> Result<(), String> {
-    Command::new("explorer.exe")
-        .arg(url)
-        .spawn()
-        .map(|_| ())
-        .map_err(|error| format!("无法打开页面：{error}"))
+    let result = browser_open_command(url)?
+        .status()
+        .map_err(|_| "无法调用 Windows 默认浏览器。".to_string())?;
+    if result.success() {
+        Ok(())
+    } else {
+        Err("Windows 未能打开默认浏览器，请检查 HTTP(S) 默认应用关联。".to_string())
+    }
 }
 
 pub(crate) fn ensure_doubao_theme() -> Result<PathBuf, String> {
@@ -569,7 +584,12 @@ fn terminal_theme_state(available: bool, installed: bool) -> &'static str {
 }
 
 fn terminal_status() -> ExternalTargetStatus {
-    let executable = find_in_path("wt.exe");
+    let executable = find_in_path("wt.exe").or_else(|| {
+        local_app_data()
+            .ok()
+            .map(|root| root.join("Microsoft/WindowsApps/wt.exe"))
+            .filter(|path| path.exists())
+    });
     let fragment = terminal_fragment_root().ok();
     let installed = fragment
         .as_ref()
@@ -587,7 +607,7 @@ fn terminal_status() -> ExternalTargetStatus {
     } else if installed {
         (
             "terminal_ready",
-            "Diana PowerShell 与 Diana CMD 已安装；启动器使用 Windows Terminal 原生 Fragment，不修改终端程序。"
+            "Diana PowerShell / CMD 已安装。主题与原版均新开窗口，不会改动已有终端会话。"
                 .to_string(),
         )
     } else {
@@ -612,6 +632,67 @@ fn terminal_status() -> ExternalTargetStatus {
     }
 }
 
+const DIANA_TERMINAL_PROFILES: [&str; 2] = [
+    "{9f604e64-7bc5-4f8a-9d55-7fe0a6fe27d1}",
+    "{376e4b97-e3c1-42ea-a6ee-5605714340e7}",
+];
+const NATIVE_POWERSHELL_PROFILE: &str = "{61c54bbd-c2c6-5271-96e7-009a87ff44bf}";
+
+fn native_terminal_profile(current: Option<&str>, previous: Option<&str>) -> String {
+    current
+        .filter(|id| !DIANA_TERMINAL_PROFILES.contains(id))
+        .or_else(|| previous.filter(|id| !DIANA_TERMINAL_PROFILES.contains(id)))
+        .unwrap_or(NATIVE_POWERSHELL_PROFILE)
+        .to_string()
+}
+
+fn restore_terminal_default() -> Result<String, String> {
+    let local = local_app_data()?;
+    let legacy: serde_json::Value =
+        fs::read(terminal_fragment_root()?.join("diana-terminal.state"))
+            .ok()
+            .and_then(|bytes| serde_json::from_slice(&bytes).ok())
+            .unwrap_or_default();
+    let candidates = [
+        local.join("Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json"),
+        local.join("Microsoft/Windows Terminal/settings.json"),
+    ];
+    let Some(settings) = candidates.into_iter().find(|path| path.is_file()) else {
+        return Ok(NATIVE_POWERSHELL_PROFILE.to_string());
+    };
+    let contents =
+        fs::read_to_string(&settings).map_err(|error| format!("无法读取终端设置：{error}"))?;
+    let current = jsonc_raw_value(&contents, "defaultProfile")
+        .and_then(|raw| serde_json::from_str::<String>(&raw).ok());
+    // The old installer already recorded this field. Never replay its whole settings backup.
+    let previous = legacy
+        .get("SettingsPath")
+        .and_then(|v| v.as_str())
+        .filter(|path| Path::new(path) == settings)
+        .and_then(|_| {
+            legacy
+                .get("PreviousDefaultProfile")
+                .and_then(|v| v.as_str())
+        });
+    let native = native_terminal_profile(current.as_deref(), previous);
+    if current
+        .as_deref()
+        .is_some_and(|id| DIANA_TERMINAL_PROFILES.contains(&id))
+    {
+        let backup = settings.with_extension("json.diana-before-native.bak");
+        if !backup.exists() {
+            write_if_changed(&backup, contents.as_bytes())?;
+        }
+        let updated = replace_jsonc_raw(
+            &contents,
+            "defaultProfile",
+            &serde_json::to_string(&native).unwrap(),
+        );
+        write_if_changed(&settings, updated.as_bytes())?;
+    }
+    Ok(native)
+}
+
 fn launch_terminal(themed: bool) -> Result<ExternalTargetStatus, String> {
     let before = terminal_status();
     let executable = before
@@ -630,11 +711,23 @@ fn launch_terminal(themed: bool) -> Result<ExternalTargetStatus, String> {
             "Diana PowerShell".to_string(),
         ]
     } else {
-        Vec::new()
+        vec![
+            "-w".to_string(),
+            "new".to_string(),
+            "new-tab".to_string(),
+            "-p".to_string(),
+            restore_terminal_default()?,
+        ]
     };
     spawn_detached(&executable, &args)?;
     std::thread::sleep(Duration::from_millis(650));
-    Ok(terminal_status())
+    let mut status = terminal_status();
+    if !themed {
+        status.message =
+            "已按原生配置新开终端；旧 Diana 窗口保留，避免中断其中的命令。Diana 配置仍可再次使用。"
+                .to_string();
+    }
+    Ok(status)
 }
 
 fn vscode_executable() -> Option<PathBuf> {
@@ -835,7 +928,15 @@ fn set_editor_theme(
     if !state_path.is_file() {
         let previous_values = managed_keys
             .iter()
-            .map(|key| ((*key).to_string(), jsonc_raw_value(&original, key)))
+            .map(|key| {
+                let raw = jsonc_raw_value(&original, key);
+                let previous = if product_name == "VS Code" {
+                    raw.map(|value| native_vscode_theme_value(&value))
+                } else {
+                    raw
+                };
+                ((*key).to_string(), previous)
+            })
             .collect::<BTreeMap<_, _>>();
         let state = EditorManagedState {
             settings_path: settings.to_string_lossy().into_owned(),
@@ -882,6 +983,31 @@ fn restore_editor_theme(
     product_name: &str,
 ) -> Result<(), String> {
     if !state_path.is_file() {
+        if product_name == "VS Code" {
+            // Older manual installs did not save a pre-Diana theme. Keep every unrelated setting.
+            let mut contents = fs::read_to_string(settings)
+                .map_err(|error| format!("无法读取 VS Code 设置：{error}"))?;
+            let original = contents.clone();
+            for key in [
+                "workbench.colorTheme",
+                "workbench.preferredDarkColorTheme",
+                "workbench.preferredLightColorTheme",
+            ] {
+                if let Some(raw) = jsonc_raw_value(&contents, key) {
+                    let native = native_vscode_theme_value(&raw);
+                    if native != raw {
+                        contents = replace_jsonc_raw(&contents, key, &native);
+                    }
+                }
+            }
+            if contents != original {
+                let backup = settings.with_extension("json.diana-before-native.bak");
+                if !backup.exists() {
+                    write_if_changed(&backup, original.as_bytes())?;
+                }
+                write_if_changed(settings, contents.as_bytes())?;
+            }
+        }
         return Ok(());
     }
     let state: EditorManagedState = serde_json::from_slice(
@@ -897,6 +1023,11 @@ fn restore_editor_theme(
     let mut updated = fs::read_to_string(&settings).unwrap_or_else(|_| "{}\n".to_string());
     for (key, previous) in state.previous_values {
         updated = if let Some(raw) = previous {
+            let raw = if product_name == "VS Code" {
+                native_vscode_theme_value(&raw)
+            } else {
+                raw
+            };
             replace_jsonc_raw(&updated, &key, &raw)
         } else {
             remove_jsonc_property(&updated, &key)
@@ -906,6 +1037,14 @@ fn restore_editor_theme(
     fs::remove_file(&state_path)
         .map_err(|error| format!("无法完成 VS Code 恢复状态收尾：{error}"))?;
     Ok(())
+}
+
+fn native_vscode_theme_value(raw: &str) -> String {
+    match raw {
+        "\"Diana Night\"" => "\"Dark Modern\"".to_string(),
+        "\"Diana Day\"" => "\"Light Modern\"".to_string(),
+        _ => raw.to_string(),
+    }
 }
 
 fn set_vscode_theme(executable: &Path, mode: &str) -> Result<PathBuf, String> {
@@ -926,20 +1065,31 @@ fn restore_vscode_theme(executable: &Path) -> Result<(), String> {
 }
 
 fn vscode_visual_layer_present(executable: &Path) -> bool {
-    executable
-        .parent()
-        .and_then(|root| {
-            let expected = root
-                .join("resources")
-                .join("app")
-                .join("out")
-                .join("vs")
-                .join("workbench")
-                .join("workbench.desktop.main.css");
-            fs::read_to_string(expected).ok()
-        })
-        .map(|contents| contents.contains("DIANA_VSCODE_VISUAL_LAYER_START"))
-        .unwrap_or(false)
+    let Some(root) = executable.parent() else {
+        return false;
+    };
+    let mut roots = vec![root.to_path_buf()];
+    // Current portable builds keep resources under a commit-named child directory.
+    if let Ok(entries) = fs::read_dir(root) {
+        roots.extend(
+            entries
+                .flatten()
+                .filter(|entry| {
+                    entry
+                        .file_name()
+                        .to_string_lossy()
+                        .chars()
+                        .all(|c| c.is_ascii_hexdigit())
+                        && entry.path().is_dir()
+                })
+                .map(|entry| entry.path()),
+        );
+    }
+    roots.into_iter().any(|root| {
+        fs::read_to_string(root.join("resources/app/out/vs/workbench/workbench.desktop.main.css"))
+            .map(|contents| contents.contains("DIANA_VSCODE_VISUAL_LAYER_START"))
+            .unwrap_or(false)
+    })
 }
 
 fn vscode_theme_state(
@@ -973,7 +1123,12 @@ fn vscode_status() -> ExternalTargetStatus {
     let selected = settings
         .as_ref()
         .and_then(|path| fs::read_to_string(path).ok())
-        .map(|contents| contents.contains("\"Diana Night\"") || contents.contains("\"Diana Day\""))
+        .map(|contents| {
+            matches!(
+                jsonc_raw_value(&contents, "workbench.colorTheme").as_deref(),
+                Some("\"Diana Night\"") | Some("\"Diana Day\"")
+            )
+        })
         .unwrap_or(false);
     let extension_installed = extension
         .as_ref()
@@ -992,7 +1147,8 @@ fn vscode_status() -> ExternalTargetStatus {
         (
             "vscode_diana_ready",
             if visual_layer {
-                "Diana 日夜配色与本机完整美术层均已就绪。".to_string()
+                "Diana 日夜配色已选择；美术层跟随颜色主题。先选日间 / 暗夜，再点击主按钮应用。"
+                    .to_string()
             } else {
                 "Diana 官方颜色主题已就绪；完整美术蓝图已随启动器携带，但不会默认改写 VS Code 安装资源。"
                     .to_string()
@@ -1043,9 +1199,13 @@ fn launch_vscode(themed: bool, mode: &str) -> Result<ExternalTargetStatus, Strin
     } else {
         restore_vscode_theme(&executable)?;
     }
-    spawn_detached(&executable, &[])?;
+    spawn_detached(&executable, &["--reuse-window".to_string()])?;
     std::thread::sleep(Duration::from_millis(850));
-    Ok(vscode_status())
+    let mut status = vscode_status();
+    if !themed {
+        status.message = "已恢复原生颜色主题；Diana 美术层仅在 Diana 主题下显示。旧安装没有恢复记录时使用对应的内置 Modern 主题。".to_string();
+    }
+    Ok(status)
 }
 
 fn cursor_executable() -> Option<PathBuf> {
@@ -1908,11 +2068,17 @@ fn deepseek_processes(root: Option<&Path>) -> ProcessSnapshot {
             .collect::<Vec<_>>()
             .join(" ")
             .to_ascii_lowercase();
-        let matches = hint
-            .as_ref()
-            .map(|expected| command.contains(expected))
-            .unwrap_or(false)
-            && (command.contains("dsh") || command.contains("deepseek-harness"));
+        let matches = process
+            .name()
+            .to_string_lossy()
+            .eq_ignore_ascii_case("node.exe")
+            && hint
+                .as_ref()
+                .map(|expected| command.contains(expected))
+                .unwrap_or(false)
+            && (command.contains("apps\\cli\\lib\\bin.js")
+                || command.contains("apps/cli/lib/bin.js"))
+            && command.split_whitespace().any(|arg| arg == "web");
         if !matches {
             continue;
         }
@@ -1925,11 +2091,89 @@ fn deepseek_processes(root: Option<&Path>) -> ProcessSnapshot {
     snapshot
 }
 
+const DEEPSEEK_URL: &str = "http://127.0.0.1:3080";
+
+fn is_deepseek_page(response: &str) -> bool {
+    response.starts_with("HTTP/1.1 200")
+        && response.contains("id=\"root\"")
+        && (response.contains("DSH Local Build") || response.contains("DeepSeek Harness"))
+}
+
+fn deepseek_browser_url() -> Option<String> {
+    // DSH rotates this local bootstrap credential each launch. Never include it in UI/errors.
+    let log = fs::read_to_string(state_root().ok()?.join("deepseek-service.log")).ok()?;
+    let prefix = format!("dsh web: {DEEPSEEK_URL}/?token=");
+    let token = log
+        .lines()
+        .rev()
+        .find_map(|line| line.trim().strip_prefix(&prefix))?;
+    (token.len() >= 32
+        && token.len() <= 128
+        && token
+            .bytes()
+            .all(|c| c.is_ascii_alphanumeric() || c == b'_' || c == b'-'))
+    .then(|| format!("{DEEPSEEK_URL}/?token={token}"))
+}
+
+fn deepseek_http_request(path: &str, cookie: Option<&str>) -> Option<String> {
+    let address: SocketAddr = "127.0.0.1:3080".parse().unwrap();
+    let Ok(mut stream) = TcpStream::connect_timeout(&address, Duration::from_millis(250)) else {
+        return None;
+    };
+    let _ = stream.set_read_timeout(Some(Duration::from_millis(700)));
+    let _ = stream.set_write_timeout(Some(Duration::from_millis(700)));
+    let cookie = cookie
+        .map(|value| format!("Cookie: {value}\r\n"))
+        .unwrap_or_default();
+    let request =
+        format!("GET {path} HTTP/1.1\r\nHost: 127.0.0.1:3080\r\nConnection: close\r\n{cookie}\r\n");
+    stream.write_all(request.as_bytes()).ok()?;
+    let mut response = String::new();
+    stream.take(32768).read_to_string(&mut response).ok()?;
+    Some(response)
+}
+
+fn deepseek_http_ready() -> bool {
+    let Some(response) = deepseek_http_request("/", None) else {
+        return false;
+    };
+    if is_deepseek_page(&response) {
+        return true;
+    }
+    let Some(url) = deepseek_browser_url() else {
+        return false;
+    };
+    let Some(bootstrap) = deepseek_http_request(&url[DEEPSEEK_URL.len()..], None) else {
+        return false;
+    };
+    if !bootstrap.starts_with("HTTP/1.1 303") {
+        return false;
+    }
+    let cookie = bootstrap
+        .split("\r\n\r\n")
+        .next()
+        .unwrap_or_default()
+        .lines()
+        .filter_map(|line| line.split_once(':'))
+        .find(|(name, value)| {
+            name.eq_ignore_ascii_case("set-cookie") && value.trim().starts_with("dsh-auth-")
+        })
+        .map(|(_, value)| value.trim().split(';').next().unwrap_or_default());
+    cookie
+        .and_then(|value| deepseek_http_request("/", Some(value)))
+        .is_some_and(|page| is_deepseek_page(&page))
+}
+
 fn deepseek_status() -> ExternalTargetStatus {
     let root = deepseek_root();
     let ready = root.as_deref().map(deepseek_theme_ready).unwrap_or(false);
     let snapshot = deepseek_processes(root.as_deref());
-    let pnpm = find_in_path("pnpm.cmd");
+    let node = find_node_runtime().ok();
+    let built = root.as_ref().is_some_and(|path| {
+        path.join("apps/cli/lib/bin.js").is_file()
+            && path.join("apps/web/dist/index.html").is_file()
+    });
+    let running = snapshot.process_count > 0 && deepseek_http_ready();
     let (stage, message) = if root.is_none() {
         (
             "deepseek_not_installed",
@@ -1942,29 +2186,38 @@ fn deepseek_status() -> ExternalTargetStatus {
             "已检测到 Harness，但该工作区尚未合并 Diana 主题；内置资源包可交给 Codex 安全合并后重新构建。"
                 .to_string(),
         )
-    } else if snapshot.process_count > 0 {
+    } else if !built || node.is_none() {
+        (
+            "deepseek_build_missing",
+            "Harness 缺少 Node.js 或构建产物；请先在源码目录完成构建。".to_string(),
+        )
+    } else if running {
         (
             "deepseek_running",
             "Diana DeepSeek Harness 本地服务正在运行，可打开 127.0.0.1:3080。".to_string(),
         )
+    } else if snapshot.process_count > 0 {
+        (
+            "deepseek_starting",
+            "Harness 进程存在，但本地页面尚未就绪；未报告服务运行成功。".to_string(),
+        )
     } else {
         (
             "deepseek_ready",
-            "已检测到带 Diana 日夜视觉的 Harness 源码构建；启动时会打开一个可见终端承载本地服务。"
+            "已检测到 Diana Harness 构建；启动本地服务后会等待页面就绪再打开，不依赖 pnpm 的 PATH。"
                 .to_string(),
         )
     };
     ExternalTargetStatus {
         target: "deepseek".to_string(),
         stage: stage.to_string(),
-        running: snapshot.process_count > 0,
+        running,
         themed: ready,
-        theme_state: deepseek_theme_state(root.is_some(), ready, snapshot.process_count > 0)
-            .to_string(),
+        theme_state: deepseek_theme_state(root.is_some(), ready, running).to_string(),
         theme_scope: "source_theme".to_string(),
         process_count: snapshot.process_count,
         main_process_id: snapshot.main_process_id,
-        executable: pnpm.map(|path| path.to_string_lossy().into_owned()),
+        executable: node.map(|path| path.to_string_lossy().into_owned()),
         theme_root: root.map(|path| path.to_string_lossy().into_owned()),
         message,
     }
@@ -1988,17 +2241,71 @@ fn launch_deepseek() -> Result<ExternalTargetStatus, String> {
         return Ok(status);
     }
     if before.running {
-        open_url("http://127.0.0.1:3080")?;
+        open_url(&deepseek_browser_url().unwrap_or_else(|| DEEPSEEK_URL.to_string()))?;
         return Ok(deepseek_status());
     }
-    let pnpm = before
+    let node = before
         .executable
         .as_ref()
         .map(PathBuf::from)
-        .ok_or_else(|| "未找到 pnpm.cmd，无法启动 Harness 源码工作区。".to_string())?;
-    spawn_visible_console(&pnpm, &["dsh".to_string(), "web".to_string()], &root)?;
-    std::thread::sleep(Duration::from_millis(1200));
-    Ok(deepseek_status())
+        .ok_or_else(|| "未找到 Node.js，无法启动 Harness。".to_string())?;
+    let entry = root.join("apps/cli/lib/bin.js");
+    if !entry.is_file() || !root.join("apps/web/dist/index.html").is_file() {
+        return Err("Harness 构建产物缺失，请先完成源码构建。".to_string());
+    }
+    let log_path = state_root()?.join("deepseek-service.log");
+    let mut child = None;
+    if before.process_count == 0 {
+        if TcpStream::connect_timeout(
+            &"127.0.0.1:3080".parse().unwrap(),
+            Duration::from_millis(250),
+        )
+        .is_ok()
+        {
+            return Err(
+                "3080 端口已被其他服务占用，未结束任何进程；请关闭占用服务后重试。".to_string(),
+            );
+        }
+        let log = fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&log_path)
+            .map_err(|error| format!("无法创建 Harness 服务日志：{error}"))?;
+        let mut command = Command::new(node);
+        command
+            .arg(entry)
+            .args(["web", "--host", "127.0.0.1", "--port", "3080", "--no-open"])
+            .current_dir(&root)
+            .stdin(Stdio::null())
+            .stderr(log.try_clone().map_err(|error| error.to_string())?)
+            .stdout(log);
+        hide_console(&mut command);
+        child = Some(
+            command
+                .spawn()
+                .map_err(|error| format!("无法启动 Harness：{error}"))?,
+        );
+    }
+    let deadline = std::time::Instant::now() + Duration::from_secs(20);
+    while std::time::Instant::now() < deadline {
+        if deepseek_http_ready() {
+            open_url(&deepseek_browser_url().unwrap_or_else(|| DEEPSEEK_URL.to_string()))?;
+            return Ok(deepseek_status());
+        }
+        if let Some(process) = child.as_mut() {
+            if let Some(code) = process.try_wait().map_err(|error| error.to_string())? {
+                return Err(format!(
+                    "Harness 启动后退出（{code}），日志：{}",
+                    log_path.display()
+                ));
+            }
+        }
+        std::thread::sleep(Duration::from_millis(250));
+    }
+    Err(format!(
+        "Harness 页面在等待期内未就绪；没有重复启动或结束服务。日志：{}",
+        log_path.display()
+    ))
 }
 
 fn zcode_executable() -> Option<PathBuf> {
@@ -2020,10 +2327,29 @@ fn zcode_runtime_root() -> Result<PathBuf, String> {
         .join("experimental-3.6.5"))
 }
 
+fn zcode_runtime_assets_root(root: &Path) -> PathBuf {
+    root.join("assets")
+}
+
+fn verify_shared_assets(root: &Path, mapping: &[(&str, &str)]) -> Result<(), String> {
+    for (destination, source) in mapping {
+        let path = root.join(destination);
+        let expected = runtime_bytes(source)?;
+        let actual = fs::read(&path)
+            .map_err(|error| format!("无法读取主题素材 {}：{error}", path.display()))?;
+        if actual != expected {
+            return Err(format!("主题素材校验失败：{}", path.display()));
+        }
+    }
+    Ok(())
+}
+
 fn ensure_zcode_runtime() -> Result<PathBuf, String> {
     let root = zcode_runtime_root()?;
     write_files(&root, ZCODE_RUNTIME_FILES)?;
-    write_shared_assets(&root, SHARED_ASSET_MAP)?;
+    let assets_root = zcode_runtime_assets_root(&root);
+    write_shared_assets(&assets_root, SHARED_ASSET_MAP)?;
+    verify_shared_assets(&assets_root, SHARED_ASSET_MAP)?;
     fs::create_dir_all(root.join("logs"))
         .map_err(|error| format!("无法创建 ZCode 主题日志目录：{error}"))?;
     fs::create_dir_all(root.join("state"))
@@ -2356,11 +2682,138 @@ mod tests {
         cursor_debug_port, cursor_has_loopback_debug, deepseek_theme_state, grok_debug_port,
         grok_has_loopback_debug, is_cursor_main_command, is_grok_main_command,
         is_primary_app_command, jsonc_raw_value, remove_jsonc_property, replace_jsonc_raw,
-        restore_editor_theme, set_editor_theme, terminal_theme_state, vscode_theme_state,
-        zcode_adapter_theme, zcode_debug_port, zcode_has_loopback_debug,
+        restore_editor_theme, set_editor_theme, terminal_theme_state, verify_shared_assets,
+        vscode_theme_state, write_shared_assets, zcode_adapter_theme, zcode_debug_port,
+        zcode_has_loopback_debug, zcode_runtime_assets_root,
     };
     use std::fs;
     use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn native_terminal_does_not_reopen_the_diana_default() {
+        assert_eq!(
+            super::native_terminal_profile(
+                Some(super::DIANA_TERMINAL_PROFILES[0]),
+                Some(super::NATIVE_POWERSHELL_PROFILE)
+            ),
+            super::NATIVE_POWERSHELL_PROFILE
+        );
+        assert_eq!(
+            super::native_terminal_profile(Some("user-profile"), Some("older-profile")),
+            "user-profile"
+        );
+        assert_eq!(
+            super::native_terminal_profile(None, None),
+            super::NATIVE_POWERSHELL_PROFILE
+        );
+    }
+
+    #[test]
+    fn legacy_vscode_light_and_restore_do_not_restore_diana_again() {
+        let root = std::env::temp_dir().join(format!(
+            "diana-legacy-vscode-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        fs::create_dir_all(&root).unwrap();
+        let settings = root.join("settings.json");
+        let state = root.join("state.json");
+        fs::write(
+            &settings,
+            "{\n  \"workbench.colorTheme\": \"Diana Night\",\n  \"editor.fontSize\": 17\n}\n",
+        )
+        .unwrap();
+        set_editor_theme(&settings, &state, "VS Code", "light").unwrap();
+        let applied: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(&settings).unwrap()).unwrap();
+        assert_eq!(applied["workbench.colorTheme"], "Diana Day");
+        assert_eq!(applied["window.autoDetectColorScheme"], false);
+        restore_editor_theme(&settings, &state, "VS Code").unwrap();
+        let restored: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(&settings).unwrap()).unwrap();
+        assert_eq!(restored["workbench.colorTheme"], "Dark Modern");
+        assert_eq!(restored["editor.fontSize"], 17);
+        fs::write(
+            &settings,
+            "{\n  \"workbench.colorTheme\": \"Diana Day\",\n  \"editor.fontSize\": 17\n}\n",
+        )
+        .unwrap();
+        restore_editor_theme(&settings, &state, "VS Code").unwrap();
+        assert!(fs::read_to_string(&settings)
+            .unwrap()
+            .contains("Light Modern"));
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn browser_urls_reject_files_shell_targets_and_control_characters() {
+        for address in [
+            r"C:\Users\Public\Documents",
+            "file:///C:/Users/Public/Documents",
+            "shell:Personal",
+            "javascript:alert(1)",
+            "https://user:secret@example.invalid/",
+            "http://127.0.0.1:3080/\n",
+        ] {
+            assert!(super::browser_open_command(address).is_err());
+        }
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn browser_launch_uses_url_association_without_exposing_the_address() {
+        let address = "http://127.0.0.1:3080/?token=qa-placeholder-only";
+        let command = super::browser_open_command(address).unwrap();
+        assert!(command
+            .get_program()
+            .to_string_lossy()
+            .ends_with("powershell.exe"));
+        let arguments = command
+            .get_args()
+            .map(|arg| arg.to_string_lossy())
+            .collect::<Vec<_>>();
+        assert!(arguments
+            .iter()
+            .any(|arg| arg.contains("UseShellExecute=$true")));
+        assert!(arguments
+            .iter()
+            .all(|arg| !arg.contains("qa-placeholder-only")));
+        assert!(command.get_envs().any(|(key, value)| {
+            key == "DIANA_BROWSER_URL" && value == Some(std::ffi::OsStr::new(address))
+        }));
+    }
+
+    #[test]
+    fn deepseek_readiness_rejects_an_error_or_unrelated_page() {
+        assert!(super::is_deepseek_page(
+            "HTTP/1.1 200 OK\r\n\r\n<title>DSH Local Build</title><div id=\"root\"></div>"
+        ));
+        assert!(!super::is_deepseek_page(
+            "HTTP/1.1 503 Service Unavailable\r\n\r\nDSH Local Build id=\"root\""
+        ));
+        assert!(!super::is_deepseek_page(
+            "HTTP/1.1 200 OK\r\n\r\nAnother app"
+        ));
+    }
+
+    // Explicit opt-in: this starts a real local application; excluded from normal cargo test.
+    #[test]
+    #[ignore]
+    fn local_external_action_smoke() {
+        let target = std::env::var("DIANA_SMOKE_TARGET").expect("explicit target required");
+        assert!(matches!(
+            target.as_str(),
+            "terminal" | "vscode" | "deepseek"
+        ));
+        let action = std::env::var("DIANA_SMOKE_ACTION").expect("explicit action required");
+        let mode = std::env::var("DIANA_SMOKE_MODE").unwrap_or_else(|_| "dark".to_string());
+        let result =
+            super::run_action(&target, &action, Some(&mode)).expect("local application action");
+        println!("{}", serde_json::to_string_pretty(&result).unwrap());
+    }
 
     #[test]
     fn distinguishes_installed_selected_deployed_and_mounted_states() {
@@ -2476,6 +2929,27 @@ mod tests {
         assert_eq!(zcode_adapter_theme("light"), Ok("light"));
         assert_eq!(zcode_adapter_theme("system"), Ok("auto"));
         assert!(zcode_adapter_theme("unknown").is_err());
+    }
+
+    #[test]
+    fn writes_zcode_runtime_artwork_under_the_adapter_assets_directory() {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock must be after unix epoch")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "diana-zcode-runtime-assets-test-{}-{unique}",
+            std::process::id()
+        ));
+        let assets_root = zcode_runtime_assets_root(&root);
+        let mapping = &[("diana-night-v3.png", "assets/diana-night-v3.png")];
+
+        write_shared_assets(&assets_root, mapping).expect("write ZCode runtime artwork");
+        verify_shared_assets(&assets_root, mapping).expect("verify ZCode runtime artwork");
+
+        assert!(assets_root.join("diana-night-v3.png").is_file());
+        assert!(!root.join("diana-night-v3.png").exists());
+        fs::remove_dir_all(&root).expect("remove isolated ZCode runtime directory");
     }
 
     #[test]

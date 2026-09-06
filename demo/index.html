@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Diana 嘉然多应用主题启动器。在线体验定稿立牌、日夜按钮、连接臂与音乐粒子，下载 Windows Beta 测试版。网页不操作本机应用。" />
+    <meta name="theme-color" content="#121115" />
+    <meta property="og:title" content="Diana · 多应用主题启动器" />
+    <meta property="og:description" content="可以点击的嘉然桌面立牌。体验外观与交互，下载 Windows Beta。" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-src 'self'; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'" />
+    <title>Diana · 多应用主题启动器</title>
+    <link rel="icon" href="/assets/diana-brand/diana-pixel-dango.png" />
+  </head>
+  <body>
+    <header class="site-header"><a class="wordmark" href="/" aria-label="Diana 首页">DIANA<span> / LAUNCHER</span></a><a href="https://github.com/lanmengSakura/diana-multi-app-launcher" target="_blank" rel="noopener noreferrer">开源仓库 ↗</a></header>
+    <main class="showcase">
+      <section class="intro" aria-labelledby="headline">
+        <p class="eyebrow"><span></span> VISUAL EDITION · BETA.3</p>
+        <h1 id="headline">Diana，<br />在你身边。</h1>
+        <p class="lead">一块会发光的桌面立牌，<br />也是日常工具的主题入口。</p>
+        <p class="description">这是启动器定稿界面的可点击演示。试试金属关节、日夜按钮，以及会飘出音符的音乐徽章。</p>
+        <div class="demo-guide"><span class="guide-index">01—03</span><p>选择应用 → 选择外观 → 点击主按钮<br /><small>日夜选项应用于目标；立牌保留定稿材质。</small></p></div>
+        <div class="actions"><a class="download" href="https://github.com/lanmengSakura/diana-multi-app-launcher/releases/tag/v0.1.0-beta.3" target="_blank" rel="noopener noreferrer">下载 Windows Beta <span>↗</span></a><span class="download-note">x64 · 未签名 · 请先保存工作</span></div>
+        <section class="simulation" aria-label="演示说明与控制">
+          <div class="simulation-heading"><span>交互演示</span><span class="simulation-pill">不连接本机应用</span></div>
+          <p id="target-note">状态与进程编号均为模拟；真实挂载需下载启动器。</p>
+          <p id="activity" role="status">音乐默认关闭。点击立牌右上方音符试听。</p>
+          <div class="simulation-tools"><button type="button" id="simulate-exit">模拟退出 Codex</button><button type="button" id="simulate-error">体验异常反馈</button><button type="button" id="restart">重置演示</button></div>
+        </section>
+      </section>
+      <section class="visual" aria-label="可操作的 Diana 启动器">
+        <div class="backdrop-control" role="group" aria-label="演示背景"><span>查看外发光</span><button type="button" data-backdrop="night" aria-pressed="true">深底</button><button type="button" data-backdrop="day" aria-pressed="false">浅底</button></div>
+        <div class="launcher-fit" id="launcher-fit"><iframe id="launcher-frame" title="Diana 启动器 · 所有挂载状态均为模拟" src="/launcher.html" sandbox="allow-scripts allow-same-origin allow-modals"></iframe><div id="closed-panel" hidden><span>✦</span><p id="closed-label">演示已收起</p><button type="button" id="reopen">重新展开</button></div></div>
+        <span class="visual-caption">原版界面 · 原版美术 · 原版交互动效</span>
+      </section>
+    </main>
+    <footer>非商业粉丝二创 · 与相关官方无隶属或背书关系<span>代码 MIT，角色美术与歌曲录音不适用 MIT。 <a href="https://github.com/lanmengSakura/diana-multi-app-launcher/blob/main/ASSET_LICENSES.md" target="_blank" rel="noopener noreferrer">素材说明 ↗</a></span></footer>
+    <script type="module" src="/shell.ts"></script>
+  </body>
+</html>

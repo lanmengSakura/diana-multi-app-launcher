@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 300">
+  <!-- Keep both the stepped upper rim and the mascot's overlapping feet clear. -->
+  <defs><filter id="feather" x="-5%" y="-15%" width="110%" height="130%"><feGaussianBlur stdDeviation="1.3"/><feComponentTransfer><feFuncA type="linear" slope="2" intercept="-1"/></feComponentTransfer></filter></defs>
+  <path d="M529 53 H585 L598 60 H688 Q690 66 702 66 Q712 66 717 60 L746 63 Q746 75 757 79 L749 116 H518 Z" fill="white" filter="url(#feather)"/>
+</svg>

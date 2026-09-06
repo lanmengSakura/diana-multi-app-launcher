@@ -92,7 +92,7 @@ try {
     .getByText("浏览器预览无法读取本机 Codex；未执行启动或挂载操作。")
     .waitFor();
 
-  await page.getByRole("button", { name: "恢复原版" }).click();
+  await page.getByRole("button", { name: "原版启动" }).click();
   await page
     .getByText("浏览器预览没有真实改动，因此没有需要恢复的内容。")
     .waitFor();
@@ -122,7 +122,17 @@ try {
         `浏览器预览不会启动${target.shortLabel}；桌面 EXE 才会执行本机检测与安全部署。`
       )
       .waitFor();
-    externalChecks.push({ target: target.value, enabled });
+    const expectedSecondary = {
+      doubao: "原版启动", terminal: "原版启动", vscode: "切回原版",
+      cursor: "切回原版", grokbot: "切回原版", deepseek: "打开页面", zcode: "切回原版"
+    }[target.value];
+    const secondary = page.locator(".secondary-action");
+    const secondaryReadable = await secondary.locator("span").evaluate(node => {
+      const style = getComputedStyle(node);
+      return style.color !== "rgba(0, 0, 0, 0)" && style.visibility === "visible" && Number(style.opacity) > 0;
+    });
+    externalChecks.push({ target: target.value, enabled,
+      secondaryCorrect: (await secondary.innerText()).trim() === expectedSecondary && secondaryReadable });
   }
   const targetOptionCount = await targetSelect.locator("option").count();
   await targetSelect.selectOption("cursor");
@@ -152,7 +162,6 @@ try {
     }
 
     stage.classList.add("phase-error");
-    button.dataset.sourceLabel = "false";
     label.textContent = "退出 Codex 后挂载";
     const style = getComputedStyle(label);
     const visible =
@@ -170,7 +179,7 @@ try {
       .getByRole("button", { name: /启动并挂载/ })
       .isEnabled(),
     restoreEnabled: await page
-      .getByRole("button", { name: "恢复原版" })
+      .getByRole("button", { name: "原版启动" })
       .isEnabled(),
     externalChecks,
     targetOptionCount,
@@ -192,7 +201,7 @@ try {
     !result.primaryEnabled ||
     !result.restoreEnabled ||
     result.externalChecks.length !== externalTargets.length ||
-    result.externalChecks.some((check) => !check.enabled) ||
+    result.externalChecks.some((check) => !check.enabled || !check.secondaryCorrect) ||
     result.targetOptionCount !== 8 ||
     result.selectedTarget !== "codex" ||
     !result.dynamicLabelVisible ||

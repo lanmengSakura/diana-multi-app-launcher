@@ -101,23 +101,23 @@ const targetOptions: TargetOption[] = [
     value: "codex",
     label: "Codex Desktop",
     shortLabel: "Codex",
-    hint: "完整 Diana 日间 / 暗夜挂载",
+    hint: "日夜切换需退出重开；原版启动不挂载皮肤",
     showThemeSwitch: true,
     modeTitle: "选择挂载主题",
     modeSubtitle: "完整美术与原生配色同步",
     primaryNote: "一次性前台挂载；首次操作会说明调试端口风险",
-    secondaryLabel: "恢复原版"
+    secondaryLabel: "原版启动"
   },
   {
     value: "doubao",
     label: "豆包浏览器",
     shortLabel: "豆包",
-    hint: "用户态扩展，跟随豆包原生外观",
+    hint: "日夜跟随豆包；原版启动需先完整退出浏览器",
     showThemeSwitch: false,
     modeTitle: "跟随豆包外观",
     modeSubtitle: "日间 / 暗夜由豆包原生设置决定",
     primaryNote: "只加载用户态扩展，不开启调试端口或后台监听",
-    secondaryLabel: "打开原版"
+    secondaryLabel: "原版启动"
   },
   {
     value: "terminal",
@@ -126,64 +126,64 @@ const targetOptions: TargetOption[] = [
     hint: "Diana PowerShell / CMD 暗夜原生 Fragment",
     showThemeSwitch: false,
     modeTitle: "专属暗夜终端",
-    modeSubtitle: "大片留白；PowerShell 与 CMD 共用安全 Fragment",
-    primaryNote: "安装到当前用户的 Windows Terminal Fragment 目录",
-    secondaryLabel: "默认终端"
+    modeSubtitle: "主题 / 原版均新开窗口，不改变已有终端会话",
+    primaryNote: "原版启动使用原生配置；旧 Diana 窗口中的命令不会中断",
+    secondaryLabel: "原版启动"
   },
   {
     value: "vscode",
     label: "Visual Studio Code",
     shortLabel: "VS Code",
-    hint: "官方颜色主题自动安装；完整美术蓝图随包提供",
+    hint: "先选日间 / 暗夜，再点主按钮应用；原版可直接恢复",
     showThemeSwitch: true,
     modeTitle: "选择 VS Code 配色",
     modeSubtitle: "使用用户扩展与可恢复的 settings.json 设置",
-    primaryNote: "不改写 VS Code 安装资源；完整美术层仅作安全蓝图",
-    secondaryLabel: "恢复原主题"
+    primaryNote: "先选日间 / 暗夜，再点主按钮；旧安装无恢复记录时使用内置 Modern 主题",
+    secondaryLabel: "切回原版"
   },
   {
     value: "cursor",
     label: "Cursor",
     shortLabel: "Cursor",
-    hint: "优先挂载完整 Diana 美术；无本机适配器时安全降级为官方配色",
+    hint: "挂载后可直接切换日夜 / 撤下皮肤；调试端口需完整退出才关闭",
     showThemeSwitch: true,
     modeTitle: "选择 Cursor 挂载主题",
     modeSubtitle: "本机适配器核验通过后挂载完整日夜美术",
     primaryNote: "不改写 Cursor 安装资源；完整挂载逐次说明临时调试端口风险",
-    secondaryLabel: "恢复 / 原版"
+    secondaryLabel: "切回原版"
   },
   {
     value: "grokbot",
     label: "Grok Bot",
     shortLabel: "Grok Bot",
-    hint: "版本与签名核验后，优先挂载完整 Diana 日夜美术",
+    hint: "完整 Diana 日夜美术；挂载后可直接切换日夜 / 原版",
     showThemeSwitch: true,
     modeTitle: "选择 Grok Bot 挂载主题",
     modeSubtitle: "原生配色与完整美术层同步切换",
     primaryNote: "不改写应用资源；首次挂载会说明临时调试端口风险",
-    secondaryLabel: "恢复 / 原版"
+    secondaryLabel: "切回原版"
   },
   {
     value: "deepseek",
     label: "DeepSeek Harness",
     shortLabel: "Harness",
-    hint: "启动已部署的 Diana 源码工作区，或解包视觉蓝图",
+    hint: "启动本机 Harness 服务；日夜在页面内切换",
     showThemeSwitch: false,
     modeTitle: "跟随 Harness 外观",
     modeSubtitle: "日间 / 暗夜由 Harness 页面原生状态决定",
-    primaryNote: "不捆绑第三方源码与 node_modules；未部署时仅解包蓝图",
-    secondaryLabel: "打开 Harness"
+    primaryNote: "等待本地服务就绪后打开页面；此入口不切换为原版，也不消耗模型额度",
+    secondaryLabel: "打开页面"
   },
   {
     value: "zcode",
     label: "ZCode",
     shortLabel: "ZCode",
-    hint: "优先挂载完整 Diana 美术；版本不匹配时拒绝注入",
+    hint: "挂载后可直接切换日夜 / 原版；调试端口需完整退出才关闭",
     showThemeSwitch: true,
     modeTitle: "选择 ZCode 挂载主题",
     modeSubtitle: "精确版本核验通过后，前台一次性挂载完整美术",
     primaryNote: "首次会说明临时调试端口风险；不创建后台监听或自启动",
-    secondaryLabel: "恢复 / 原版"
+    secondaryLabel: "切回原版"
   }
 ];
 
@@ -305,7 +305,7 @@ function RestoreGlyph() {
 
 function MusicNoteGlyph() {
   return (
-    <svg viewBox="0 0 32 32" aria-hidden="true">
+    <svg viewBox="7 0 25 32" aria-hidden="true">
       <path d="M20.2 4.2v15.6a5.7 5.7 0 0 0-4.2-.5c-2.9.7-4.8 3-4.2 5.2.5 2.2 3.3 3.5 6.2 2.8 2.6-.6 4.4-2.5 4.4-4.6V10l7.1-1.8V4.9l-9.3 2.3v-3Z" />
     </svg>
   );
@@ -719,7 +719,7 @@ function App() {
       action === "launch_native" &&
       externalStatus.themed &&
       !window.confirm(
-        "这会先撤下 Cursor 的 Diana 视觉层；临时调试端口仍会由当前 Cursor 持有。请随后正常退出全部 Cursor，再点一次“恢复 / 原版”完成设置还原并普通启动。是否继续？"
+        "这会立即撤下 Cursor 的 Diana 视觉层，不关闭当前窗口。临时调试端口仍保留；完整退出 Cursor 后再次点“切回原版”，可完成剩余设置还原并普通启动。是否继续？"
       )
     ) {
       return;
@@ -978,7 +978,7 @@ function App() {
   const primaryLabel = pendingAction
     ? pendingAction === "mount"
       ? "等待 Codex 完整退出"
-      : "等待恢复原版"
+      : "等待退出后原版启动"
     : status.themeChannelConnected
     ? status.activeThemeMode === themeMode
       ? "重新挂载 Diana"
@@ -1294,10 +1294,15 @@ function App() {
           <span className="music-toggle__halo" aria-hidden="true" />
           <MusicNoteGlyph />
           <span className="music-toggle__state" aria-hidden="true" />
+          <span className="music-toggle__notes" aria-hidden="true">
+            <span className="music-toggle__note"><MusicNoteGlyph /></span>
+            <span className="music-toggle__note"><MusicNoteGlyph /></span>
+            <span className="music-toggle__note"><MusicNoteGlyph /></span>
+          </span>
         </button>
 
         <img
-          className="generated-theme-deck"
+          className={`generated-theme-deck${targetUsesThemeSwitch ? " generated-theme-deck--tabs" : ""}`}
           src={
               targetUsesThemeSwitch
                ? themeMode === "dark"
@@ -1324,9 +1329,9 @@ function App() {
 
         <div
           className="selector-collapse-hint"
-          aria-hidden={selectorExpanded}
+          aria-hidden="true"
         >
-          <span>展开应用</span>
+          <span>{selectorExpanded ? "隐藏应用" : "展开应用"}</span>
         </div>
 
         <div className="window-actions" aria-label="窗口操作">
@@ -1348,7 +1353,7 @@ function App() {
           {targetUsesThemeSwitch ? (
             <fieldset className="theme-fieldset">
               <legend>{selectedTargetOption.modeTitle}</legend>
-              <div className="theme-switch" role="group" aria-label="界面主题">
+              <div className="theme-switch" role="group" aria-label="界面主题" title="先选择外观，再点击下方主按钮应用">
                 {themeOptions.map((option) => (
                   <button
                     className={`theme-option ${themeMode === option.value ? "selected" : ""}`}
@@ -1379,14 +1384,6 @@ function App() {
               type="button"
               aria-label={displayPrimaryLabel}
               title={displayPrimaryNote}
-              data-source-label={
-                targetIsCodex &&
-                phase !== "working" &&
-                pendingAction !== "mount" &&
-                primaryLabel === "启动并挂载"
-                  ? "true"
-                  : "false"
-              }
               disabled={
                 phase === "working" ||
                 (targetIsCodex
@@ -1408,6 +1405,7 @@ function App() {
                 void runPreviewAction("mount");
               }}
             >
+              <span className="primary-face" aria-hidden="true" />
               {phase === "working" ? (
                 <>
                   <span className="spinner" aria-hidden="true" />
@@ -1446,7 +1444,7 @@ function App() {
                 if (
                   status.themeChannelConnected &&
                   !window.confirm(
-                    "恢复原版会在你退出 Codex 后撤下 Diana 样式，只还原启动器管理的原生外观字段，并从官方入口重新打开。现在继续吗？"
+                    "原版启动不是热切换：请先完整退出 Codex；启动器随后只还原受管外观字段，并从官方入口重新打开，不挂载 Diana 皮肤。现在继续吗？"
                   )
                 ) {
                   return;
@@ -1459,7 +1457,7 @@ function App() {
                 {targetIsCodex
                   ? pendingAction === "restore"
                     ? "取消等待"
-                    : "恢复原版"
+                    : selectedTargetOption.secondaryLabel
                   : selectedTargetOption.secondaryLabel}
               </span>
             </button>
@@ -1474,7 +1472,7 @@ function App() {
             </div>
             <span className="runtime-chip">{displayRuntimeChip}</span>
           </div>
-          <p>{displayMessage}</p>
+          <p title={displayMessage}>{displayMessage}</p>
           <div
             className="status-meta"
             title={targetIsCodex ? status.codexPath ?? undefined : externalStatus.executable ?? undefined}

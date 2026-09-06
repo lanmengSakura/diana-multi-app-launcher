@@ -1,6 +1,10 @@
 # Diana Multi-App Launcher
 
-嘉然 Diana 多应用主题启动器。当前公开版本为 **`v0.1.0-beta.2`**，仅面向 Windows 测试用户；安装器和便携版均未签名。
+嘉然 Diana 多应用主题启动器。当前公开版本为 **`v0.1.0-beta.3`**，仅面向 Windows 测试用户；安装器和便携版均未签名。
+
+[在线交互演示](https://diana-launcher-demo.szbluedream01.chatgpt.site) · [下载 Beta.3](https://github.com/lanmengSakura/diana-multi-app-launcher/releases/tag/v0.1.0-beta.3)
+
+网页复用 EXE 的定稿美术和界面代码，可体验连接臂展开/隐藏、按钮交互、外发光和音乐粒子。**网页中的挂载、版本与进程状态都是模拟，不检测或操作访客的本机应用。** 模拟成功不代表本机兼容。
 
 > 这是非商业同人项目，不隶属于 OpenAI、A-SOUL、字节跳动、Microsoft、Anysphere、DeepSeek 或 ZCode。Beta 版可能因目标应用更新而拒绝挂载；拒绝旧适配器属于安全行为，不代表目标应用损坏。
 
@@ -8,8 +12,8 @@
 
 在 GitHub Releases 下载下列任一文件：
 
-- `Diana-Multi-App-Launcher_0.1.0-beta.2_x64-setup.exe`：当前用户 NSIS 安装包；
-- `diana-multi-app-launcher_0.1.0-beta.2_x64-portable.exe`：免安装便携版。
+- `Diana-Multi-App-Launcher_0.1.0-beta.3_x64-setup.exe`：当前用户 NSIS 安装包；
+- `diana-multi-app-launcher_0.1.0-beta.3_x64-portable.exe`：免安装便携版。
 
 `v0.1.0-beta.1` 的 Windows 构建会因主题 CSS 换行转换触发 `SHA-256 mismatch`，请勿继续使用；该问题已在 Beta.2 修复。
 
@@ -17,9 +21,9 @@
 
 1. 保存目标应用中的工作并正常退出目标应用。
 2. 打开启动器，从底部列表选择应用。
-3. 选择暗夜、日间或跟随系统。
+3. 选择暗夜、日间或跟随系统，然后点击主按钮应用；这一步不是点击选项后立即切换目标应用。
 4. 点击主按钮；若出现实验性调试连接说明，阅读后自行决定是否继续。
-5. 需要撤下时点击“恢复 / 原版”，再完整退出目标应用并从原入口启动一次。
+5. 需要撤下时使用右侧恢复入口。Codex 与豆包标为“原版启动”；Codex 需要完整退出后再普通重开，不是即时热切换。其他目标按状态提示操作；撤下美术不等于临时调试端口已关闭。
 
 Windows SmartScreen 可能提示“未知发布者”，因为当前 Beta 没有代码签名证书。请只从本仓库 Release 下载，并核对发布页给出的 SHA-256。
 
@@ -74,6 +78,20 @@ npm run tauri:build
 也可在普通 Windows 命令提示符运行 `scripts\build-windows-public.cmd`。源码仓库不提交歌曲文件；只有在构建环境显式设置 `DIANA_HOPEFUL_DREAMER_AUDIO` 时才会把一份来源明确的本地音频编入产物。
 
 ## Beta 反馈
+
+### 本地运行网页演示
+
+```powershell
+npm ci
+npm run dev:demo
+# 打开终端给出的 127.0.0.1:1422 地址
+npm run qa:demo
+npm run build:demo
+```
+
+网页与桌面共用 `src/` 和 `public/assets/`，浏览器专用模拟桥位于 `demo/`，不会进入 EXE。无音频构建仍可体验其他功能；要试听，构建/启动前用 `DIANA_HOPEFUL_DREAMER_AUDIO` 指向获准使用的 M4A。静态网页输出位于 `site-build/dist/client`，不会覆盖 Tauri 的 `dist`。详情见 [demo/README.md](demo/README.md)。
+
+### 报告问题
 
 提交 Issue 时请提供：启动器版本、Windows 版本、目标应用版本、操作阶段及脱敏后的错误码。不要上传会话截图、Cookie、令牌、WebSocket 地址或含私人路径的状态文件。
 

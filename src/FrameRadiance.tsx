@@ -42,13 +42,44 @@ export function FrameRadiance() {
           x1="0"
           y1="0"
           x2="0"
-          y2="96"
+          y2="64"
           gradientUnits="userSpaceOnUse"
           spreadMethod="pad"
         >
-          <stop offset="0" stopColor="#000" />
-          <stop offset="1" stopColor="#fff" />
+          <stop offset="0" stopColor="#fff" stopOpacity="0" />
+          <stop offset="0.125" stopColor="#fff" stopOpacity="0.043" />
+          <stop offset="0.25" stopColor="#fff" stopOpacity="0.156" />
+          <stop offset="0.375" stopColor="#fff" stopOpacity="0.316" />
+          <stop offset="0.5" stopColor="#fff" stopOpacity="0.5" />
+          <stop offset="0.625" stopColor="#fff" stopOpacity="0.684" />
+          <stop offset="0.75" stopColor="#fff" stopOpacity="0.844" />
+          <stop offset="0.875" stopColor="#fff" stopOpacity="0.957" />
+          <stop offset="1" stopColor="#fff" stopOpacity="1" />
         </linearGradient>
+        <linearGradient
+          id="diana-frame-side-fade-gradient"
+          x1="-91.0222" y1="0" x2="1115.0222" y2="0"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop offset="0" stopColor="#fff" stopOpacity="0" />
+          <stop offset="0.0063" stopColor="#fff" stopOpacity="0.156" />
+          <stop offset="0.0126" stopColor="#fff" stopOpacity="0.5" />
+          <stop offset="0.0189" stopColor="#fff" stopOpacity="0.844" />
+          <stop offset="0.0252" stopColor="#fff" stopOpacity="1" />
+          <stop offset="0.9748" stopColor="#fff" stopOpacity="1" />
+          <stop offset="0.9811" stopColor="#fff" stopOpacity="0.844" />
+          <stop offset="0.9874" stopColor="#fff" stopOpacity="0.5" />
+          <stop offset="0.9937" stopColor="#fff" stopOpacity="0.156" />
+          <stop offset="1" stopColor="#fff" stopOpacity="0" />
+        </linearGradient>
+        <mask
+          id="diana-frame-side-fade"
+          x="-180" y="-180" width="1384" height="1896"
+          maskUnits="userSpaceOnUse"
+          style={{ maskType: "alpha" }}
+        >
+          <rect x="-180" y="-180" width="1384" height="1896" fill="url(#diana-frame-side-fade-gradient)" />
+        </mask>
         <mask
           id="diana-frame-top-fade"
           x="-180"
@@ -56,6 +87,7 @@ export function FrameRadiance() {
           width="1384"
           height="1896"
           maskUnits="userSpaceOnUse"
+          style={{ maskType: "alpha" }}
         >
           <rect
             x="-180"
@@ -63,41 +95,9 @@ export function FrameRadiance() {
             width="1384"
             height="1896"
             fill="url(#diana-frame-top-fade-gradient)"
+            mask="url(#diana-frame-side-fade)"
           />
         </mask>
-        <filter
-          id="diana-outer-glow-ambient"
-          x="-220"
-          y="-220"
-          width="1464"
-          height="1976"
-          colorInterpolationFilters="sRGB"
-          filterUnits="userSpaceOnUse"
-        >
-          <feGaussianBlur stdDeviation="36" />
-        </filter>
-        <filter
-          id="diana-outer-glow-far"
-          x="-180"
-          y="-180"
-          width="1384"
-          height="1896"
-          colorInterpolationFilters="sRGB"
-          filterUnits="userSpaceOnUse"
-        >
-          <feGaussianBlur stdDeviation="25" />
-        </filter>
-        <filter
-          id="diana-outer-glow-near"
-          x="-100"
-          y="-100"
-          width="1224"
-          height="1736"
-          colorInterpolationFilters="sRGB"
-          filterUnits="userSpaceOnUse"
-        >
-          <feGaussianBlur stdDeviation="7" />
-        </filter>
         <filter
           id="diana-star-glow-aura"
           x="60"
@@ -141,16 +141,14 @@ export function FrameRadiance() {
           strokeLinejoin="round"
           mask="url(#diana-frame-outside)"
         >
-          <g className="frame-radiance__outer-pulse">
-            <use
-              className="frame-radiance__outer-ambient"
-              href="#diana-frame-outline"
-            />
-            <use
-              className="frame-radiance__outer-far"
-              href="#diana-frame-outline"
-            />
-          </g>
+          <use
+            className="frame-radiance__outer-ambient"
+            href="#diana-frame-outline"
+          />
+          <use
+            className="frame-radiance__outer-far"
+            href="#diana-frame-outline"
+          />
           <use
             className="frame-radiance__outer-near"
             href="#diana-frame-outline"

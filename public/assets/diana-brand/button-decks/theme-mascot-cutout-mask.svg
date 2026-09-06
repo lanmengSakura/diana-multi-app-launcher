@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 300">
+  <!-- Keep the overlapping mascot from the untouched master, not state art. -->
+  <defs>
+    <filter id="soft-edge"><feGaussianBlur stdDeviation="0.35"/></filter>
+    <mask id="deck-only" maskUnits="userSpaceOnUse" x="0" y="0" width="820" height="300" style="mask-type:luminance">
+      <rect width="820" height="300" fill="white"/>
+      <path d="M678 0 H820 V20 H795 Q795 48 786 55 Q779 60 774 59 Q773 72 765 75 Q755 78 750 69 Q748 64 746 60 C735 60 725 57 715 54 Q711 62 704 63 Q693 64 689 53 Q686 46 686 40 Q677 38 678 0 Z" fill="black" filter="url(#soft-edge)"/>
+    </mask>
+  </defs>
+  <rect width="820" height="300" fill="white" mask="url(#deck-only)"/>
+</svg>
