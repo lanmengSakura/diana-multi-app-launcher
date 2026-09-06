@@ -20,8 +20,12 @@ const VSCODE_THEME_VERSION: &str = "0.2.0";
 const CURSOR_THEME_VERSION: &str = "0.1.0";
 const EXPECTED_CURSOR_VERSION: &str = "3.17.21";
 const CURSOR_ADAPTER_VERSION: &str = "experimental-cursor-3.17.21-v1";
-const CURSOR_ADAPTER_MANIFEST_SHA256: &str =
-    "D0FE9031D40C7D7C08BBBCBA15E263014195B39429B3ED399452A356613ED8E5";
+// Keep the previously verified bundle usable while accepting the day-art repair.
+// Both entries still require an exact manifest and every listed file hash.
+const CURSOR_ADAPTER_MANIFEST_SHA256: &[&str] = &[
+    "D0FE9031D40C7D7C08BBBCBA15E263014195B39429B3ED399452A356613ED8E5",
+    "00117864949FA9F37C8902B1E64D55E44A60E8F869CE4FF8C80BFF8A6FCF0A03",
+];
 const EXPECTED_GROK_VERSION: &str = "0.28.0";
 const GROK_ADAPTER_VERSION: &str = "experimental-grok-bot-0.28.0-v2";
 const GROK_ADAPTER_MANIFEST_SHA256: &str =
@@ -1306,7 +1310,7 @@ fn sha256_file(path: &Path) -> Result<String, String> {
 fn verify_cursor_adapter(root: &Path) -> Result<(), String> {
     let manifest_path = root.join("SHA256SUMS.txt");
     let manifest_hash = sha256_file(&manifest_path)?;
-    if manifest_hash != CURSOR_ADAPTER_MANIFEST_SHA256 {
+    if !CURSOR_ADAPTER_MANIFEST_SHA256.contains(&manifest_hash.as_str()) {
         return Err("本机 Cursor 适配器清单与已验证版本不一致；本次不会执行。".to_string());
     }
     let manifest = fs::read_to_string(&manifest_path)
@@ -2825,6 +2829,20 @@ mod tests {
         assert_ne!(terminal_theme_state(true, true), "mounted");
         assert_ne!(vscode_theme_state(true, true, true, false), "mounted");
         assert_ne!(deepseek_theme_state(true, true, true), "mounted");
+    }
+
+    #[test]
+    fn cursor_accepts_only_the_two_verified_art_bundles() {
+        use super::CURSOR_ADAPTER_MANIFEST_SHA256;
+
+        assert!(CURSOR_ADAPTER_MANIFEST_SHA256
+            .contains(&"D0FE9031D40C7D7C08BBBCBA15E263014195B39429B3ED399452A356613ED8E5"));
+        assert!(CURSOR_ADAPTER_MANIFEST_SHA256
+            .contains(&"00117864949FA9F37C8902B1E64D55E44A60E8F869CE4FF8C80BFF8A6FCF0A03"));
+        assert!(!CURSOR_ADAPTER_MANIFEST_SHA256.contains(&"unverified"));
+        assert!(!CURSOR_ADAPTER_MANIFEST_SHA256
+            .contains(&"0000000000000000000000000000000000000000000000000000000000000000"));
+        assert_eq!(CURSOR_ADAPTER_MANIFEST_SHA256.len(), 2);
     }
 
     #[test]
