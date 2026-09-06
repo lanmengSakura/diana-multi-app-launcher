@@ -4,6 +4,8 @@ import { apps, configQuery, framePath, isConfig, parseConfig, type AppId, type D
 import { applyTheme, art } from './theme-art';
 import './theme-app.css';
 import './native-layouts.css';
+import './native-chats.css';
+import harnessFish from './brand/harness-fish.svg';
 
 const initial = parseConfig(location.search);
 if (initial.app === 'codex') location.replace(framePath(initial));
@@ -268,6 +270,105 @@ function ZCodeApp({ config, change }: { config: DemoConfig; change: (config: Dem
   </div>{chat.panel && <DialogPanel name={chat.panel} close={() => chat.setPanel('')} config={config} change={change} select={chat.select}/>}</div>;
 }
 
+// Three distinct native shells share only local demo state and approved artwork.
+type SavedChat = ReturnType<typeof useNativeConversation>;
+const savedTitles = ['整理主题配置', '按钮与输入框细节', '检查窄屏布局'];
+const doubaoTitles = ['周末的阅读手账', '一杯咖啡的时间', '给自己的小计划'];
+function Microphone() {
+  // Same existing microphone icon as the Grok demo, not a new illustration.
+  return <svg className="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><rect x="8" y="3" width="8" height="12" rx="4"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M9 22h6"/></svg>;
+}
+function SavedCopy({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  return <button type="button" aria-label={copied ? '已复制示例内容' : '复制示例内容'} title={copied ? '已复制' : '复制'} onClick={async () => {
+    try { await navigator.clipboard.writeText(text); setCopied(true); } catch { setCopied(false); }
+  }}><Icon name={copied ? 'check' : 'copy'}/></button>;
+}
+function SavedAnswer({ message }: { message: Message }) {
+  return <><p>{message.text}</p>{message.kind === 'plan' && <ul><li>把颜色整理为日间、暗夜两组变量。</li><li>保留原生按钮、输入框和滚动区域。</li><li>让装饰停留在阅读区以外的留白中。</li></ul>}{message.kind === 'code' && <div className="saved-code"><header><Icon name="file"/>theme.ts <span>示例代码</span></header><pre><HighlightCode text={sampleCode}/></pre></div>}</>;
+}
+function SavedChatSidebar({ app, chat, collapsed, toggle, themed, start }: { app: AppId; chat: SavedChat; collapsed: boolean; toggle: () => void; themed: boolean; start: (work?: boolean) => void }) {
+  const titles = app === 'doubao' ? doubaoTitles : savedTitles;
+  const home = chat.messages.length === 0;
+  const selectRow = (title: string, index: number) => <button key={title} className="saved-history-row" aria-current={!home && chat.selected === index ? 'page' : undefined} onClick={() => chat.select(index)}><span>{title}</span><small>{index ? '昨天' : '刚刚'}</small></button>;
+  if (app === 'doubao') return <aside className={`db-sidebar saved-sidebar ${collapsed ? 'is-collapsed' : ''}`} data-diana-doubao-sidebar="true">
+    {themed && <span className="diana-doubaowork-doodle db-sidebar-doodle" aria-hidden="true"/>}
+    <div className="db-brand"><span>豆包</span><IconButton name="search" label="搜索示例会话" onClick={() => chat.setPanel('搜索示例会话')}/><IconButton name="panel" label={collapsed ? '展开侧边栏' : '收起侧边栏'} onClick={toggle}/></div>
+    <nav className="db-nav">{(['新工作任务', '新对话', '定时任务', '技能 · 连接器 · 伙伴', '云盘', 'API 服务', '更多'] as const).map((name, index) => <button key={name} title={name} onClick={() => index === 0 || index === 1 ? start(index === 0) : chat.setPanel(`${name} · 外观示例`)}><Icon name={(['file', 'chat', 'clock', 'code', 'folder', 'globe', 'panel'] as const)[index]}/><span>{name}</span>{index > 4 && <small>›</small>}</button>)}</nav>
+    <div className="db-history saved-history"><p>置顶</p>{titles.map(selectRow)}<p>项目</p><button className="db-create-project" onClick={() => chat.setPanel('创建项目 · 仅展示')}><Icon name="plus"/>创建新项目</button><p>最近</p>{['阅读记录的小模板', '今天想写的一句话', '做一本自己的手账'].map(selectRow)}</div>
+    <footer className="db-profile"><span className="avatar">D</span><div>示例用户<small>网页演示</small></div><IconButton name="settings" label="外观设置" onClick={() => chat.setPanel('外观设置')}/></footer>
+  </aside>;
+  if (app === 'cursor') return <aside className={`cu-sidebar saved-sidebar ${collapsed ? 'is-collapsed' : ''}`}>
+    <div className="cu-sidebar-top"><IconButton name="panel" label={collapsed ? '展开侧边栏' : '收起侧边栏'} onClick={toggle}/><div aria-hidden="true">←　→</div></div>
+    <nav className="cu-nav">{(['New Chat', 'Search', 'Automations', 'Customize'] as const).map((name, index) => <button title={name} key={name} onClick={() => index === 0 ? chat.newChat() : chat.setPanel(index === 1 ? '搜索示例会话' : `${name} · 示例`)}><Icon name={(['chat', 'search', 'clock', 'code'] as const)[index]}/><span>{name}</span></button>)}</nav>
+    <div className="cu-history saved-history"><header><span>Repositories</span><IconButton name="folder" label="示例项目" onClick={() => chat.setPanel('示例项目')}/></header><button className="cu-repository" onClick={() => chat.setPanel('示例项目')}><Icon name="folder"/>theme-playground</button>{titles.map(selectRow)}</div>
+    <footer className="cu-profile"><div className="cu-onboarding"><div>Getting Started <span>2/3</span></div><button onClick={() => chat.setPanel('Connect Slack · 仅展示，不连接账号')}><Icon name="plus"/>Connect Slack</button></div><div className="cu-account"><span className="avatar">D</span><span>Demo workspace</span><IconButton name="settings" label="外观设置" onClick={() => chat.setPanel('外观设置')}/></div></footer>
+  </aside>;
+  return <aside className={`ds-sidebar saved-sidebar ${collapsed ? 'is-collapsed' : ''}`}>
+    <div className="ds-brand"><span className="harness-fish" style={{ maskImage: `url("${harnessFish}")` }} aria-hidden="true"/><strong>DSH 本地构建</strong><IconButton name="panel" label={collapsed ? '展开侧边栏' : '收起侧边栏'} onClick={toggle}/></div>
+    <button className="ds-new" title="新会话" onClick={chat.newChat}><Icon name="plus"/><span>新会话</span></button>
+    <div className="ds-workspace-tools"><span>工作区</span><IconButton name="search" label="搜索示例会话" onClick={() => chat.setPanel('搜索示例会话')}/><IconButton name="settings" label="工作区筛选示例" onClick={() => chat.setPanel('工作区筛选示例')}/><IconButton name="folder" label="添加工作区示例" onClick={() => chat.setPanel('添加工作区示例')}/></div>
+    <div className="ds-history saved-history"><button className="ds-project" onClick={() => chat.setPanel('示例工作区')}><Icon name="folder"/>Diana Theme Playground</button>{titles.map(selectRow)}<button className="ds-more" onClick={() => chat.select(0)}>展示全部示例会话</button></div>
+    <button className="ds-settings" title="设置" onClick={() => chat.setPanel('外观设置')}><Icon name="settings"/><span>设置</span></button>
+  </aside>;
+}
+function SavedComposer({ app, chat, workMode }: { app: AppId; chat: SavedChat; workMode: boolean }) {
+  const [model, setModel] = useState(app === 'cursor' ? 'Cursor Grok 4.6 Medium' : app === 'deepseek' ? 'DeepSeek-V4-Flash High' : '豆包·快速');
+  const [permission, setPermission] = useState('Workspace Write');
+  const field = <textarea aria-label="输入示例消息，仅在当前网页显示" rows={app === 'cursor' ? 1 : 2} maxLength={2000} value={chat.draft} onChange={event => chat.setDraft(event.target.value)} placeholder={app === 'cursor' ? 'Send follow-up' : app === 'deepseek' ? '发消息或做任务、/ 调用指令 @ 文件或对话' : workMode ? '描述你的工作任务…' : '发消息或按住空格说话…'} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); chat.send(); } }}/>
+  const modelPicker = <label className="saved-model"><span className="sr-only">示例模型，不连接服务</span><select value={model} onChange={event => setModel(event.target.value)}>{[app === 'cursor' ? 'Cursor Grok 4.6 Medium' : app === 'deepseek' ? 'DeepSeek-V4-Flash High' : '豆包·快速', 'Auto'].map(name => <option key={name}>{name}</option>)}</select></label>;
+  const sendOrVoice = chat.draft.trim() ? <button className="saved-send" type="submit" aria-label="发送到本页演示"><Icon name="arrow"/></button> : <button className="saved-voice" type="button" aria-label="语音输入外观示例，不录音" onClick={() => chat.setPanel('语音输入仅作外观演示')}><Microphone/></button>;
+  if (app === 'cursor') return <div className="cu-compose-area"><form className="cu-composer" onSubmit={event => { event.preventDefault(); chat.send(); }}><IconButton name="plus" label="添加上下文示例" onClick={() => chat.setPanel('添加上下文示例')}/>{field}{modelPicker}{sendOrVoice}</form><div className="cu-location"><button onClick={() => chat.setPanel('This PC · 不访问本机')}><Icon name="code"/>This PC <span>⌄</span></button><span title="网页示例，不消耗模型额度">本页演示</span></div></div>;
+  if (app === 'doubao') return <div className="db-compose-area"><form className="db-composer" onSubmit={event => { event.preventDefault(); chat.send(); }}>{field}<div className="db-compose-tools"><IconButton name="plus" label="添加附件示例，不读取本机" onClick={() => chat.setPanel('附件示例')}/><div className="db-compose-shortcuts"><button type="button" onClick={() => chat.setPanel('对话模式 · 示例')}><Icon name="chat"/>{workMode ? '工作' : '对话'} <span>›</span></button>{['帮我写作', '图像生成', '视频生成', '解题答疑', '音乐生成', 'AI 播客', '更多'].map((name, index) => <button key={name} type="button" onClick={() => chat.setDraft(['帮我写一个阅读手账的开头。', '描述一幅安静的周末插画。', '整理一段手账视频的分镜。', '帮我理清这个问题的思路。', '描述一段适合阅读的背景音乐。', '把读书笔记整理成播客提纲。', ''][index])}><Icon name={(['file', 'file', 'panel', 'search', 'code', 'globe', 'panel'] as const)[index]}/>{name}</button>)}</div>{modelPicker}{sendOrVoice}</div></form></div>;
+  return <div className="ds-compose-area"><form className="ds-composer" onSubmit={event => { event.preventDefault(); chat.send(); }}>{field}<div className="ds-compose-tools"><IconButton name="plus" label="引用文件示例，不读取本机" onClick={() => chat.setPanel('引用文件示例')}/><label className="ds-permission"><Icon name="folder"/><span className="sr-only">示例权限，不改变本机权限</span><select value={permission} onChange={event => setPermission(event.target.value)}><option>Workspace Write</option><option>Read Only</option></select></label><span className="saved-spacer"/>{modelPicker}<span className="ds-context-ring" title="上下文占用仅作外观展示"/><button className="saved-send" type="submit" disabled={!chat.draft.trim()} aria-label="发送到本页演示"><Icon name="arrow"/></button></div></form><div className="ds-usage" title="仅演示字段；没有真实模型请求，不产生 token 用量"><span>{chat.messages.filter(message => message.role === 'user').length} 轮 · {chat.messages.filter(message => message.role === 'assistant').length} 步</span><span>LLM — 秒</span><span>首 token — 秒 · — tok/s</span><span>缓存命中 —%</span><span>输入 — tok · 输出 — tok</span><small>示例</small></div></div>;
+}
+function SavedTranscript({ app, chat, trajectory }: { app: AppId; chat: SavedChat; trajectory: boolean }) {
+  return <div className={`saved-chat-scroll ${app === 'cursor' ? 'cu-scroll' : app === 'doubao' ? 'db-scroll' : 'ds-scroll'}`} ref={chat.scrollRef} tabIndex={0} aria-label="示例会话，可滚动" data-slot={app === 'deepseek' ? 'conversation.view' : undefined}>
+    <div className="saved-turns">{app === 'deepseek' && <details className="ds-system-prompt"><summary><Icon name="file"/>系统提示词</summary><p>这是静态主题体验。消息、项目和轨迹均为本页示例，不访问真实文件或模型。</p></details>}
+      {chat.messages.map((message, index) => <article key={index} data-turn={index} className={`saved-message ${message.role} ${trajectory ? 'is-trajectory' : ''}`}>
+        {trajectory ? <><div className="ds-trace-heading"><span>{String(index + 1).padStart(2, '0')}</span><Icon name={message.role === 'user' ? 'chat' : 'check'}/><strong>{message.role === 'user' ? '用户消息' : '回复内容'}</strong><small>本页示例</small></div><details open={index < 2}><summary>查看内容</summary><SavedAnswer message={message}/></details></> : <>
+          {message.role === 'assistant' && app !== 'doubao' && <details className="saved-reasoning"><summary>{app === 'cursor' ? 'Thought' : '已思考'} <span>›</span></summary><p>先整理配色和布局，再检查文字与装饰的关系。这段内容是预设思路示例。</p></details>}
+          <SavedAnswer message={message}/>
+          {message.role === 'assistant' && <>{app === 'deepseek' && <button className="ds-turn-usage" onClick={() => chat.setPanel('Session 日志')}><Icon name="file"/>本轮用量 <span>· — tok</span></button>}<div className="saved-message-actions"><SavedCopy text={message.text}/><button title="有帮助 · 本页示例" aria-label="有帮助 · 本页示例" onClick={() => chat.setPanel('反馈仅作演示，不会提交')}><Icon name="check"/></button><button title="分支示例" aria-label="查看分支示例" onClick={() => chat.setPanel('分支示例')}><Icon name="branch"/></button>{app === 'cursor' && <time>Just now</time>}</div></>}
+          {message.role === 'user' && app === 'deepseek' && <div className="ds-user-actions"><SavedCopy text={message.text}/></div>}
+        </>}
+      </article>)}
+    </div>
+  </div>;
+}
+function SavedSessionLog({ chat }: { chat: SavedChat }) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const close = () => chat.setPanel('');
+  useEffect(() => { const node = dialog.current!; node.showModal(); return () => node.close(); }, []);
+  return <dialog ref={dialog} className="saved-session-log demo-dialog" aria-labelledby="session-log-title" onCancel={close} onClick={event => { if (event.target === event.currentTarget) close(); }}><header><strong id="session-log-title">Session 日志</strong><IconButton name="close" label="关闭日志" onClick={close}/></header><p>本页交互记录，不是客户端运行日志。</p><div>{chat.messages.map((message, index) => <p key={index}><code>{String(index + 1).padStart(2, '0')} {message.role}</code><span>{message.text}</span></p>)}</div><small>模型请求：无　文件访问：无　真实用量：无</small></dialog>;
+}
+function SavedChatApp({ config, change }: { config: DemoConfig; change: (next: DemoConfig) => void }) {
+  const app = config.app;
+  const chat = useNativeConversation(config, change, app === 'doubao' ? chatMessages : codingMessages);
+  const [collapsed, setCollapsed] = useState(false);
+  const [workMode, setWorkMode] = useState(false);
+  const [view, setView] = useState<'conversation' | 'trajectory'>('conversation');
+  const home = chat.messages.length === 0;
+  const themed = config.mode !== 'original';
+  const toggle = () => setCollapsed(value => !value);
+  const composer = <SavedComposer app={app} chat={chat} workMode={workMode}/>;
+  return <div className={`application app-${app} native-chat native-${app} ${collapsed ? 'sidebar-collapsed' : ''} ${home ? 'saved-home' : 'saved-conversation'}`}>
+    {app === 'doubao' && <div className="browser-chrome"><div className="browser-tabs"><span>豆包</span><span className="browser-add">＋</span><WindowControls/></div><div className="address-row"><span>←</span><span>→</span><span>↻</span><div>doubao.com</div><span>☆</span><span>⋯</span></div></div>}
+    {app === 'cursor' && <div className="native-title cursor-title"><span>Cursor</span><span>File</span><span>Edit</span><span>View</span><span>Help</span><WindowControls/></div>}
+    <div className="application-body"><SavedChatSidebar app={app} chat={chat} collapsed={collapsed} toggle={toggle} themed={themed} start={work => { setWorkMode(Boolean(work)); chat.newChat(); }}/><main className="app-workspace">
+      {app === 'cursor' && <ThemeArtwork app={app} enabled={themed}/>}
+      {app === 'doubao' ? <header className="db-header"><IconButton name="panel" label={collapsed ? '展开侧边栏' : '收起侧边栏'} onClick={toggle}/><span>{home ? '' : doubaoTitles[chat.selected % 3]}</span><IconButton name="settings" label="外观设置" onClick={() => chat.setPanel('外观设置')}/><button aria-label="更多会话选项" onClick={() => chat.setPanel('会话选项示例')}>⋯</button></header> : app === 'cursor' ? <header className="cu-header"><span>{home ? 'New Chat' : 'Theme configuration'}</span><Icon name="code"/><div><button onClick={() => chat.setPanel('IDE 入口仅作外观演示')}>IDE ↗</button><button aria-label="更多会话选项" onClick={() => chat.setPanel('会话选项示例')}>⋯</button><IconButton name="panel" label="工具面板示例" onClick={() => chat.setPanel('工具面板示例')}/></div></header> : <header className="ds-header"><div><strong>{home ? '新会话' : savedTitles[chat.selected % 3]}</strong><button onClick={() => chat.setPanel('标准模式 · 示例')}><Icon name="branch"/>标准模式</button><button className="ds-session-log" onClick={() => chat.setPanel('Session 日志')}>Session 日志 ↓</button></div><nav aria-label="会话视图"><button aria-pressed={view === 'conversation'} onClick={() => setView('conversation')}>对话</button><button aria-pressed={view === 'trajectory'} onClick={() => setView('trajectory')}>轨迹</button></nav></header>}
+      {app === 'cursor' && <aside className="cu-utilities"><small>On Home</small>{(['Browser', 'Terminal', 'Files'] as const).map((name, index) => <button key={name} onClick={() => chat.setPanel(`${name} · 示例`)}><Icon name={(['globe', 'code', 'file'] as const)[index]}/>{name}</button>)}</aside>}
+      {home ? app === 'doubao' ? <div className="db-home"><div className="db-greeting"><h1>有什么我能帮你的吗?</h1><div className="db-work-switch"><button aria-pressed={!workMode} onClick={() => setWorkMode(false)}>对话</button><button aria-pressed={workMode} onClick={() => setWorkMode(true)}>工作</button></div></div><div className="db-recommendations"><p>为你推荐</p>{['如何开始一本阅读手账？', '整理一份轻松的周末计划', '帮我写一个读书笔记模板', '留下今天最想记住的一句话'].map(text => <button key={text} onClick={() => chat.setDraft(text)}>{text}</button>)}</div></div> : <div className={`saved-empty ${app === 'cursor' ? 'cu-empty' : 'ds-empty'}`}><h1>{app === 'cursor' ? 'What do you want to build?' : '有什么可以帮你？'}</h1><p>{app === 'cursor' ? 'Start a conversation in this workspace.' : '选择工作区，开始一个新会话。'}</p></div> : <SavedTranscript app={app} chat={chat} trajectory={app === 'deepseek' && view === 'trajectory'}/>}
+      {composer}
+      {app === 'deepseek' && !home && view === 'conversation' && <MessageRail messages={chat.messages} scrollRef={chat.scrollRef}/>}
+    </main></div>
+    {app === 'doubao' && <ThemeArtwork app={app} enabled={themed}/>}
+    {app === 'deepseek' && themed && <div className="harness-overlay" data-shell-overlay="true" aria-hidden="true"/>}
+    {chat.panel === 'Session 日志' ? <SavedSessionLog chat={chat}/> : chat.panel && <DialogPanel name={chat.panel} close={() => chat.setPanel('')} config={config} change={change} select={chat.select}/>}
+  </div>;
+}
+
 const codeFiles: Record<string, string> = {
   'theme.ts': `// Diana — one component system, two palettes\n\nexport type ThemeMode = 'dark' | 'light';\n\nexport const themes = {\n  dark: {\n    background: '#0d0c0f',\n    surface: '#171419',\n    foreground: '#f3eef0',\n    accent: '#d86e91',\n  },\n  light: {\n    background: '#fbf8f6',\n    surface: '#ffffff',\n    foreground: '#2c2529',\n    accent: '#b84970',\n  },\n};\n\nexport function applyTheme(mode: ThemeMode) {\n  const palette = themes[mode];\n  const root = document.documentElement;\n\n  root.dataset.theme = mode;\n  Object.entries(palette).forEach(([key, color]) => {\n    root.style.setProperty('--' + key, color);\n  });\n}\n\n// Keep artwork below the reading and input layers.\n// Decorative elements never receive pointer events.`,
   'App.tsx': `import { useState } from 'react';\nimport { applyTheme, type ThemeMode } from './theme';\nimport './styles.css';\n\nexport function App() {\n  const [mode, setMode] = useState<ThemeMode>('dark');\n\n  function toggleTheme() {\n    const next = mode === 'dark' ? 'light' : 'dark';\n    applyTheme(next);\n    setMode(next);\n  }\n\n  return (\n    <main className="workspace">\n      <h1>A little space for your ideas.</h1>\n      <button onClick={toggleTheme}>\n        {mode === 'dark' ? '日间' : '暗夜'}\n      </button>\n    </main>\n  );\n}`,
@@ -337,6 +438,6 @@ function ThemeApp() {
     window.addEventListener('message', receive); return () => window.removeEventListener('message', receive);
   }, []);
   const standalone = window.parent === window;
-  return <>{standalone && <div className="standalone-note"><a href={`/themes?${configQuery(config)}`}>← 返回主题体验 / 切换应用与配色</a><span>网页视觉演示 · 非真实客户端</span></div>}{config.app === 'grok' ? <GrokBotApp config={config} change={change}/> : config.app === 'zcode' ? <ZCodeApp config={config} change={change}/> : config.app === 'vscode' ? <VSCodeApp config={config} change={change}/> : config.app === 'terminal' ? <TerminalApp config={config}/> : <ChatApp key={config.app} config={config} change={change}/>}</>;
+  return <>{standalone && <div className="standalone-note"><a href={`/themes?${configQuery(config)}`}>← 返回主题体验 / 切换应用与配色</a><span>网页视觉演示 · 非真实客户端</span></div>}{config.app === 'grok' ? <GrokBotApp config={config} change={change}/> : config.app === 'zcode' ? <ZCodeApp config={config} change={change}/> : config.app === 'vscode' ? <VSCodeApp config={config} change={change}/> : config.app === 'terminal' ? <TerminalApp config={config}/> : ['doubao', 'cursor', 'deepseek'].includes(config.app) ? <SavedChatApp key={config.app} config={config} change={change}/> : <ChatApp key={config.app} config={config} change={change}/>}</>;
 }
 createRoot(document.getElementById('root')!).render(<ThemeApp/>);

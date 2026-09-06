@@ -7,3 +7,5 @@
 公开 Beta 安装器、便携版与在线演示内置《Hopeful Dreamer》粉丝向歌词循环，仅用于本非商业、无盈利同人作品。代码的 MIT License 不覆盖该歌曲录音；禁止拆包后单独传播或用于商业用途。源码中的可选本地音频编译入口也不向其他录音授予许可。歌曲不提交到源码 Git 历史。
 
 短按钮文字使用基于 Noto Sans SC 制作并重命名的 Diana UI Sans 直立子集，采用 SIL Open Font License 1.1；来源、哈希和原许可保留在 [字体目录](public/assets/diana-brand/fonts/README.md)。字体许可独立于角色美术和歌曲。
+
+DeepSeek Harness 网页演示使用上游 web favicon 原始鱼形标识，仅用于标识被演示的应用。文件位于 `demo/brand/harness-fish.svg`，其源码 MIT 声明完整保留在 [DEEPSEEK-LICENSE.txt](demo/brand/DEEPSEEK-LICENSE.txt)。本项目不声称获得 DeepSeek 的官方背书或额外商标授权。
