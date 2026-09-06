@@ -30,3 +30,5 @@ QA 只驱动隔离浏览器，不实际启动目标应用。设置 `DEMO_URL` �
 构建产物在 `site-build/dist/client`；Worker 与配置在 `site-build/dist/server`。原生 `dist` 保持不变。静态文件也可部署到支持 HTTPS 的静态服务器，不需要 Worker 业务后端。
 
 本仓库 `.openai/hosting.json` 只记录维护者站点 ID，没有凭据。Fork 后若部署到自己的 Sites 项目，需要替换为自己创建的站点 ID，不能向本项目站点发布。发布凭据仅通过短期、单次命令认证使用，不写入源码、Git remote 或构建产物。
+
+托管 Worker 为每个 HTML 响应提供独立的 CSP nonce，允许 Cloudflare 的访问校验脚本运行，仍禁止任意内联脚本。依据 [Cloudflare JavaScript Detections 文档](https://developers.cloudflare.com/cloudflare-challenges/challenge-types/javascript-detections/)。本地静态预览保留 meta CSP；用 `node --test scripts/test-demo-worker.mjs` 检查响应策略。
