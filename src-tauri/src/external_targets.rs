@@ -590,13 +590,22 @@ fn terminal_theme_state(available: bool, installed: bool) -> &'static str {
     }
 }
 
-fn terminal_status() -> ExternalTargetStatus {
-    let executable = find_in_path("wt.exe").or_else(|| {
+fn terminal_executable() -> Option<PathBuf> {
+    match crate::app_links::saved_path("terminal") {
+        Ok(Some(path)) => return Some(path),
+        Err(_) => return None,
+        Ok(None) => {}
+    }
+    find_in_path("wt.exe").or_else(|| {
         local_app_data()
             .ok()
             .map(|root| root.join("Microsoft/WindowsApps/wt.exe"))
             .filter(|path| path.exists())
-    });
+    })
+}
+
+fn terminal_status() -> ExternalTargetStatus {
+    let executable = terminal_executable();
     let fragment = terminal_fragment_root().ok();
     let installed = fragment
         .as_ref()
@@ -738,6 +747,11 @@ fn launch_terminal(themed: bool) -> Result<ExternalTargetStatus, String> {
 }
 
 fn vscode_executable() -> Option<PathBuf> {
+    match crate::app_links::saved_path("vscode") {
+        Ok(Some(path)) => return Some(path),
+        Err(_) => return None,
+        Ok(None) => {}
+    }
     let mut candidates = vec![
         PathBuf::from(r"D:\Apps\Visual Studio Code\Code.exe"),
         PathBuf::from(r"C:\Program Files\Microsoft VS Code\Code.exe"),
@@ -1161,6 +1175,11 @@ fn launch_vscode(themed: bool, mode: &str) -> Result<ExternalTargetStatus, Strin
 }
 
 fn cursor_executable() -> Option<PathBuf> {
+    match crate::app_links::saved_path("cursor") {
+        Ok(Some(path)) => return Some(path),
+        Err(_) => return None,
+        Ok(None) => {}
+    }
     if let Some(explicit) = env::var_os("DIANA_CURSOR_EXE") {
         let path = PathBuf::from(explicit);
         return (path.is_absolute()
@@ -1637,6 +1656,11 @@ fn launch_cursor_native() -> Result<ExternalTargetStatus, String> {
 }
 
 fn grok_executable() -> Option<PathBuf> {
+    match crate::app_links::saved_path("grokbot") {
+        Ok(Some(path)) => return Some(path),
+        Err(_) => return None,
+        Ok(None) => {}
+    }
     if let Some(explicit) = env::var_os("DIANA_GROK_EXE") {
         let path = PathBuf::from(explicit);
         return (path.is_absolute()
@@ -2034,6 +2058,11 @@ fn launch_grok_native() -> Result<ExternalTargetStatus, String> {
 }
 
 fn deepseek_root() -> Option<PathBuf> {
+    match crate::app_links::saved_path("deepseek") {
+        Ok(Some(path)) => return Some(path),
+        Err(_) => return None,
+        Ok(None) => {}
+    }
     let mut candidates = Vec::new();
     if let Some(explicit) = env::var_os("DIANA_DEEPSEEK_HARNESS_ROOT") {
         candidates.push(PathBuf::from(explicit));
@@ -2340,6 +2369,11 @@ fn launch_deepseek() -> Result<ExternalTargetStatus, String> {
 }
 
 fn zcode_executable() -> Option<PathBuf> {
+    match crate::app_links::saved_path("zcode") {
+        Ok(Some(path)) => return Some(path),
+        Err(_) => return None,
+        Ok(None) => {}
+    }
     let mut candidates = vec![
         PathBuf::from(r"C:\Program Files\ZCode\ZCode.exe"),
         PathBuf::from(r"D:\ZCode\ZCode.exe"),
@@ -2350,6 +2384,22 @@ fn zcode_executable() -> Option<PathBuf> {
         candidates.push(local.join("ZCode").join("ZCode.exe"));
     }
     candidates.into_iter().find(|candidate| candidate.is_file())
+}
+
+/// Pure location lookup for the association UI. Do not call the status helpers
+/// here: some of those also prepare theme resources or inspect a running app.
+pub(crate) fn application_path(target: &str) -> Option<PathBuf> {
+    match target {
+        "codex" => crate::installed_codex().map(|package| PathBuf::from(package.executable)),
+        "doubao" => crate::doubao_executable(),
+        "terminal" => terminal_executable(),
+        "vscode" => vscode_executable(),
+        "cursor" => cursor_executable(),
+        "grokbot" => grok_executable(),
+        "deepseek" => deepseek_root(),
+        "zcode" => zcode_executable(),
+        _ => None,
+    }
 }
 
 fn zcode_runtime_root() -> Result<PathBuf, String> {

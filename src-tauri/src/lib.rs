@@ -1,3 +1,4 @@
+mod app_links;
 mod external_targets;
 mod native_appearance;
 mod reviewed_adapters;
@@ -290,12 +291,16 @@ fn package_cache_is_fresh(cache: &InstalledCodexCache, now: Instant) -> bool {
 }
 
 fn installed_codex() -> Option<InstalledCodexPackage> {
+    installed_codex_with_refresh(false)
+}
+
+fn installed_codex_with_refresh(force: bool) -> Option<InstalledCodexPackage> {
     static INSTALLED: OnceLock<Mutex<InstalledCodexCache>> = OnceLock::new();
     let cache = INSTALLED.get_or_init(|| Mutex::new(InstalledCodexCache::default()));
     let now = Instant::now();
 
     if let Ok(guard) = cache.lock() {
-        if package_cache_is_fresh(&guard, now) {
+        if !force && package_cache_is_fresh(&guard, now) {
             return guard.package.clone();
         }
     }
@@ -353,6 +358,11 @@ fn detect_codex_processes() -> CodexProcessSnapshot {
 }
 
 fn doubao_executable() -> Option<PathBuf> {
+    match app_links::saved_path("doubao") {
+        Ok(Some(path)) => return Some(path),
+        Err(_) => return None,
+        Ok(None) => {}
+    }
     if let Some(explicit) = env::var_os("DIANA_DOUBAO_EXE") {
         let path = PathBuf::from(explicit);
         return (path.is_absolute()
@@ -1215,10 +1225,18 @@ async fn run_launcher_action(action: String, theme_mode: String) -> Result<Launc
 
 #[tauri::command]
 fn get_external_target_status(target: String) -> Result<ExternalTargetStatus, String> {
-    match target.as_str() {
+    let mut status = match target.as_str() {
         "doubao" => Ok(detect_doubao_status()),
         _ => external_targets::get_status(&target),
+    }?;
+    if let Err(error) = app_links::saved_path(&target) {
+        status.message = format!("应用关联需要处理：{error} 请点击状态栏旁的“关联”。");
+    } else if status.stage.ends_with("_not_installed") {
+        status
+            .message
+            .push_str(" 已安装到其他位置时，请点击状态栏旁的“关联”。");
     }
+    Ok(status)
 }
 
 #[tauri::command]
@@ -1228,18 +1246,50 @@ async fn run_external_target_action(
     theme_mode: Option<String>,
     experimental_approved: Option<bool>,
 ) -> Result<ExternalTargetStatus, String> {
-    tauri::async_runtime::spawn_blocking(move || match (target.as_str(), action.as_str()) {
-        ("doubao", "launch_theme") => launch_doubao(true),
-        ("doubao", "launch_native") => launch_doubao(false),
-        _ => external_targets::run_action(
-            &target,
-            &action,
-            theme_mode.as_deref(),
-            experimental_approved.unwrap_or(false),
-        ),
+    tauri::async_runtime::spawn_blocking(move || {
+        app_links::preflight(&target)?;
+        match (target.as_str(), action.as_str()) {
+            ("doubao", "launch_theme") => launch_doubao(true),
+            ("doubao", "launch_native") => launch_doubao(false),
+            _ => external_targets::run_action(
+                &target,
+                &action,
+                theme_mode.as_deref(),
+                experimental_approved.unwrap_or(false),
+            ),
+        }
     })
     .await
     .map_err(|error| format!("目标应用启动任务异常：{error}"))?
+}
+
+#[tauri::command]
+async fn get_app_link_status(
+    target: String,
+    rescan: Option<bool>,
+) -> Result<app_links::LinkStatus, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        app_links::status(&target, rescan.unwrap_or(false))
+    })
+    .await
+    .map_err(|error| format!("关联检测未完成：{error}"))?
+}
+
+#[tauri::command]
+async fn set_app_link(
+    target: String,
+    path: Option<String>,
+) -> Result<app_links::LinkStatus, String> {
+    tauri::async_runtime::spawn_blocking(move || app_links::save(&target, path.as_deref()))
+        .await
+        .map_err(|error| format!("关联保存未完成：{error}"))?
+}
+
+#[tauri::command]
+async fn pick_app_path(target: String) -> Result<Option<String>, String> {
+    tauri::async_runtime::spawn_blocking(move || app_links::pick(&target))
+        .await
+        .map_err(|error| format!("路径选择未完成：{error}"))?
 }
 
 #[tauri::command]
@@ -1268,6 +1318,9 @@ pub fn run() {
             run_launcher_action,
             get_external_target_status,
             run_external_target_action,
+            get_app_link_status,
+            set_app_link,
+            pick_app_path,
             get_music_track_status,
             load_music_track,
             quit_launcher

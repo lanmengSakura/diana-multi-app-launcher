@@ -1,6 +1,6 @@
 {
   "name": "diana-codex-launcher",
-  "version": "0.1.0-beta.4-rc.2",
+  "version": "0.1.0-beta.4-rc.3",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 1421",
@@ -12,6 +12,7 @@
     "preview": "vite preview --host 127.0.0.1 --port 4173",
     "qa:screenshot": "node scripts/qa-screenshot.mjs",
     "qa:interactions": "node scripts/qa-interactions.mjs",
+    "qa:app-links": "node scripts/qa-app-links.mjs",
     "qa:music": "node scripts/qa-music-toggle.mjs",
     "qa:runtime": "node scripts/verify-codex-runtime.mjs && node scripts/verify-reviewed-runtimes.mjs",
     "tauri": "tauri",

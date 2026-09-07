@@ -1,5 +1,6 @@
 /** Browser-only, in-memory simulator. No native adapter, process or localhost access. */
 import { configQuery, fromLauncher, launcherTargets, parseConfig, type DemoConfig } from './theme-catalog';
+import { previewLinkStatus } from '../src/app-link-api';
 declare const __DEMO_MUSIC_BYTES__: number;
 type Mode = "dark" | "light" | "system";
 type Target = "codex" | "doubao" | "terminal" | "vscode" | "cursor" | "grokbot" | "deepseek" | "zcode";
@@ -55,6 +56,9 @@ const bridge = {
   unregisterCallback: () => {},
   invoke: async (command: string, args: Record<string, string> = {}) => {
     switch (command) {
+      case "get_app_link_status": return previewLinkStatus(args.target);
+      case "set_app_link":
+      case "pick_app_path": throw new Error("网页演示不读取或保存本机路径，请在桌面启动器中关联。");
       case "plugin:event|listen": return callbackId++;
       case "plugin:event|unlisten":
       case "plugin:window|start_dragging": return null;

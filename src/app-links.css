@@ -1,0 +1,77 @@
+/* Association controls reuse the approved launcher palette and upright type.
+   The compact trigger sits beside, not on top of, the existing status plate. */
+.app-link-trigger {
+  position: absolute;
+  z-index: 7;
+  top: 742px;
+  left: 449px;
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  min-height: 30px;
+  padding: 4px;
+  border: 1px solid rgb(240 176 195 / 0.42);
+  border-radius: 6px;
+  background: linear-gradient(150deg, #32222e, #18151d);
+  box-shadow: inset 0 1px 0 rgb(255 224 234 / 0.09), 0 2px 6px rgb(12 9 16 / 0.3);
+  color: var(--control-ink-muted);
+  font: 500 10px/1 var(--control-ui-font);
+  cursor: pointer;
+  transition: color var(--control-response), border-color var(--control-response);
+}
+.app-link-trigger svg { width: 12px; height: 12px; flex: 0 0 auto; }
+.app-link-trigger:hover { color: var(--control-ink); border-color: var(--control-accent); }
+.app-link-trigger:disabled { opacity: 0.5; cursor: wait; }
+
+.app-link-panel {
+  position: fixed;
+  width: min(430px, calc(100vw - 36px));
+  max-height: calc(100vh - 36px);
+  margin: auto;
+  padding: 23px;
+  overflow: auto;
+  border: 1px solid rgb(240 176 195 / 0.64);
+  border-radius: 13px;
+  color: var(--diana-warm-text);
+  background: linear-gradient(155deg, #30212b, #19151e 48%, #16131b);
+  box-shadow: inset 0 1px 0 rgb(255 227 237 / 0.12), 0 18px 54px rgb(0 0 0 / 0.48);
+  font: 400 13px/1.65 var(--control-ui-font);
+  user-select: text;
+  color-scheme: dark;
+}
+.app-link-panel::backdrop { background: rgb(10 7 14 / 0.62); }
+.app-link-header, .app-link-summary, .app-link-path-row, .app-link-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.app-link-header, .app-link-summary { justify-content: space-between; }
+.app-link-header { align-items: flex-start; margin-bottom: 18px; }
+.app-link-eyebrow { color: var(--diana-blush-edge); font: 10px/1.5 "Cascadia Mono", monospace; letter-spacing: 0.13em; }
+.app-link-header h2 { margin: 5px 0 0; font-size: 19px; line-height: 1.45; font-weight: 650; overflow-wrap: anywhere; }
+.app-link-close { border: 0; border-radius: 5px; width: 29px; height: 29px; flex: 0 0 auto; color: var(--control-ink-muted); background: rgb(239 178 197 / 0.055); font-size: 21px; cursor: pointer; }
+.app-link-state { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--control-ink); }
+.app-link-state > span { width: 6px; height: 6px; border-radius: 50%; background: var(--diana-candy-rose); }
+.app-link-state[data-state="invalid"] > span, .app-link-state[data-state="error"] > span { background: var(--status-error); }
+.app-link-text-button { border: 0; padding: 5px 0 5px 8px; color: var(--diana-blush-edge); background: transparent; font-size: 11px; cursor: pointer; }
+.app-link-description { margin: 9px 0 17px; color: var(--control-ink-muted); font-size: 12px; overflow-wrap: anywhere; }
+.app-link-label { display: block; margin-bottom: 7px; font-size: 12px; color: var(--control-ink); }
+.app-link-path-row { gap: 7px; }
+.app-link-path-row input { width: 100%; min-width: 0; height: 38px; border: 1px solid rgb(240 176 195 / 0.28); border-radius: 6px; padding: 7px 10px; color: var(--control-ink); background: #120f16; font: 12px/1.5 var(--control-ui-font); }
+.app-link-path-row input::placeholder { color: var(--muted); opacity: 0.75; }
+.app-link-path-row input:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.app-link-button { min-height: 34px; padding: 6px 12px; border: 1px solid rgb(240 176 195 / 0.31); border-radius: 6px; background: linear-gradient(145deg, #30232e, #201923); box-shadow: inset 0 1px 0 rgb(255 224 234 / 0.06); color: var(--control-ink-muted); font: 500 12px/1.4 var(--control-ui-font); white-space: nowrap; cursor: pointer; transition: border-color var(--control-response), color var(--control-response); }
+.app-link-button:hover, .app-link-close:hover { color: var(--control-ink); border-color: var(--control-accent); }
+.app-link-save { color: var(--diana-warm-text); background: linear-gradient(150deg, #75354e, #4c2538); border-color: rgb(240 176 195 / 0.64); }
+.app-link-browse { flex: 0 0 auto; min-height: 38px; }
+.app-link-hint { margin: 8px 0 0; color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
+.app-link-feedback { margin: 12px 0 0; color: var(--diana-blush-edge); font-size: 12px; overflow-wrap: anywhere; }
+.app-link-error { color: #ffb2bf; }
+.app-link-actions { margin: 20px 0 15px; flex-wrap: wrap; gap: 8px; }
+.app-link-boundary { margin: 0; padding-top: 12px; border-top: 1px solid rgb(240 176 195 / 0.15); color: var(--muted); font-size: 11px; }
+.app-link-panel button:disabled, .app-link-panel input:disabled { opacity: 0.5; cursor: not-allowed; }
+@media (prefers-reduced-motion: reduce) {
+  .app-link-trigger, .app-link-button { transition: none; }
+}

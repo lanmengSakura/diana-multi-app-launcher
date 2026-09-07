@@ -78,3 +78,11 @@ The web demo is separate from the native launcher and installed skin adapters. R
 - Real Harness mark: `demo/brand/harness-fish.svg`, copied unchanged from the locally checked out upstream web favicon. The upstream MIT notice is retained beside it. This is target identification, not an endorsement.
 - Body/control typography follows the native Segoe UI/Microsoft YaHei stack at 12–16 px; app titles and home headings stay compact. Do not substitute a marketing-page heading scale or a new decorative palette.
 - Existing gallery, Codex, ZCode, Grok, VS Code, Terminal, and launcher artwork are outside this refinement. No new illustration, social card, app installation, or native packaging is required.
+
+## Application association — approved placement, 2026-09-07
+
+- The user placed the new `关联` entry beside the hanging status plate, not in the lower app selector. It stays available when that selector is collapsed.
+- Within the current 636×930 window and 540 px board, use a compact 48×30 px entry at board-local (449, 742). Preserve the original status information, plate, arm, artwork, main-button dimensions and motion.
+- Reuse smoked-plum/wine surfaces, thin blush edges, subdued rose hover feedback and small upright Microsoft YaHei UI/Segoe UI text. No italic, large glow, new icon library or generated artwork.
+- The modal is a restrained native-control-style panel: current location, browse/paste, save, re-detect and restore automatic detection. Keyboard focus returns to the entry after closing.
+- Association is separate from mounting and consent. Browser demos show a clearly marked preview with no native path access; no fake association success.

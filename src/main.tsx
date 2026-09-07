@@ -1,6 +1,7 @@
 import { StrictMode, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { FrameRadiance } from "./FrameRadiance";
+import { AppLinkPanel } from "./AppLinkPanel";
 import "./styles.css";
 
 type ThemeMode = "dark" | "light" | "system";
@@ -105,7 +106,7 @@ const targetOptions: TargetOption[] = [
     showThemeSwitch: true,
     modeTitle: "选择挂载主题",
     modeSubtitle: "完整美术与原生配色同步",
-    primaryNote: "一次性前台挂载；首次操作会说明调试端口风险",
+    primaryNote: "一次性前台挂载；新开调试会话前会说明风险并确认",
     secondaryLabel: "原版启动"
   },
   {
@@ -160,7 +161,7 @@ const targetOptions: TargetOption[] = [
     showThemeSwitch: true,
     modeTitle: "选择 Grok Bot 挂载主题",
     modeSubtitle: "原生配色与完整美术层同步切换",
-    primaryNote: "不改写应用资源；首次挂载会说明临时调试端口风险",
+    primaryNote: "不改写应用资源；新开调试会话前会说明风险并确认",
     secondaryLabel: "切回原版"
   },
   {
@@ -182,7 +183,7 @@ const targetOptions: TargetOption[] = [
     showThemeSwitch: true,
     modeTitle: "选择 ZCode 挂载主题",
     modeSubtitle: "精确版本核验通过后，前台一次性挂载完整美术",
-    primaryNote: "首次会说明临时调试端口风险；不创建后台监听或自启动",
+    primaryNote: "新开调试会话前说明风险并确认；不创建后台监听或自启动",
     secondaryLabel: "切回原版"
   }
 ];
@@ -330,6 +331,9 @@ function App() {
   const [pendingAction, setPendingAction] = useState<ActionName | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [statusReadError, setStatusReadError] = useState(false);
+  const [linkPanelOpen, setLinkPanelOpen] = useState(false);
+  const [linkBusy, setLinkBusy] = useState(false);
+  const linkBusyRef = useRef(false);
   const [musicTrack, setMusicTrack] = useState<MusicTrackStatus>(
     browserMusicTrackStatus
   );
@@ -346,6 +350,8 @@ function App() {
     phaseRef.current = phase;
   }, [phase]);
 
+  useEffect(() => { linkBusyRef.current = linkBusy; }, [linkBusy]);
+
   useEffect(() => {
     if (!desktopRuntime) return;
 
@@ -355,11 +361,12 @@ function App() {
       .then(({ getCurrentWindow }) =>
         getCurrentWindow().onCloseRequested((event) => {
           event.preventDefault();
-          if (phaseRef.current === "working") {
+          if (phaseRef.current === "working" || linkBusyRef.current) {
             setStatus((currentStatus) => ({
               ...currentStatus,
-              message:
-                "启动或恢复流程正在完成安全核验，暂时保留启动器窗口，避免辅助流程脱离控制。"
+              message: linkBusyRef.current
+                ? "请先完成或取消关联设置中的文件选择，启动器暂时保留窗口。"
+                : "启动或恢复流程正在完成安全核验，暂时保留启动器窗口，避免辅助流程脱离控制。"
             }));
             return;
           }
@@ -540,7 +547,7 @@ function App() {
     if (
       action === "mount" &&
       desktopRuntime &&
-      !status.nativeAppearanceManaged &&
+      (!status.themeChannelConnected || status.activeThemeMode !== themeMode) &&
       !options?.riskAccepted
     ) {
       const runtimeRoot = status.runtimeRoot ?? "%LOCALAPPDATA%\\DianaCodexLauncher\\universal-v1";
@@ -1509,6 +1516,16 @@ function App() {
           </div>
         </section>
 
+        <button type="button" className="app-link-trigger" aria-label={`关联 ${selectedTargetOption.label} 的本机位置`}
+          title="关联应用位置（不启动或挂载）" aria-haspopup="dialog" aria-expanded={linkPanelOpen}
+          disabled={phase === "working" || pendingAction !== null}
+          onClick={() => setLinkPanelOpen(true)}>
+          <svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
+            <path d="M8 6.5 10.5 4a3.9 3.9 0 0 1 5.5 5.5L13.5 12M12 13.5 9.5 16A3.9 3.9 0 0 1 4 10.5L6.5 8M7 13l6-6" />
+          </svg>
+          <span>关联</span>
+        </button>
+
         <section
           id="target-app-dock"
           className="target-dock"
@@ -1549,6 +1566,10 @@ function App() {
           </p>
         </section>
       </section>
+      {linkPanelOpen && <AppLinkPanel key={selectedTarget} target={selectedTarget} label={selectedTargetOption.label}
+        onClose={() => { setLinkPanelOpen(false); document.querySelector<HTMLButtonElement>(".app-link-trigger")?.focus(); }}
+        onSaved={() => { setActionError(null); setStatusReadError(false); setPhase("idle"); }}
+        onBusyChange={setLinkBusy} />}
     </main>
   );
 }

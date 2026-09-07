@@ -1,8 +1,10 @@
 # Diana Multi-App Launcher
 
-嘉然 Diana 多应用主题启动器。当前公开测试版本为 **`v0.1.0-beta.4-rc.2`**，仅面向 Windows 测试用户；安装器和便携版均未签名，不代表八目标全部场景已完成认证。
+嘉然 Diana 多应用主题启动器。当前公开测试版本为 **`v0.1.0-beta.4-rc.3`**，仅面向 Windows 测试用户；安装器和便携版均未签名，不代表八目标全部场景已完成认证。
 
-[八应用主题体验](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes) · [启动器演示](https://diana-launcher-demo.szbluedream01.chatgpt.site) · [Codex 主题演示](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes?app=codex) · [下载新版测试版](https://github.com/lanmengSakura/diana-multi-app-launcher/releases/tag/v0.1.0-beta.4-rc.2)
+[八应用主题体验](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes) · [启动器演示](https://diana-launcher-demo.szbluedream01.chatgpt.site) · [Codex 主题演示](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes?app=codex) · [下载新版测试版](https://github.com/lanmengSakura/diana-multi-app-launcher/releases/tag/v0.1.0-beta.4-rc.3)
+
+**完整功能由你选择启用。** 本启动器公开提供完整挂载组件；下载、安装、打开或关联应用位置不代表同意调试连接。Codex、Cursor、Grok Bot、ZCode 新开实验调试会话前会告知风险并等待确认，取消不会执行本次挂载。回环端口没有身份认证，同机进程可能读取界面、执行脚本或截图；仅关闭启动器或撤下皮肤不会关闭目标应用持有的端口，须完整退出目标应用。请先看 [风险与退出方法](SECURITY.md)。
 
 网页复用 EXE 的定稿美术和界面代码，可体验连接臂展开/隐藏、按钮交互、外发光和音乐粒子。**网页中的挂载、版本与进程状态都是模拟，不检测或操作访客的本机应用。** 模拟成功不代表本机兼容。
 
@@ -23,6 +25,8 @@
 
 使用前请看 [对应入口、依赖、恢复方式与测试范围](DELIVERY.md)。本版补齐 Cursor / Grok Bot 的可分发完整运行组件，修复 Cursor 跟随系统时的明暗混用；需要手动下载更新，不会自动替换旧 EXE。已测范围与剩余限制见 [本次发布说明](RELEASE_NOTES.md)。
 
+rc.3 新增状态栏旁的“关联”入口，可手动选择并记住应用位置；rc.2 及更早 EXE 需手动下载更新才能获得此入口。使用方式与检查范围见 [本机应用关联](APP_ASSOCIATION.md)。
+
 ## 日间线稿源码修正（2026-09-06）
 
 Cursor 与 DeepSeek Harness 的真实主题源已同步日间莓粉线稿修正，夜间及布局不变。Cursor 加载器校验兼容原先和修正版的两个精确清单指纹，仍逐个验证文件，不放宽未知版本或被修改文件的校验；机器专用适配器不在公开包内。DeepSeek 必须重新构建实际 ui-theme 模块并刷新页面，单改网页演示不生效。
@@ -33,16 +37,16 @@ Cursor 与 DeepSeek Harness 的真实主题源已同步日间莓粉线稿修正�
 
 在 GitHub Releases 下载下列任一文件：
 
-- `Diana-Multi-App-Launcher_0.1.0-beta.4-rc.2_x64-setup.exe`：当前用户 NSIS 安装包；
-- `diana-multi-app-launcher_0.1.0-beta.4-rc.2_x64-portable.exe`：免安装便携版。
+- `Diana-Multi-App-Launcher_0.1.0-beta.4-rc.3_x64-setup.exe`：当前用户 NSIS 安装包；
+- `diana-multi-app-launcher_0.1.0-beta.4-rc.3_x64-portable.exe`：免安装便携版。
 
 `v0.1.0-beta.1` 的 Windows 构建会因主题 CSS 换行转换触发 `SHA-256 mismatch`，请勿继续使用；该问题已在 Beta.2 修复。
 
 首次使用建议：
 
 1. 保存目标应用中的工作并正常退出目标应用。
-2. 打开启动器，从底部列表选择应用。
-3. 选择暗夜、日间或跟随系统，然后点击主按钮应用；这一步不是点击选项后立即切换目标应用。
+2. 打开启动器，从底部列表选择应用。未自动找到位置时，点击状态栏旁的“关联”选择程序并保存。
+3. 选择暗夜、日间或跟随系统；点击选项或保存关联不会立即挂载。
 4. 点击主按钮；若出现实验性调试连接说明，阅读后自行决定是否继续。
 5. 需要撤下时使用右侧恢复入口。Codex 与豆包标为“原版启动”；Codex 需要完整退出后再普通重开，不是即时热切换。其他目标按状态提示操作；撤下美术不等于临时调试端口已关闭。
 
