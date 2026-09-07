@@ -1,8 +1,8 @@
 # Diana Multi-App Launcher
 
-嘉然 Diana 多应用主题启动器。当前公开版本为 **`v0.1.0-beta.3`**，仅面向 Windows 测试用户；安装器和便携版均未签名。
+嘉然 Diana 多应用主题启动器。当前公开测试版本为 **`v0.1.0-beta.4-rc.2`**，仅面向 Windows 测试用户；安装器和便携版均未签名，不代表八目标全部场景已完成认证。
 
-[八应用主题体验](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes) · [启动器演示](https://diana-launcher-demo.szbluedream01.chatgpt.site) · [Codex 主题演示](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes?app=codex) · [下载 Beta.3](https://github.com/lanmengSakura/diana-multi-app-launcher/releases/tag/v0.1.0-beta.3)
+[八应用主题体验](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes) · [启动器演示](https://diana-launcher-demo.szbluedream01.chatgpt.site) · [Codex 主题演示](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes?app=codex) · [下载新版测试版](https://github.com/lanmengSakura/diana-multi-app-launcher/releases/tag/v0.1.0-beta.4-rc.2)
 
 网页复用 EXE 的定稿美术和界面代码，可体验连接臂展开/隐藏、按钮交互、外发光和音乐粒子。**网页中的挂载、版本与进程状态都是模拟，不检测或操作访客的本机应用。** 模拟成功不代表本机兼容。
 
@@ -19,18 +19,22 @@
 
 > 这是非商业同人项目，不隶属于 OpenAI、A-SOUL、字节跳动、Microsoft、Anysphere、DeepSeek 或 ZCode。Beta 版可能因目标应用更新而拒绝挂载；拒绝旧适配器属于安全行为，不代表目标应用损坏。
 
+## 首次交付说明
+
+使用前请看 [对应入口、依赖、恢复方式与测试范围](DELIVERY.md)。本版补齐 Cursor / Grok Bot 的可分发完整运行组件，修复 Cursor 跟随系统时的明暗混用；需要手动下载更新，不会自动替换旧 EXE。已测范围与剩余限制见 [本次发布说明](RELEASE_NOTES.md)。
+
 ## 日间线稿源码修正（2026-09-06）
 
 Cursor 与 DeepSeek Harness 的真实主题源已同步日间莓粉线稿修正，夜间及布局不变。Cursor 加载器校验兼容原先和修正版的两个精确清单指纹，仍逐个验证文件，不放宽未知版本或被修改文件的校验；机器专用适配器不在公开包内。DeepSeek 必须重新构建实际 ui-theme 模块并刷新页面，单改网页演示不生效。
 
-此修正已进入源码和本机构建，尚未重新发布 Windows 安装包。
+此修正已包含在本次 rc.2 Windows 安装版与便携版中。DeepSeek 的实际源码部署仍须自行构建，不能由启动器里的演示代替。
 
 ## 下载与使用
 
 在 GitHub Releases 下载下列任一文件：
 
-- `Diana-Multi-App-Launcher_0.1.0-beta.3_x64-setup.exe`：当前用户 NSIS 安装包；
-- `diana-multi-app-launcher_0.1.0-beta.3_x64-portable.exe`：免安装便携版。
+- `Diana-Multi-App-Launcher_0.1.0-beta.4-rc.2_x64-setup.exe`：当前用户 NSIS 安装包；
+- `diana-multi-app-launcher_0.1.0-beta.4-rc.2_x64-portable.exe`：免安装便携版。
 
 `v0.1.0-beta.1` 的 Windows 构建会因主题 CSS 换行转换触发 `SHA-256 mismatch`，请勿继续使用；该问题已在 Beta.2 修复。
 
@@ -52,12 +56,12 @@ Windows SmartScreen 可能提示“未知发布者”，因为当前 Beta 没有
 | 豆包 | Manifest V3 用户态扩展与专用入口 | 不开启调试端口，不读取登录态，不修改安装目录 |
 | Windows Terminal | 用户级 Fragment、独立配置和恢复脚本 | 不创建后台进程；默认配置只在用户明确选择时改变 |
 | Visual Studio Code | 标准 Diana Day/Night 颜色主题 | 不修改 VS Code 安装资源 |
-| Cursor | 标准颜色主题；已登记本机适配器时可完整挂载 | 公开包不携带 Cursor 专用适配器；无登记时安全降级为颜色主题 |
-| Grok Bot | 已登记本机适配器时可完整挂载 | 公开包不携带 Grok Bot 专用适配器；未登记或清单不匹配时拒绝接管 |
+| Cursor | 内置版本限定完整适配器，另有标准颜色主题 | 当前限 3.17.21 与指定有效签名；需要 Node.js 22+，逐次确认调试风险 |
+| Grok Bot | 内置版本限定完整适配器 | 当前限 0.28.0 与指定有效签名；需要 Node.js 22+，逐次确认调试风险 |
 | DeepSeek Harness | 检测并启动本地源码部署 | 不捆绑上游源码、模型 Key 或用户资料 |
 | ZCode | 版本限定的实验性完整美术挂载 | 当前只接受已验证的 `3.6.5.4145` 和有效签名；版本不符时拒绝开启端口 |
 
-完整美术兼容性是“目标版本 + 运行时结构”联合条件，不按进程存在与否判断。只有结构、模式、交互与恢复检查均通过时，启动器才显示 `MOUNTED`。
+完整美术兼容性是“目标版本 + 运行时结构”联合条件。挂载操作会核验渲染结果；后续状态主要依据本次成功记录与对应进程，不是持续截图或逐项人工验收。页面重载、应用更新或恢复流程仍需实际复核，`MOUNTED` 不代表所有交互与恢复测试均已完成。
 
 ## 实验性调试连接
 

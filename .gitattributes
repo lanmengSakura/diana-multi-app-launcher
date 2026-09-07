@@ -1,6 +1,9 @@
 # The runtime manifest hashes the exact CSS bytes. Keep them LF on every OS so
 # a Windows checkout embeds the same bytes that were recorded in manifest.json.
 src-tauri/resources/diana-runtime/themes/*.css text eol=lf
+src-tauri/resources/theme-packs/cursor/runtime/** text eol=lf
+src-tauri/resources/theme-packs/grokbot/runtime/** text eol=lf
+src-tauri/resources/theme-packs/zcode/runtime/** text eol=lf
 
 # Preserve the upstream OFL notice verbatim, including its original line ending spaces.
 public/assets/diana-brand/fonts/NotoSansSC-OFL.txt whitespace=-blank-at-eol

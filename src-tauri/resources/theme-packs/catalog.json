@@ -37,24 +37,24 @@
     {
       "id": "cursor",
       "name": "Cursor",
-      "deployment": "registered-local-loopback-adapter-with-color-fallback",
-      "artwork": "complete-on-tested-local-adapter",
+      "deployment": "bundled-reviewed-loopback-adapter-with-color-fallback",
+      "artwork": "complete-on-reviewed-version",
       "modes": ["dark", "light", "system"],
       "requiresThirdPartyBinary": true,
       "testedVersion": "3.17.21",
       "requiresPerLaunchRiskConfirmation": true,
-      "bundlesAdapterRuntime": false
+      "bundlesAdapterRuntime": true
     },
     {
       "id": "grokbot",
       "name": "Grok Bot",
-      "deployment": "registered-local-loopback-adapter",
-      "artwork": "complete-on-tested-local-adapter",
+      "deployment": "bundled-reviewed-loopback-adapter",
+      "artwork": "complete-on-reviewed-version",
       "modes": ["dark", "light", "system"],
       "requiresThirdPartyBinary": true,
       "testedVersion": "0.28.0",
       "requiresPerLaunchRiskConfirmation": true,
-      "bundlesAdapterRuntime": false
+      "bundlesAdapterRuntime": true
     },
     {
       "id": "deepseek",

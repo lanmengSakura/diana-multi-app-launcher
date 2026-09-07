@@ -651,13 +651,13 @@ function App() {
     action: "launch_theme" | "launch_native"
   ) => {
     if (phase === "working") return;
+    let experimentalApproved = false;
 
     if (
       selectedTarget === "cursor" &&
       action === "launch_theme" &&
       desktopRuntime &&
-      (externalStatus.stage === "cursor_adapter_ready" ||
-        externalStatus.stage === "cursor_restore_ready")
+      !externalStatus.running
     ) {
       const runtimeRoot =
         externalStatus.themeRoot ?? "本机已登记的 Diana Cursor 适配器目录";
@@ -665,7 +665,7 @@ function App() {
         [
           "即将优先为 Cursor 挂载完整 Diana 日夜美术。",
           "",
-          "启动器只调用本机已登记且 SHA-256 清单完全匹配的 Cursor 3.17.21 适配器。适配器会再次核验 Anysphere 官方数字签名，然后以 --remote-debugging-address=127.0.0.1 和随机高位端口启动 Cursor；短时 Node.js 进程完成界面探测与挂载后立即退出，不修改 Cursor.exe、resources/app 或安装目录，也不创建服务、计划任务、自启动项或后台 watcher。",
+          "启动器只调用内置审核版本（或已登记旧版）且 SHA-256 清单完全匹配的 Cursor 3.17.21 适配器。适配器会再次核验该应用已验证发布者的数字签名，然后以 --remote-debugging-address=127.0.0.1 和随机高位端口启动 Cursor；短时 Node.js 进程完成界面探测与挂载后立即退出，不修改 Cursor.exe、resources/app 或安装目录，也不创建服务、计划任务、自启动项或后台 watcher。",
           "",
           "临时调试端口没有身份认证。同一 Windows 账户下的其他本地进程可能发现它，读取当前可见界面、执行渲染页脚本或截图。只有完整退出本次全部 Cursor 进程，端口和相应风险才会结束。",
           "",
@@ -676,13 +676,14 @@ function App() {
         ].join("\n")
       );
       if (!accepted) return;
+      experimentalApproved = true;
     }
 
     if (
       selectedTarget === "grokbot" &&
       action === "launch_theme" &&
       desktopRuntime &&
-      externalStatus.stage === "grokbot_adapter_ready"
+      !externalStatus.running
     ) {
       const runtimeRoot =
         externalStatus.themeRoot ?? "本机已登记的 Diana Grok Bot 适配器目录";
@@ -690,7 +691,7 @@ function App() {
         [
           "即将优先为 Grok Bot 挂载完整 Diana 日夜美术。",
           "",
-          "启动器只调用本机已登记且 SHA-256 清单完全匹配的 Grok Bot 0.28.0 适配器。适配器会再次核验 Anysphere 官方数字签名，然后以 --remote-debugging-address=127.0.0.1 和随机高位端口启动 Grok Bot；短时 Node.js 进程完成原生日夜切换、界面探测与挂载后立即退出，不修改 Grok Bot.exe、app.asar 或安装目录，也不创建服务、计划任务、自启动项或后台 watcher。",
+          "启动器只调用内置审核版本（或已登记旧版）且 SHA-256 清单完全匹配的 Grok Bot 0.28.0 适配器。适配器会再次核验该应用已验证发布者的数字签名，然后以 --remote-debugging-address=127.0.0.1 和随机高位端口启动 Grok Bot；短时 Node.js 进程完成原生日夜切换、界面探测与挂载后立即退出，不修改 Grok Bot.exe、app.asar 或安装目录，也不创建服务、计划任务、自启动项或后台 watcher。",
           "",
           "临时调试端口没有身份认证。同一 Windows 账户下的其他本地进程可能发现它，读取当前可见界面、执行渲染页脚本或截图。只有完整退出本次全部 Grok Bot 进程，端口和相应风险才会结束。",
           "",
@@ -701,6 +702,7 @@ function App() {
         ].join("\n")
       );
       if (!accepted) return;
+      experimentalApproved = true;
     }
 
     if (
@@ -750,6 +752,7 @@ function App() {
         ].join("\n")
       );
       if (!accepted) return;
+      experimentalApproved = true;
     }
 
     if (
@@ -771,7 +774,7 @@ function App() {
         const { invoke } = await import("@tauri-apps/api/core");
         const nextStatus = await invoke<ExternalTargetStatus>(
           "run_external_target_action",
-          { target: selectedTarget, action, themeMode }
+          { target: selectedTarget, action, themeMode, experimentalApproved }
         );
         setExternalStatus(nextStatus);
       } else {

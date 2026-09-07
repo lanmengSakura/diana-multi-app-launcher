@@ -1,6 +1,6 @@
 # 多合一启动器安全边界
 
-当前目录对应 Diana Multi-App Launcher `v0.1.0-beta.2`。它是面向公开测试的八目标实验版，不是跨版本兼容承诺。
+当前目录对应 Diana Multi-App Launcher `v0.1.0-beta.4-rc.2`。它是面向公开测试的八目标实验版，不是全场景或跨版本兼容承诺。
 
 ## 默认允许的操作
 
@@ -16,7 +16,7 @@ Cursor、Grok Bot 与 ZCode 的完整视觉需要版本限定的本机适配器�
 
 ZCode 信任检查与预检通过启动器明确传入的 Windows PowerShell 路径执行，不依赖桌面进程 PATH；Windows PowerShell 5.1 的模块搜索路径与 Codex 内置 PowerShell 7 隔离，避免把有效签名误报为失败。Codex 包检测、挂载/恢复脚本和本机 Node 适配器使用同一隔离环境；预检仍然只读，不会启动目标应用或打开端口。
 
-Grok Bot 与 Cursor 适配器只通过 `%LOCALAPPDATA%\DianaCodexLauncher\multi-app-v1\state` 中的登记记录调用；适配器本体、运行日志、恢复状态和 QA 截图不进入源码仓库、启动器 EXE 或 Release。ZCode 使用启动器内置的版本限定桥接代码，但共用 Diana 美术仍只从统一资源表写出，不在 ZCode 主题包内重复保存。
+Grok Bot 与 Cursor 新增内置审核运行组件，解包到 `%LOCALAPPDATA%\DianaCodexLauncher\multi-app-v1\reviewed-runtimes` 的独立版本目录。仍优先保留已登记旧适配器，避免破坏旧恢复周期；旧用户应先通过旧入口完整恢复，再移走旧登记文件并备份，才能使用新版内置组件。版本目录中的不可变文件按内置字节/哈希核对，不覆盖恢复状态。私有机器适配目录、运行日志、用户状态和 QA 截图不进入发布包。ZCode 也使用内置版本限定桥接代码；公共 Diana 美术从同一份资源表写出，不按适配器重复嵌入。
 
 ## 明确禁止
 

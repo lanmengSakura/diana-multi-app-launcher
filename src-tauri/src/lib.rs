@@ -1,5 +1,7 @@
 mod external_targets;
 mod native_appearance;
+mod reviewed_adapters;
+mod settings_jsonc;
 
 use serde::{Deserialize, Serialize};
 use std::env;
@@ -19,7 +21,7 @@ const BUNDLED_MUSIC_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/hop
 const BUNDLED_MUSIC_FILENAME: &str = env!("DIANA_BUNDLED_MUSIC_FILENAME");
 const BUNDLED_MUSIC_MIME: &str = env!("DIANA_BUNDLED_MUSIC_MIME");
 
-const RUNTIME_FILES: &[(&str, &[u8])] = &[
+static RUNTIME_FILES: &[(&str, &[u8])] = &[
     (
         "adapter.mjs",
         include_bytes!("../resources/diana-runtime/adapter.mjs"),
@@ -351,6 +353,15 @@ fn detect_codex_processes() -> CodexProcessSnapshot {
 }
 
 fn doubao_executable() -> Option<PathBuf> {
+    if let Some(explicit) = env::var_os("DIANA_DOUBAO_EXE") {
+        let path = PathBuf::from(explicit);
+        return (path.is_absolute()
+            && path.is_file()
+            && path
+                .file_name()
+                .is_some_and(|n| n.to_string_lossy().eq_ignore_ascii_case("Doubao.exe")))
+        .then_some(path);
+    }
     let mut candidates = vec![
         PathBuf::from(r"D:\Doubao\app\Doubao.exe"),
         PathBuf::from(r"D:\Doubao\Doubao.exe"),
@@ -365,6 +376,15 @@ fn doubao_executable() -> Option<PathBuf> {
                 .join("Doubao.exe"),
         );
         candidates.push(local.join("Doubao").join("app").join("Doubao.exe"));
+        candidates.push(local.join("Doubao").join("Application").join("Doubao.exe"));
+        candidates.push(local.join("Programs").join("Doubao").join("Doubao.exe"));
+    }
+    if let Some(program_files) = env::var_os("ProgramFiles") {
+        candidates.push(
+            PathBuf::from(program_files)
+                .join("Doubao")
+                .join("Doubao.exe"),
+        );
     }
     candidates.into_iter().find(|path| path.is_file())
 }
@@ -482,9 +502,6 @@ fn detect_doubao_status() -> ExternalTargetStatus {
 }
 
 fn launch_doubao(themed: bool) -> Result<ExternalTargetStatus, String> {
-    if themed {
-        external_targets::ensure_doubao_theme()?;
-    }
     let before = detect_doubao_status();
     if before.running {
         if themed && !before.themed {
@@ -503,14 +520,13 @@ fn launch_doubao(themed: bool) -> Result<ExternalTargetStatus, String> {
         .executable
         .as_ref()
         .map(PathBuf::from)
-        .ok_or_else(|| "未检测到豆包浏览器可执行文件。".to_string())?;
+        .ok_or_else(|| {
+            "未找到豆包浏览器；可用 DIANA_DOUBAO_EXE 指定官方 Doubao.exe 的绝对路径。".to_string()
+        })?;
     let mut command = Command::new(&executable);
     if themed {
-        let theme_root = before
-            .theme_root
-            .as_ref()
-            .map(PathBuf::from)
-            .ok_or_else(|| "未检测到 Diana 豆包主题文件。".to_string())?;
+        // Use this build's exact extension, never whichever directory sorts last.
+        let theme_root = external_targets::ensure_doubao_theme()?;
         command.arg(format!("--load-extension={}", theme_root.display()));
     }
     command.arg("https://www.doubao.com/chat/");
@@ -664,6 +680,45 @@ fn ensure_runtime_files() -> Result<PathBuf, String> {
     Ok(root)
 }
 
+fn node_runtime_supported(candidate: &Path) -> bool {
+    static CACHE: OnceLock<Mutex<std::collections::HashMap<PathBuf, (Instant, bool)>>> =
+        OnceLock::new();
+    let cache = CACHE.get_or_init(|| Mutex::new(std::collections::HashMap::new()));
+    if let Ok(items) = cache.lock() {
+        if let Some((at, supported)) = items.get(candidate) {
+            if at.elapsed() < Duration::from_secs(10) {
+                return *supported;
+            }
+        }
+    }
+    let mut command = Command::new(candidate);
+    command.args(["-e", "process.exit(Number(process.versions.node.split('.')[0])>=22 && typeof WebSocket==='function' && typeof fetch==='function' && typeof AbortSignal.timeout==='function' ? 0 : 1)"])
+        .stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null());
+    hide_console(&mut command);
+    let supported = if let Ok(mut child) = command.spawn() {
+        let start = Instant::now();
+        loop {
+            match child.try_wait() {
+                Ok(Some(status)) => break status.success(),
+                Ok(None) if start.elapsed() < Duration::from_secs(2) => {
+                    std::thread::sleep(Duration::from_millis(20))
+                }
+                _ => {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    break false;
+                }
+            }
+        }
+    } else {
+        false
+    };
+    if let Ok(mut items) = cache.lock() {
+        items.insert(candidate.to_path_buf(), (Instant::now(), supported));
+    }
+    supported
+}
+
 fn find_node_runtime() -> Result<PathBuf, String> {
     let mut candidates = Vec::new();
     if let Some(user_profile) = env::var_os("USERPROFILE") {
@@ -687,8 +742,8 @@ fn find_node_runtime() -> Result<PathBuf, String> {
     }
     candidates
         .into_iter()
-        .find(|candidate| candidate.is_file())
-        .ok_or_else(|| "没有找到可用的 Node.js 运行时。".to_string())
+        .find(|candidate| candidate.is_file() && node_runtime_supported(candidate))
+        .ok_or_else(|| "缺少可用的 Node.js 22+（需要内置 WebSocket）。请安装官方 Node.js LTS 后重新打开启动器；尚未开启调试端口。".to_string())
 }
 
 fn powershell_runtime() -> Result<PathBuf, String> {
@@ -1171,11 +1226,17 @@ async fn run_external_target_action(
     target: String,
     action: String,
     theme_mode: Option<String>,
+    experimental_approved: Option<bool>,
 ) -> Result<ExternalTargetStatus, String> {
     tauri::async_runtime::spawn_blocking(move || match (target.as_str(), action.as_str()) {
         ("doubao", "launch_theme") => launch_doubao(true),
         ("doubao", "launch_native") => launch_doubao(false),
-        _ => external_targets::run_action(&target, &action, theme_mode.as_deref()),
+        _ => external_targets::run_action(
+            &target,
+            &action,
+            theme_mode.as_deref(),
+            experimental_approved.unwrap_or(false),
+        ),
     })
     .await
     .map_err(|error| format!("目标应用启动任务异常：{error}"))?

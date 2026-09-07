@@ -15,7 +15,7 @@ use std::time::Duration;
 use sysinfo::System;
 
 const MULTI_APP_CHANNEL: &str = "multi-app-v1";
-const DOUBAO_THEME_VERSION: &str = "0.1.1";
+pub(crate) const DOUBAO_THEME_VERSION: &str = "0.1.2";
 const VSCODE_THEME_VERSION: &str = "0.2.0";
 const CURSOR_THEME_VERSION: &str = "0.1.0";
 const EXPECTED_CURSOR_VERSION: &str = "3.17.21";
@@ -312,6 +312,8 @@ struct ZcodeTrustReport {
 struct EditorManagedState {
     settings_path: String,
     previous_values: BTreeMap<String, Option<String>>,
+    #[serde(default)]
+    applied_values: BTreeMap<String, Option<String>>,
 }
 
 fn local_app_data() -> Result<PathBuf, String> {
@@ -378,6 +380,7 @@ fn extract_pack(target: &str) -> Result<PathBuf, String> {
             write_shared_assets(&root.join("assets"), DOUBAO_ASSET_MAP)?;
         }
         "terminal" => write_files(&root, TERMINAL_FILES)?,
+        "cursor" => write_files(&root, CURSOR_FILES)?,
         "vscode" => {
             write_files(&root, VSCODE_FILES)?;
             write_shared_assets(&root.join("assets/artwork"), VSCODE_ART_MAP)?;
@@ -792,112 +795,14 @@ fn vscode_extension_path(executable: &Path) -> Result<PathBuf, String> {
 }
 
 fn jsonc_raw_value(contents: &str, key: &str) -> Option<String> {
-    let marker = format!("\"{key}\"");
-    let start = contents.find(&marker)? + marker.len();
-    let colon = contents[start..].find(':')? + start + 1;
-    let value_start = contents[colon..]
-        .char_indices()
-        .find(|(_, character)| !character.is_whitespace())
-        .map(|(offset, _)| colon + offset)?;
-    let bytes = contents.as_bytes();
-    if bytes.get(value_start) == Some(&b'\"') {
-        let mut escaped = false;
-        for index in value_start + 1..bytes.len() {
-            match bytes[index] {
-                b'\\' if !escaped => escaped = true,
-                b'\"' if !escaped => return Some(contents[value_start..=index].to_string()),
-                _ => escaped = false,
-            }
-        }
-        return None;
-    }
-    let end = contents[value_start..]
-        .find(|character: char| character == ',' || character == '\n' || character == '}')
-        .map(|offset| value_start + offset)
-        .unwrap_or(contents.len());
-    Some(contents[value_start..end].trim().to_string())
+    crate::settings_jsonc::raw_value(contents, key)
 }
-
 fn replace_jsonc_raw(contents: &str, key: &str, raw_value: &str) -> String {
-    let marker = format!("\"{key}\"");
-    if let Some(key_index) = contents.find(&marker) {
-        let after_key = key_index + marker.len();
-        if let Some(colon_offset) = contents[after_key..].find(':') {
-            let colon = after_key + colon_offset + 1;
-            if let Some((value_offset, _)) = contents[colon..]
-                .char_indices()
-                .find(|(_, character)| !character.is_whitespace())
-            {
-                let value_start = colon + value_offset;
-                let bytes = contents.as_bytes();
-                let value_end = if bytes.get(value_start) == Some(&b'\"') {
-                    let mut escaped = false;
-                    let mut end = value_start + 1;
-                    for index in value_start + 1..bytes.len() {
-                        match bytes[index] {
-                            b'\\' if !escaped => escaped = true,
-                            b'\"' if !escaped => {
-                                end = index + 1;
-                                break;
-                            }
-                            _ => escaped = false,
-                        }
-                    }
-                    end
-                } else {
-                    contents[value_start..]
-                        .find(|character: char| {
-                            character == ',' || character == '\n' || character == '}'
-                        })
-                        .map(|offset| value_start + offset)
-                        .unwrap_or(contents.len())
-                };
-                return format!(
-                    "{}{}{}",
-                    &contents[..value_start],
-                    raw_value,
-                    &contents[value_end..]
-                );
-            }
-        }
-    }
-
-    let closing = contents.rfind('}').unwrap_or(contents.len());
-    let before = &contents[..closing];
-    let needs_comma = before
-        .chars()
-        .rev()
-        .find(|character| !character.is_whitespace())
-        .map(|character| character != '{' && character != ',')
-        .unwrap_or(false);
-    format!(
-        "{}{}\n  \"{}\": {}\n{}",
-        before.trim_end(),
-        if needs_comma { "," } else { "" },
-        key,
-        raw_value,
-        &contents[closing..]
-    )
+    crate::settings_jsonc::edit(contents, key, Some(raw_value))
+        .unwrap_or_else(|_| contents.to_string())
 }
-
 fn remove_jsonc_property(contents: &str, key: &str) -> String {
-    let marker = format!("\"{key}\"");
-    let Some(index) = contents.find(&marker) else {
-        return contents.to_string();
-    };
-    let line_start = contents[..index]
-        .rfind('\n')
-        .map(|position| position + 1)
-        .unwrap_or(0);
-    let line_end = contents[index..]
-        .find('\n')
-        .map(|offset| index + offset + 1)
-        .unwrap_or(contents.len());
-    let mut updated = format!("{}{}", &contents[..line_start], &contents[line_end..]);
-    if updated.contains(",\n}") {
-        updated = updated.replace(",\n}", "\n}");
-    }
-    updated
+    crate::settings_jsonc::edit(contents, key, None).unwrap_or_else(|_| contents.to_string())
 }
 
 fn vscode_state_path() -> Result<PathBuf, String> {
@@ -922,7 +827,12 @@ fn set_editor_theme(
         fs::create_dir_all(parent)
             .map_err(|error| format!("无法创建 {product_name} 设置目录：{error}"))?;
     }
-    let original = fs::read_to_string(&settings).unwrap_or_else(|_| "{}\n".to_string());
+    let original = if settings.exists() {
+        fs::read_to_string(settings).map_err(|e| format!("无法读取设置，未改写：{e}"))?
+    } else {
+        "{}\n".to_string()
+    };
+    crate::settings_jsonc::inspect(&original)?;
     let managed_keys = [
         "workbench.colorTheme",
         "workbench.preferredDarkColorTheme",
@@ -945,6 +855,7 @@ fn set_editor_theme(
         let state = EditorManagedState {
             settings_path: settings.to_string_lossy().into_owned(),
             previous_values,
+            applied_values: BTreeMap::new(),
         };
         write_if_changed(
             &state_path,
@@ -953,6 +864,13 @@ fn set_editor_theme(
         )?;
     }
 
+    let mut state: EditorManagedState = serde_json::from_slice(
+        &fs::read(state_path).map_err(|e| format!("无法读取恢复记录，未改写设置：{e}"))?,
+    )
+    .map_err(|e| format!("恢复记录无效，未改写设置：{e}"))?;
+    if state.settings_path != settings.to_string_lossy() {
+        return Err("设置路径已经变化，未覆盖新位置或旧恢复记录。".to_string());
+    }
     let mut updated = original;
     updated = replace_jsonc_raw(
         &updated,
@@ -977,6 +895,15 @@ fn set_editor_theme(
             updated = replace_jsonc_raw(&updated, "window.autoDetectColorScheme", "false");
         }
     }
+    state.applied_values = managed_keys
+        .iter()
+        .map(|key| ((*key).to_string(), jsonc_raw_value(&updated, key)))
+        .collect();
+    // Persist the intended values first: an interrupted settings write remains recoverable.
+    write_if_changed(
+        state_path,
+        &serde_json::to_vec_pretty(&state).map_err(|e| format!("无法保存恢复记录：{e}"))?,
+    )?;
     write_if_changed(&settings, updated.as_bytes())?;
     Ok(settings.to_path_buf())
 }
@@ -989,9 +916,13 @@ fn restore_editor_theme(
     if !state_path.is_file() {
         if product_name == "VS Code" {
             // Older manual installs did not save a pre-Diana theme. Keep every unrelated setting.
+            if !settings.is_file() {
+                return Ok(());
+            }
             let mut contents = fs::read_to_string(settings)
                 .map_err(|error| format!("无法读取 VS Code 设置：{error}"))?;
             let original = contents.clone();
+            crate::settings_jsonc::inspect(&contents)?;
             for key in [
                 "workbench.colorTheme",
                 "workbench.preferredDarkColorTheme",
@@ -1024,8 +955,25 @@ fn restore_editor_theme(
             "{product_name} 设置路径已经变化，未自动覆盖新的用户配置。"
         ));
     }
-    let mut updated = fs::read_to_string(&settings).unwrap_or_else(|_| "{}\n".to_string());
+    let mut updated = if settings.exists() {
+        fs::read_to_string(settings).map_err(|e| format!("无法读取设置，未恢复：{e}"))?
+    } else {
+        "{}\n".to_string()
+    };
+    crate::settings_jsonc::inspect(&updated)?;
     for (key, previous) in state.previous_values {
+        let current = jsonc_raw_value(&updated, &key);
+        if let Some(applied) = state.applied_values.get(&key) {
+            if &current != applied {
+                continue;
+            }
+        } else if !matches!(
+            current.as_deref(),
+            Some("\"Diana Day\"") | Some("\"Diana Night\"")
+        ) {
+            // Legacy records have no ownership proof for non-theme settings.
+            continue;
+        }
         updated = if let Some(raw) = previous {
             let raw = if product_name == "VS Code" {
                 native_vscode_theme_value(&raw)
@@ -1213,6 +1161,15 @@ fn launch_vscode(themed: bool, mode: &str) -> Result<ExternalTargetStatus, Strin
 }
 
 fn cursor_executable() -> Option<PathBuf> {
+    if let Some(explicit) = env::var_os("DIANA_CURSOR_EXE") {
+        let path = PathBuf::from(explicit);
+        return (path.is_absolute()
+            && path.is_file()
+            && path
+                .file_name()
+                .is_some_and(|n| n.to_string_lossy().eq_ignore_ascii_case("Cursor.exe")))
+        .then_some(path);
+    }
     let mut candidates = vec![
         PathBuf::from(r"D:\Apps\Cursor\Cursor.exe"),
         PathBuf::from(r"C:\Program Files\Cursor\Cursor.exe"),
@@ -1221,6 +1178,9 @@ fn cursor_executable() -> Option<PathBuf> {
         let local = PathBuf::from(local);
         candidates.push(local.join("Programs").join("cursor").join("Cursor.exe"));
         candidates.push(local.join("Programs").join("Cursor").join("Cursor.exe"));
+    }
+    if let Some(found) = find_in_path("Cursor.exe") {
+        candidates.push(found);
     }
     candidates.into_iter().find(|candidate| candidate.is_file())
 }
@@ -1278,7 +1238,7 @@ fn cursor_adapter_is_complete(root: &Path) -> bool {
         && root.join("README-LOCAL.txt").is_file()
 }
 
-fn cursor_adapter_root() -> Option<PathBuf> {
+fn registered_cursor_adapter_root() -> Option<PathBuf> {
     if let Some(explicit) = env::var_os("DIANA_CURSOR_ADAPTER_ROOT") {
         let root = PathBuf::from(explicit);
         if cursor_adapter_is_complete(&root) {
@@ -1299,6 +1259,16 @@ fn cursor_adapter_root() -> Option<PathBuf> {
     cursor_adapter_is_complete(&root).then_some(root)
 }
 
+fn cursor_adapter_root() -> Option<PathBuf> {
+    require_cursor_adapter_root().ok()
+}
+fn require_cursor_adapter_root() -> Result<PathBuf, String> {
+    if let Some(root) = registered_cursor_adapter_root() {
+        return Ok(root);
+    }
+    crate::reviewed_adapters::ensure(&multi_app_root()?, "cursor", RUNTIME_FILES)
+}
+
 fn sha256_file(path: &Path) -> Result<String, String> {
     let contents = fs::read(path)
         .map_err(|error| format!("无法读取本机适配器文件 {}：{error}", path.display()))?;
@@ -1309,6 +1279,12 @@ fn sha256_file(path: &Path) -> Result<String, String> {
 
 fn verify_cursor_adapter(root: &Path) -> Result<(), String> {
     let manifest_path = root.join("SHA256SUMS.txt");
+    if crate::reviewed_adapters::manifest_matches(
+        "cursor",
+        &fs::read(&manifest_path).unwrap_or_default(),
+    ) {
+        return crate::reviewed_adapters::verify(root, "cursor");
+    }
     let manifest_hash = sha256_file(&manifest_path)?;
     if !CURSOR_ADAPTER_MANIFEST_SHA256.contains(&manifest_hash.as_str()) {
         return Err("本机 Cursor 适配器清单与已验证版本不一致；本次不会执行。".to_string());
@@ -1348,7 +1324,8 @@ fn read_cursor_session(root: &Path) -> Option<CursorSessionRecord> {
 }
 
 fn cursor_session_matches(snapshot: &ProcessSnapshot, session: &CursorSessionRecord) -> bool {
-    session.adapter_version == CURSOR_ADAPTER_VERSION
+    (session.adapter_version == CURSOR_ADAPTER_VERSION
+        || session.adapter_version == crate::reviewed_adapters::version("cursor"))
         && session.version == EXPECTED_CURSOR_VERSION
         && snapshot.main_process_id == Some(session.pid)
         && snapshot
@@ -1365,6 +1342,13 @@ fn run_cursor_adapter(root: &Path, action: &str, mode: &str) -> Result<String, S
     verify_cursor_adapter(root)?;
     let node = find_node_runtime()?;
     let mut command = Command::new(node);
+    command.env(
+        "DIANA_TARGET_EXE",
+        cursor_executable().ok_or("未检测到 Cursor；可设置 DIANA_CURSOR_EXE 指向官方程序。")?,
+    );
+    if action == "start" {
+        command.env("DIANA_CDP_CONSENT", "accepted-for-this-launch");
+    }
     command.arg(root.join("adapter.mjs")).arg(action);
     if action == "start" || action == "apply" {
         command.arg(mode);
@@ -1575,7 +1559,9 @@ fn cursor_status() -> ExternalTargetStatus {
     }
 }
 
-fn launch_cursor_theme(mode: &str) -> Result<ExternalTargetStatus, String> {
+fn launch_cursor_theme(mode: &str, approved: bool) -> Result<ExternalTargetStatus, String> {
+    // Extraction failures must not silently turn a requested full mount into colors only.
+    require_cursor_adapter_root()?;
     let before = cursor_status();
     let executable = before
         .executable
@@ -1590,6 +1576,9 @@ fn launch_cursor_theme(mode: &str) -> Result<ExternalTargetStatus, String> {
             return Ok(before);
         }
         let action = if before.running { "apply" } else { "start" };
+        if action == "start" && !approved {
+            return Err("本次 Cursor 启动尚未确认调试端口风险。".into());
+        }
         run_cursor_adapter(&root, action, mode)?;
         std::thread::sleep(Duration::from_millis(450));
         let status = cursor_status();
@@ -1648,6 +1637,15 @@ fn launch_cursor_native() -> Result<ExternalTargetStatus, String> {
 }
 
 fn grok_executable() -> Option<PathBuf> {
+    if let Some(explicit) = env::var_os("DIANA_GROK_EXE") {
+        let path = PathBuf::from(explicit);
+        return (path.is_absolute()
+            && path.is_file()
+            && path
+                .file_name()
+                .is_some_and(|n| n.to_string_lossy().eq_ignore_ascii_case("Grok Bot.exe")))
+        .then_some(path);
+    }
     let mut candidates = vec![
         PathBuf::from(r"D:\Program Files\Grok Bot\Grok Bot.exe"),
         PathBuf::from(r"C:\Program Files\Grok Bot\Grok Bot.exe"),
@@ -1659,6 +1657,9 @@ fn grok_executable() -> Option<PathBuf> {
                 .join("Grok Bot")
                 .join("Grok Bot.exe"),
         );
+    }
+    if let Some(found) = find_in_path("Grok Bot.exe") {
+        candidates.push(found);
     }
     candidates.into_iter().find(|candidate| candidate.is_file())
 }
@@ -1674,7 +1675,7 @@ fn grok_adapter_is_complete(root: &Path) -> bool {
         && root.join("README-LOCAL.txt").is_file()
 }
 
-fn grok_adapter_root() -> Option<PathBuf> {
+fn registered_grok_adapter_root() -> Option<PathBuf> {
     if let Some(explicit) = env::var_os("DIANA_GROK_ADAPTER_ROOT") {
         let root = PathBuf::from(explicit);
         if grok_adapter_is_complete(&root) {
@@ -1695,8 +1696,24 @@ fn grok_adapter_root() -> Option<PathBuf> {
     grok_adapter_is_complete(&root).then_some(root)
 }
 
+fn grok_adapter_root() -> Option<PathBuf> {
+    require_grok_adapter_root().ok()
+}
+fn require_grok_adapter_root() -> Result<PathBuf, String> {
+    if let Some(root) = registered_grok_adapter_root() {
+        return Ok(root);
+    }
+    crate::reviewed_adapters::ensure(&multi_app_root()?, "grokbot", RUNTIME_FILES)
+}
+
 fn verify_grok_adapter(root: &Path) -> Result<(), String> {
     let manifest_path = root.join("SHA256SUMS.txt");
+    if crate::reviewed_adapters::manifest_matches(
+        "grokbot",
+        &fs::read(&manifest_path).unwrap_or_default(),
+    ) {
+        return crate::reviewed_adapters::verify(root, "grokbot");
+    }
     let manifest_hash = sha256_file(&manifest_path)?;
     if manifest_hash != GROK_ADAPTER_MANIFEST_SHA256 {
         return Err("本机 Grok Bot 适配器清单与已验证版本不一致；本次不会执行。".to_string());
@@ -1790,7 +1807,8 @@ fn detect_grok_processes(preferred_path: Option<&Path>) -> ProcessSnapshot {
 }
 
 fn grok_session_matches(snapshot: &ProcessSnapshot, session: &GrokSessionRecord) -> bool {
-    session.adapter_version == GROK_ADAPTER_VERSION
+    (session.adapter_version == GROK_ADAPTER_VERSION
+        || session.adapter_version == crate::reviewed_adapters::version("grokbot"))
         && session.version == EXPECTED_GROK_VERSION
         && snapshot.main_process_id == Some(session.pid)
         && snapshot
@@ -1806,6 +1824,13 @@ fn run_grok_adapter(root: &Path, action: &str, mode: &str) -> Result<String, Str
     verify_grok_adapter(root)?;
     let node = find_node_runtime()?;
     let mut command = Command::new(node);
+    command.env(
+        "DIANA_TARGET_EXE",
+        grok_executable().ok_or("未检测到 Grok Bot；可设置 DIANA_GROK_EXE 指向官方程序。")?,
+    );
+    if action == "start" {
+        command.env("DIANA_CDP_CONSENT", "accepted-for-this-launch");
+    }
     command.arg(root.join("adapter.mjs")).arg(action);
     if action == "start" || action == "apply" {
         command.arg(mode);
@@ -1957,13 +1982,12 @@ fn grok_status() -> ExternalTargetStatus {
     }
 }
 
-fn launch_grok_theme(mode: &str) -> Result<ExternalTargetStatus, String> {
+fn launch_grok_theme(mode: &str, approved: bool) -> Result<ExternalTargetStatus, String> {
     let before = grok_status();
     if before.executable.is_none() {
         return Err("未检测到 Grok Bot。".to_string());
     }
-    let root = grok_adapter_root()
-        .ok_or_else(|| "本机没有已登记的 Grok Bot Diana 适配器。".to_string())?;
+    let root = require_grok_adapter_root()?;
     if before.running
         && before.stage != "grokbot_diana_running"
         && before.stage != "grokbot_theme_disabled"
@@ -1971,6 +1995,9 @@ fn launch_grok_theme(mode: &str) -> Result<ExternalTargetStatus, String> {
         return Ok(before);
     }
     let action = if before.running { "apply" } else { "start" };
+    if action == "start" && !approved {
+        return Err("本次 Grok Bot 启动尚未确认调试端口风险。".into());
+    }
     run_grok_adapter(&root, action, mode)?;
     std::thread::sleep(Duration::from_millis(500));
     let status = grok_status();
@@ -2596,7 +2623,7 @@ fn zcode_status() -> ExternalTargetStatus {
     }
 }
 
-fn launch_zcode_theme(mode: &str) -> Result<ExternalTargetStatus, String> {
+fn launch_zcode_theme(mode: &str, approved: bool) -> Result<ExternalTargetStatus, String> {
     let before = zcode_status();
     let executable = before
         .executable
@@ -2611,6 +2638,9 @@ fn launch_zcode_theme(mode: &str) -> Result<ExternalTargetStatus, String> {
     }
 
     let action = if before.running { "apply" } else { "start" };
+    if action == "start" && !approved {
+        return Err("本次 ZCode 启动尚未确认调试端口风险。".into());
+    }
     run_zcode_adapter(&root, &executable, action, mode)?;
     std::thread::sleep(Duration::from_millis(450));
     let status = zcode_status();
@@ -2662,19 +2692,30 @@ pub(crate) fn run_action(
     target: &str,
     action: &str,
     theme_mode: Option<&str>,
+    experimental_approved: bool,
 ) -> Result<ExternalTargetStatus, String> {
     let mode = theme_mode.unwrap_or("system");
+    if !matches!(mode, "dark" | "light" | "system") {
+        return Err("无效主题模式。".into());
+    }
+    if action == "launch_theme"
+        && matches!(target, "cursor" | "grokbot" | "zcode")
+        && !get_status(target)?.running
+        && !experimental_approved
+    {
+        return Err("需要先确认本次临时调试端口风险；尚未启动或修改应用。".into());
+    }
     match (target, action) {
         ("terminal", "launch_theme") => launch_terminal(true),
         ("terminal", "launch_native") => launch_terminal(false),
         ("vscode", "launch_theme") => launch_vscode(true, mode),
         ("vscode", "launch_native") => launch_vscode(false, mode),
-        ("cursor", "launch_theme") => launch_cursor_theme(mode),
+        ("cursor", "launch_theme") => launch_cursor_theme(mode, experimental_approved),
         ("cursor", "launch_native") => launch_cursor_native(),
-        ("grokbot", "launch_theme") => launch_grok_theme(mode),
+        ("grokbot", "launch_theme") => launch_grok_theme(mode, experimental_approved),
         ("grokbot", "launch_native") => launch_grok_native(),
         ("deepseek", "launch_theme") | ("deepseek", "launch_native") => launch_deepseek(),
-        ("zcode", "launch_theme") => launch_zcode_theme(mode),
+        ("zcode", "launch_theme") => launch_zcode_theme(mode, experimental_approved),
         ("zcode", "launch_native") => launch_zcode_native(),
         _ => Err("未知的目标应用操作。".to_string()),
     }
@@ -2710,6 +2751,32 @@ mod tests {
             super::native_terminal_profile(None, None),
             super::NATIVE_POWERSHELL_PROFILE
         );
+    }
+
+    #[test]
+    fn zcode_embedded_bytes_match_the_original_manifest_on_windows_too() {
+        use sha2::{Digest, Sha256};
+        let manifest = super::ZCODE_RUNTIME_FILES
+            .iter()
+            .find(|(name, _)| *name == "manifest.sha256")
+            .unwrap()
+            .1;
+        let mut count = 0;
+        for line in std::str::from_utf8(manifest).unwrap().lines() {
+            let (expected, name) = line.split_once(" *").unwrap();
+            let bytes = super::ZCODE_RUNTIME_FILES
+                .iter()
+                .find(|(file, _)| *file == name)
+                .unwrap()
+                .1;
+            assert!(
+                !bytes.contains(&13),
+                "CRLF changed protected ZCode file: {name}"
+            );
+            assert_eq!(format!("{:X}", Sha256::digest(bytes)), expected, "{name}");
+            count += 1;
+        }
+        assert_eq!(count, 9);
     }
 
     #[test]
@@ -2814,8 +2881,8 @@ mod tests {
         ));
         let action = std::env::var("DIANA_SMOKE_ACTION").expect("explicit action required");
         let mode = std::env::var("DIANA_SMOKE_MODE").unwrap_or_else(|_| "dark".to_string());
-        let result =
-            super::run_action(&target, &action, Some(&mode)).expect("local application action");
+        let result = super::run_action(&target, &action, Some(&mode), false)
+            .expect("local application action");
         println!("{}", serde_json::to_string_pretty(&result).unwrap());
     }
 
@@ -2915,6 +2982,44 @@ mod tests {
             jsonc_raw_value(&updated, "workbench.colorTheme").as_deref(),
             Some("\"Diana Night\"")
         );
+    }
+
+    #[test]
+    fn editor_restore_preserves_subsequent_user_theme_and_detects_path_change() {
+        let root = std::env::temp_dir().join(format!(
+            "diana-editor-ownership-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        fs::create_dir_all(&root).unwrap();
+        let settings = root.join("settings.json");
+        let state = root.join("managed.json");
+        fs::write(&settings, "{\"workbench.colorTheme\":\"Original\"}").unwrap();
+        set_editor_theme(&settings, &state, "Test Editor", "dark").unwrap();
+        let newer = fs::read_to_string(&settings)
+            .unwrap()
+            .replace("Diana Night", "User chosen");
+        fs::write(&settings, &newer).unwrap();
+        restore_editor_theme(&settings, &state, "Test Editor").unwrap();
+        assert!(fs::read_to_string(&settings)
+            .unwrap()
+            .contains("User chosen"));
+        set_editor_theme(&settings, &state, "Test Editor", "light").unwrap();
+        let other = root.join("other.json");
+        fs::write(&other, "{}").unwrap();
+        assert!(set_editor_theme(&other, &state, "Test Editor", "dark").is_err());
+        assert_eq!(fs::read_to_string(&other).unwrap(), "{}");
+        restore_editor_theme(&settings, &state, "Test Editor").unwrap();
+        assert!(root
+            .file_name()
+            .unwrap()
+            .to_string_lossy()
+            .starts_with("diana-editor-ownership-"));
+        assert_eq!(root.parent().unwrap(), std::env::temp_dir());
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

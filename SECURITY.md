@@ -10,7 +10,7 @@
 
 ## Unsigned beta
 
-`v0.1.0-beta.2` 没有商业代码签名证书。只从本仓库的 GitHub Release 下载，并核对发布页 SHA-256。不要从网盘、群文件或重新打包站点运行同名 EXE。
+`v0.1.0-beta.4-rc.2` 没有商业代码签名证书。只从本仓库的 GitHub Release 下载，并核对发布页 SHA-256。不要从网盘、群文件或重新打包站点运行同名 EXE。
 
 ## Private reports
 
