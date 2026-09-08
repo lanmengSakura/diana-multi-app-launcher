@@ -1,8 +1,10 @@
 # Diana Multi-App Launcher
 
-嘉然 Diana 多应用主题启动器。当前公开测试版本为 **`v0.1.0-beta.4-rc.3`**，仅面向 Windows 测试用户；安装器和便携版均未签名，不代表八目标全部场景已完成认证。
+嘉然 Diana 多应用主题启动器。当前公开测试版本为 **`v0.1.0-beta.4-rc.4`**，仅面向 Windows 测试用户；安装器和便携版均未签名，不代表八目标全部场景已完成认证。
 
-[八应用主题体验](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes) · [启动器演示](https://diana-launcher-demo.szbluedream01.chatgpt.site) · [Codex 主题演示](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes?app=codex) · [下载新版测试版](https://github.com/lanmengSakura/diana-multi-app-launcher/releases/tag/v0.1.0-beta.4-rc.3)
+RC.4 修复未安装 Codex 时的高频检测阻塞，加入重复启动保护，并补齐路径、版本与便携构建说明。**已有 rc.3 EXE 需手动更新**。详情见 [Issue #1 处理回执](docs/ISSUE_1_RECEIPT.md) 与 [技术修正范围](docs/ISSUE_1_FOLLOWUP.md)。
+
+[八应用主题体验](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes) · [启动器演示](https://diana-launcher-demo.szbluedream01.chatgpt.site) · [Codex 主题演示](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes?app=codex) · [下载新版测试版](https://github.com/lanmengSakura/diana-multi-app-launcher/releases/tag/v0.1.0-beta.4-rc.4)
 
 **完整功能由你选择启用。** 本启动器公开提供完整挂载组件；下载、安装、打开或关联应用位置不代表同意调试连接。Codex、Cursor、Grok Bot、ZCode 新开实验调试会话前会告知风险并等待确认，取消不会执行本次挂载。回环端口没有身份认证，同机进程可能读取界面、执行脚本或截图；仅关闭启动器或撤下皮肤不会关闭目标应用持有的端口，须完整退出目标应用。请先看 [风险与退出方法](SECURITY.md)。
 
@@ -37,8 +39,8 @@ Cursor 与 DeepSeek Harness 的真实主题源已同步日间莓粉线稿修正�
 
 在 GitHub Releases 下载下列任一文件：
 
-- `Diana-Multi-App-Launcher_0.1.0-beta.4-rc.3_x64-setup.exe`：当前用户 NSIS 安装包；
-- `diana-multi-app-launcher_0.1.0-beta.4-rc.3_x64-portable.exe`：免安装便携版。
+- `Diana-Multi-App-Launcher_0.1.0-beta.4-rc.4_x64-setup.exe`：当前用户 NSIS 安装包；
+- `diana-multi-app-launcher_0.1.0-beta.4-rc.4_x64-portable.exe`：免安装便携版。
 
 `v0.1.0-beta.1` 的 Windows 构建会因主题 CSS 换行转换触发 `SHA-256 mismatch`，请勿继续使用；该问题已在 Beta.2 修复。
 
@@ -66,6 +68,13 @@ Windows SmartScreen 可能提示“未知发布者”，因为当前 Beta 没有
 | ZCode | 版本限定的实验性完整美术挂载 | 当前只接受已验证的 `3.6.5.4145` 和有效签名；版本不符时拒绝开启端口 |
 
 完整美术兼容性是“目标版本 + 运行时结构”联合条件。挂载操作会核验渲染结果；后续状态主要依据本次成功记录与对应进程，不是持续截图或逐项人工验收。页面重载、应用更新或恢复流程仍需实际复核，`MOUNTED` 不代表所有交互与恢复测试均已完成。
+
+### 常见误会
+
+- **不要求八款应用全部安装。** 只选自己安装的应用；没有 Codex 不应影响豆包等其他入口。RC.4 已修复缺少 Codex 时的高频检测阻塞。新安装/更新后可用“关联 → 重新检测”立即刷新位置。
+- **关联成功不等于版本受支持。** 完整挂载限定为 Cursor `3.17.21`、Grok Bot `0.28.0`、ZCode `3.6.5.4145`。例如 ZCode `3.11.2.6792` 不在当前范围；不会通过关闭校验来强行挂载。请等待对应适配更新，或继续使用原版。
+- **豆包小窗口可能只显示角落线条。** 扩展视口宽度不超过 1320 CSS 像素时隐藏立绘；宽度不超过 900 或高度不超过 560 时，还会隐藏左下简笔画和上方装饰。放大窗口、留足正文空间后再看；Windows 缩放会影响实际 CSS 视口，不能只看显示器分辨率。这是防遮挡策略，不一定是挂载失败。
+- **免安装不等于不使用本机目录。** 便携 EXE 与安装版的启动器主体相同，仍使用 WebView2 和用户目录保存关联/主题运行文件。无需把 NSIS 安装包再包成便携版。
 
 ## 实验性调试连接
 
@@ -98,9 +107,16 @@ npm run qa:interactions
 cargo fmt --manifest-path .\src-tauri\Cargo.toml --check
 cargo test --manifest-path .\src-tauri\Cargo.toml
 npm run tauri:build
+npm run package:windows
 ```
 
-也可在普通 Windows 命令提示符运行 `scripts\build-windows-public.cmd`。源码仓库不提交歌曲文件；只有在构建环境显式设置 `DIANA_HOPEFUL_DREAMER_AUDIO` 时才会把一份来源明确的本地音频编入产物。
+也可在普通 Windows 命令提示符运行 `scripts\build-windows-public.cmd`，构建结束后自动导出到新建的 `artifacts/local-packages-版本-时间/`。目录包含便携 EXE、匹配版本的 NSIS 安装包（如已构建）和 `SHA256SUMS.txt`；不覆盖旧产物、不安装、不上传。便携版是 `release/diana-codex-launcher.exe` 的逐字节副本，不需要另一套构建源码。
+
+默认查找 `src-tauri/target/release`；配置 `CARGO_TARGET_DIR` 时使用该目录下的 `release`。自定义工具链/架构输出可显式运行 `npm run package:windows -- --release-dir "<实际 release 目录>" --out "<新的导出目录>"`，也可用 `--binary`、`--setup` 指定文件。请在同一终端刚完成构建后导出，发布前更新版本并检查成品，避免把旧构建重新命名。导出校验确认复制完整性，**不证明不同机器/工具链产物具有相同哈希**。
+
+源码仓库不提交歌曲文件；构建器可从忽略提交的私有音频目录或 `DIANA_HOPEFUL_DREAMER_AUDIO` 读取获准使用的本地配乐。普通无音频构建可正常使用其他功能，但不等同于内置配乐的公开 EXE，哈希也不会相同。音频来源与使用限制见 [私有音频构建说明](src-tauri/private-assets/README.md)。
+
+不打开目标应用的检查：`npm run qa:delivery`、`npm run qa:demo:routing`、`npm run build`、`cargo test --manifest-path src-tauri/Cargo.toml --lib --locked`。真实应用启动烟测默认忽略，不要为普通源码检查添加 `--ignored`。
 
 ## Beta 反馈
 

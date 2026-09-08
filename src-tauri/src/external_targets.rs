@@ -1,6 +1,7 @@
 use crate::{
     clean_output, configure_windows_powershell_environment, find_node_runtime, hide_console,
-    powershell_runtime, ExternalTargetStatus, RUNTIME_FILES,
+    node_runtime_for_status, powershell_runtime, process_system, ExternalTargetStatus,
+    RUNTIME_FILES,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -12,7 +13,6 @@ use std::net::{SocketAddr, TcpStream};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::Duration;
-use sysinfo::System;
 
 const MULTI_APP_CHANNEL: &str = "multi-app-v1";
 pub(crate) const DOUBAO_THEME_VERSION: &str = "0.1.2";
@@ -406,12 +406,20 @@ fn find_in_path(file_name: &str) -> Option<PathBuf> {
     })
 }
 
+fn program_install_candidates(folder: &str, executable: &str) -> Vec<PathBuf> {
+    ["ProgramFiles", "ProgramFiles(x86)"]
+        .into_iter()
+        .filter_map(env::var_os)
+        .map(|base| PathBuf::from(base).join(folder).join(executable))
+        .collect()
+}
+
 fn is_primary_app_command(command: &str) -> bool {
     !command.contains("--type=") && !command.contains("resources\\glm\\zcode.cjs")
 }
 
 fn detect_named_processes(names: &[&str], preferred_path: Option<&Path>) -> ProcessSnapshot {
-    let system = System::new_all();
+    let system = process_system();
     let preferred = preferred_path.map(|path| path.to_string_lossy().to_ascii_lowercase());
     let mut snapshot = ProcessSnapshot::default();
     for (pid, process) in system.processes() {
@@ -470,7 +478,7 @@ fn cursor_has_loopback_debug(command: &str) -> bool {
 }
 
 fn detect_cursor_processes(preferred_path: Option<&Path>) -> ProcessSnapshot {
-    let system = System::new_all();
+    let system = process_system();
     let preferred = preferred_path.map(|path| path.to_string_lossy().to_ascii_lowercase());
     let mut snapshot = ProcessSnapshot::default();
     for (pid, process) in system.processes() {
@@ -752,10 +760,7 @@ fn vscode_executable() -> Option<PathBuf> {
         Err(_) => return None,
         Ok(None) => {}
     }
-    let mut candidates = vec![
-        PathBuf::from(r"D:\Apps\Visual Studio Code\Code.exe"),
-        PathBuf::from(r"C:\Program Files\Microsoft VS Code\Code.exe"),
-    ];
+    let mut candidates = program_install_candidates("Microsoft VS Code", "Code.exe");
     if let Some(local) = env::var_os("LOCALAPPDATA") {
         candidates.push(
             PathBuf::from(local)
@@ -1189,10 +1194,7 @@ fn cursor_executable() -> Option<PathBuf> {
                 .is_some_and(|n| n.to_string_lossy().eq_ignore_ascii_case("Cursor.exe")))
         .then_some(path);
     }
-    let mut candidates = vec![
-        PathBuf::from(r"D:\Apps\Cursor\Cursor.exe"),
-        PathBuf::from(r"C:\Program Files\Cursor\Cursor.exe"),
-    ];
+    let mut candidates = program_install_candidates("Cursor", "Cursor.exe");
     if let Some(local) = env::var_os("LOCALAPPDATA") {
         let local = PathBuf::from(local);
         candidates.push(local.join("Programs").join("cursor").join("Cursor.exe"));
@@ -1280,6 +1282,15 @@ fn registered_cursor_adapter_root() -> Option<PathBuf> {
 
 fn cursor_adapter_root() -> Option<PathBuf> {
     require_cursor_adapter_root().ok()
+}
+
+fn status_adapter_root(target: &str) -> Option<PathBuf> {
+    let registered = match target {
+        "cursor" => registered_cursor_adapter_root(),
+        "grokbot" => registered_grok_adapter_root(),
+        _ => return None,
+    };
+    registered.or_else(|| crate::reviewed_adapters::root(&multi_app_root().ok()?, target).ok())
 }
 fn require_cursor_adapter_root() -> Result<PathBuf, String> {
     if let Some(root) = registered_cursor_adapter_root() {
@@ -1445,7 +1456,7 @@ fn cursor_status() -> ExternalTargetStatus {
         .as_ref()
         .map(|path| path.join("package.json").is_file())
         .unwrap_or(false);
-    let adapter_root = cursor_adapter_root();
+    let adapter_root = status_adapter_root("cursor");
     let session = adapter_root.as_deref().and_then(read_cursor_session);
     let managed_debug = session
         .as_ref()
@@ -1462,7 +1473,8 @@ fn cursor_status() -> ExternalTargetStatus {
         .map(cursor_has_loopback_debug)
         .unwrap_or(false)
         && !managed_debug;
-    let adapter_ready = adapter_root.is_some() && find_node_runtime().is_ok();
+    let adapter_ready =
+        executable.is_some() && adapter_root.is_some() && node_runtime_for_status().is_ok();
     let restore_pending = session
         .as_ref()
         .map(|record| record.status == "disabled" || record.status == "restore_ready_for_exit")
@@ -1670,10 +1682,7 @@ fn grok_executable() -> Option<PathBuf> {
                 .is_some_and(|n| n.to_string_lossy().eq_ignore_ascii_case("Grok Bot.exe")))
         .then_some(path);
     }
-    let mut candidates = vec![
-        PathBuf::from(r"D:\Program Files\Grok Bot\Grok Bot.exe"),
-        PathBuf::from(r"C:\Program Files\Grok Bot\Grok Bot.exe"),
-    ];
+    let mut candidates = program_install_candidates("Grok Bot", "Grok Bot.exe");
     if let Some(local) = env::var_os("LOCALAPPDATA") {
         candidates.push(
             PathBuf::from(local)
@@ -1794,7 +1803,7 @@ fn grok_has_loopback_debug(command: &str) -> bool {
 }
 
 fn detect_grok_processes(preferred_path: Option<&Path>) -> ProcessSnapshot {
-    let system = System::new_all();
+    let system = process_system();
     let preferred = preferred_path.map(|path| path.to_string_lossy().to_ascii_lowercase());
     let mut snapshot = ProcessSnapshot::default();
     for (pid, process) in system.processes() {
@@ -1890,15 +1899,42 @@ fn run_grok_adapter(root: &Path, action: &str, mode: &str) -> Result<String, Str
     Err(message)
 }
 
+fn grok_adapter_verified_for_status(root: &Path) -> bool {
+    // An unextracted compiled bundle is available, not already verified on disk.
+    // require_grok_adapter_root + run_grok_adapter still do fresh action checks.
+    if !root.exists() {
+        return multi_app_root()
+            .ok()
+            .and_then(|base| crate::reviewed_adapters::root(&base, "grokbot").ok())
+            .as_deref()
+            == Some(root);
+    }
+    use std::sync::{Arc, Mutex, OnceLock};
+    type Cache = crate::probe_cache::ProbeCache<bool>;
+    static CHECKS: OnceLock<Mutex<BTreeMap<PathBuf, Arc<Cache>>>> = OnceLock::new();
+    let cache = {
+        let mut checks = CHECKS
+            .get_or_init(|| Mutex::new(BTreeMap::new()))
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        checks
+            .entry(root.to_path_buf())
+            .or_insert_with(|| Arc::new(Cache::new()))
+            .clone()
+    };
+    cache.get(Duration::from_secs(60), false, || {
+        verify_grok_adapter(root).is_ok()
+    })
+}
+
 fn grok_status() -> ExternalTargetStatus {
     let executable = grok_executable();
     let snapshot = detect_grok_processes(executable.as_deref());
-    let adapter_root = grok_adapter_root();
+    let adapter_root = status_adapter_root("grokbot");
     let adapter_verified = adapter_root
         .as_deref()
-        .map(verify_grok_adapter)
-        .transpose()
-        .is_ok();
+        .map(grok_adapter_verified_for_status)
+        .unwrap_or(false);
     let session = adapter_root.as_deref().and_then(read_grok_session);
     let managed_debug = session
         .as_ref()
@@ -1915,7 +1951,10 @@ fn grok_status() -> ExternalTargetStatus {
         .map(grok_has_loopback_debug)
         .unwrap_or(false)
         && !managed_debug;
-    let adapter_ready = adapter_root.is_some() && adapter_verified && find_node_runtime().is_ok();
+    let adapter_ready = executable.is_some()
+        && adapter_root.is_some()
+        && adapter_verified
+        && node_runtime_for_status().is_ok();
     let (stage, message) = if executable.is_none() {
         ("grokbot_not_installed", "未检测到 Grok Bot。".to_string())
     } else if themed {
@@ -2067,7 +2106,6 @@ fn deepseek_root() -> Option<PathBuf> {
     if let Some(explicit) = env::var_os("DIANA_DEEPSEEK_HARNESS_ROOT") {
         candidates.push(PathBuf::from(explicit));
     }
-    candidates.push(PathBuf::from(r"D:\deepseek-harness"));
     if let Some(profile) = env::var_os("USERPROFILE") {
         let profile = PathBuf::from(profile);
         candidates.push(profile.join("deepseek-harness"));
@@ -2117,7 +2155,7 @@ fn deepseek_theme_state(available: bool, ready: bool, running: bool) -> &'static
 }
 
 fn deepseek_processes(root: Option<&Path>) -> ProcessSnapshot {
-    let system = System::new_all();
+    let system = process_system();
     let hint = root.map(|path| path.to_string_lossy().to_ascii_lowercase());
     let mut snapshot = ProcessSnapshot::default();
     for (pid, process) in system.processes() {
@@ -2228,7 +2266,7 @@ fn deepseek_status() -> ExternalTargetStatus {
     let root = deepseek_root();
     let ready = root.as_deref().map(deepseek_theme_ready).unwrap_or(false);
     let snapshot = deepseek_processes(root.as_deref());
-    let node = find_node_runtime().ok();
+    let node = root.as_ref().and_then(|_| node_runtime_for_status().ok());
     let built = root.as_ref().is_some_and(|path| {
         path.join("apps/cli/lib/bin.js").is_file()
             && path.join("apps/web/dist/index.html").is_file()
@@ -2304,11 +2342,7 @@ fn launch_deepseek() -> Result<ExternalTargetStatus, String> {
         open_url(&deepseek_browser_url().unwrap_or_else(|| DEEPSEEK_URL.to_string()))?;
         return Ok(deepseek_status());
     }
-    let node = before
-        .executable
-        .as_ref()
-        .map(PathBuf::from)
-        .ok_or_else(|| "未找到 Node.js，无法启动 Harness。".to_string())?;
+    let node = find_node_runtime()?;
     let entry = root.join("apps/cli/lib/bin.js");
     if !entry.is_file() || !root.join("apps/web/dist/index.html").is_file() {
         return Err("Harness 构建产物缺失，请先完成源码构建。".to_string());
@@ -2374,16 +2408,16 @@ fn zcode_executable() -> Option<PathBuf> {
         Err(_) => return None,
         Ok(None) => {}
     }
-    let mut candidates = vec![
-        PathBuf::from(r"C:\Program Files\ZCode\ZCode.exe"),
-        PathBuf::from(r"D:\ZCode\ZCode.exe"),
-    ];
+    let mut candidates = program_install_candidates("ZCode", "ZCode.exe");
     if let Some(local) = env::var_os("LOCALAPPDATA") {
         let local = PathBuf::from(local);
         candidates.push(local.join("Programs").join("ZCode").join("ZCode.exe"));
         candidates.push(local.join("ZCode").join("ZCode.exe"));
     }
-    candidates.into_iter().find(|candidate| candidate.is_file())
+    candidates
+        .into_iter()
+        .find(|candidate| candidate.is_file())
+        .or_else(|| find_in_path("ZCode.exe"))
 }
 
 /// Pure location lookup for the association UI. Do not call the status helpers
@@ -2631,7 +2665,7 @@ fn zcode_status() -> ExternalTargetStatus {
             "zcode_plain_running",
             "普通 ZCode 正在运行。请先完整退出，再从这里启动并挂载完整 Diana 美术。".to_string(),
         )
-    } else if find_node_runtime().is_err() {
+    } else if node_runtime_for_status().is_err() {
         (
             "zcode_runtime_missing",
             "已检测到 ZCode，但没有找到本机 Node.js 运行组件；本次不会开启调试端口。".to_string(),
@@ -2639,7 +2673,7 @@ fn zcode_status() -> ExternalTargetStatus {
     } else {
         (
             "zcode_ready",
-            "ZCode 已就绪；点击后会先核验精确版本与官方签名，再优先挂载完整 Diana 日夜美术。"
+            "内置 ZCode 3.6.5.4145 适配器可用；仅支持该精确版本。点击后核验本机版本与官方签名，不支持更新版本时不会开启调试端口。"
                 .to_string(),
         )
     };
@@ -2658,7 +2692,7 @@ fn zcode_status() -> ExternalTargetStatus {
             "unmanaged"
         } else if snapshot.process_count > 0 {
             "plain"
-        } else if find_node_runtime().is_err() {
+        } else if node_runtime_for_status().is_err() {
             "blocked"
         } else {
             "available"

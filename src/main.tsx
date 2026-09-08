@@ -2,6 +2,7 @@ import { StrictMode, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { FrameRadiance } from "./FrameRadiance";
 import { AppLinkPanel } from "./AppLinkPanel";
+import { createStatusPoller } from "./status-poller";
 import "./styles.css";
 
 type ThemeMode = "dark" | "light" | "system";
@@ -113,7 +114,7 @@ const targetOptions: TargetOption[] = [
     value: "doubao",
     label: "豆包浏览器",
     shortLabel: "豆包",
-    hint: "日夜跟随豆包；原版启动需先完整退出浏览器",
+    hint: "日夜跟随豆包；小窗口会隐藏立绘，放大窗口可查看",
     showThemeSwitch: false,
     modeTitle: "跟随豆包外观",
     modeSubtitle: "日间 / 暗夜由豆包原生设置决定",
@@ -146,7 +147,7 @@ const targetOptions: TargetOption[] = [
     value: "cursor",
     label: "Cursor",
     shortLabel: "Cursor",
-    hint: "挂载后可直接切换日夜 / 撤下皮肤；调试端口需完整退出才关闭",
+    hint: "完整挂载限 3.17.21；调试端口需完整退出才关闭",
     showThemeSwitch: true,
     modeTitle: "选择 Cursor 挂载主题",
     modeSubtitle: "本机适配器核验通过后挂载完整日夜美术",
@@ -157,7 +158,7 @@ const targetOptions: TargetOption[] = [
     value: "grokbot",
     label: "Grok Bot",
     shortLabel: "Grok Bot",
-    hint: "完整 Diana 日夜美术；挂载后可直接切换日夜 / 原版",
+    hint: "完整挂载限 0.28.0；挂载后可切换日夜 / 原版",
     showThemeSwitch: true,
     modeTitle: "选择 Grok Bot 挂载主题",
     modeSubtitle: "原生配色与完整美术层同步切换",
@@ -179,7 +180,7 @@ const targetOptions: TargetOption[] = [
     value: "zcode",
     label: "ZCode",
     shortLabel: "ZCode",
-    hint: "挂载后可直接切换日夜 / 原版；调试端口需完整退出才关闭",
+    hint: "完整挂载限 3.6.5.4145；更新版本暂不支持",
     showThemeSwitch: true,
     modeTitle: "选择 ZCode 挂载主题",
     modeSubtitle: "精确版本核验通过后，前台一次性挂载完整美术",
@@ -331,6 +332,10 @@ function App() {
   const [pendingAction, setPendingAction] = useState<ActionName | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [statusReadError, setStatusReadError] = useState(false);
+  const [statusRefreshKey, setStatusRefreshKey] = useState(0);
+  const statusPollerRef = useRef<ReturnType<typeof createStatusPoller> | null>(null);
+  const statusGenerationRef = useRef(0);
+  const statusContextRef = useRef({ selectedTarget, phase, pendingAction, linkBusy: false });
   const [linkPanelOpen, setLinkPanelOpen] = useState(false);
   const [linkBusy, setLinkBusy] = useState(false);
   const linkBusyRef = useRef(false);
@@ -464,75 +469,64 @@ function App() {
   );
 
   useEffect(() => {
-    if (!desktopRuntime || selectedTarget !== "codex") {
-      return;
-    }
-
+    if (!desktopRuntime) return;
     let cancelled = false;
-    const refresh = () => {
-      void import("@tauri-apps/api/core")
-        .then(({ invoke }) => invoke<LauncherStatus>("get_launcher_status"))
-        .then((nextStatus) => {
-          if (!cancelled && phase !== "working") {
+    const poller = createStatusPoller({
+      async refresh() {
+        const target = statusContextRef.current.selectedTarget;
+        const generation = statusGenerationRef.current;
+        const isCurrent = () => !cancelled && generation === statusGenerationRef.current
+          && statusContextRef.current.phase !== "working";
+        try {
+          const { invoke } = await import("@tauri-apps/api/core");
+          if (target === "codex") {
+            const nextStatus = await invoke<LauncherStatus>("get_launcher_status");
+            if (!isCurrent()) return;
             setStatus(nextStatus);
             setStatusReadError(false);
             if (nextStatus.themeChannelConnected) {
               setActionError(null);
-              setPhase((currentPhase) =>
-                currentPhase === "error" ? "done" : currentPhase
-              );
+              setPhase((current) => current === "error" ? "done" : current);
             }
-          }
-        })
-        .catch(() => {
-          if (cancelled) return;
-          setStatusReadError(true);
-        });
-    };
-    refresh();
-    const timer = window.setInterval(refresh, 2500);
-    return () => {
-      cancelled = true;
-      window.clearInterval(timer);
-    };
-  }, [desktopRuntime, phase, selectedTarget]);
-
-  useEffect(() => {
-    if (!desktopRuntime || selectedTarget === "codex") {
-      return;
-    }
-
-    let cancelled = false;
-    const refresh = () => {
-      void import("@tauri-apps/api/core")
-        .then(({ invoke }) =>
-          invoke<ExternalTargetStatus>("get_external_target_status", {
-            target: selectedTarget
-          })
-        )
-        .then((nextStatus) => {
-          if (!cancelled && phase !== "working") {
+          } else {
+            const nextStatus = await invoke<ExternalTargetStatus>("get_external_target_status", { target });
+            if (!isCurrent()) return;
             setExternalStatus(nextStatus);
             setStatusReadError(false);
             if (nextStatus.themeState === "mounted") {
               setActionError(null);
-              setPhase((currentPhase) =>
-                currentPhase === "error" ? "done" : currentPhase
-              );
+              setPhase((current) => current === "error" ? "done" : current);
             }
           }
-        })
-        .catch(() => {
-          if (!cancelled) setStatusReadError(true);
-        });
-    };
-    refresh();
-    const timer = window.setInterval(refresh, 2500);
+        } catch (error) {
+          // A late failure from the previous target/action is not this target's error.
+          if (isCurrent()) { setStatusReadError(true); throw error; }
+        }
+      },
+      onError() { /* Current-request errors are handled above. */ },
+      isPaused: () => document.hidden || statusContextRef.current.phase === "working"
+        || statusContextRef.current.linkBusy,
+      intervalMs: () => statusContextRef.current.pendingAction ? 2500 : 5000,
+      setTimer: (callback, delay) => window.setTimeout(callback, delay),
+      clearTimer: (timer) => window.clearTimeout(timer)
+    });
+    statusPollerRef.current = poller;
+    const wake = () => poller.wake();
+    document.addEventListener("visibilitychange", wake);
+    poller.wake();
     return () => {
       cancelled = true;
-      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", wake);
+      poller.stop();
+      statusPollerRef.current = null;
     };
-  }, [desktopRuntime, phase, selectedTarget]);
+  }, [desktopRuntime]);
+
+  useEffect(() => {
+    statusContextRef.current = { selectedTarget, phase, pendingAction, linkBusy };
+    statusGenerationRef.current += 1;
+    statusPollerRef.current?.wake();
+  }, [selectedTarget, phase, pendingAction, linkBusy, statusRefreshKey]);
 
   const runPreviewAction = async (
     action: ActionName,
@@ -995,10 +989,10 @@ function App() {
       : `退出 Codex 后切换为 Diana ${modeLabel(themeMode)}`
     : status.codexRunning
       ? "退出 Codex 后挂载"
-      : !status.runtimeAvailable
-          ? "缺少运行组件"
-          : status.stage === "codex_not_installed"
-            ? "未检测到 Codex"
+      : status.stage === "codex_not_installed"
+          ? "未检测到 Codex"
+          : !status.runtimeAvailable
+            ? "缺少运行组件"
             : "启动并挂载";
 
   const primaryNote = pendingAction
@@ -1568,7 +1562,7 @@ function App() {
       </section>
       {linkPanelOpen && <AppLinkPanel key={selectedTarget} target={selectedTarget} label={selectedTargetOption.label}
         onClose={() => { setLinkPanelOpen(false); document.querySelector<HTMLButtonElement>(".app-link-trigger")?.focus(); }}
-        onSaved={() => { setActionError(null); setStatusReadError(false); setPhase("idle"); }}
+        onSaved={() => { setActionError(null); setStatusReadError(false); setPhase("idle"); setStatusRefreshKey((key) => key + 1); }}
         onBusyChange={setLinkBusy} />}
     </main>
   );

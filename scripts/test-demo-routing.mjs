@@ -13,6 +13,7 @@ function loadTs(file, globals = {}, dependencies = {}) {
   return exports;
 }
 const catalog = loadTs('demo/theme-catalog.ts');
+const appLinkApi = loadTs('src/app-link-api.ts');
 const targets = { codex:'codex', doubao:'doubao', cursor:'cursor', grokbot:'grok', zcode:'zcode', vscode:'vscode', terminal:'terminal', deepseek:'deepseek' };
 const plain = value => JSON.parse(JSON.stringify(value));
 
@@ -45,7 +46,7 @@ function bridgeFixture({ dark = true, standalone = false, search = '' } = {}) {
   loadTs('demo/bridge.ts', { window, location, localStorage, structuredClone, matchMedia: () => ({matches:dark}), __DEMO_MUSIC_BYTES__:0,
     MutationObserver: class { observe() {} }, document:{ getElementById: () => ({}) },
     fetch: () => { throw new Error('Unit actions must not request a network resource'); }
-  }, { './theme-catalog':catalog });
+  }, { './theme-catalog':catalog, '../src/app-link-api':appLinkApi });
   return { bridge: window.__TAURI_INTERNALS__, sent, navigated, events, parent:window.parent, preferences };
 }
 test('the actual web bridge navigates all launch and restore actions', async () => {

@@ -8,4 +8,7 @@ call npm run build
 if errorlevel 1 exit /b %errorlevel%
 
 call npm run tauri:build
+if errorlevel 1 exit /b %errorlevel%
+
+call npm run package:windows
 exit /b %errorlevel%

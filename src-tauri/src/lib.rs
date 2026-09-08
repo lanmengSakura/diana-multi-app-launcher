@@ -1,9 +1,12 @@
 mod app_links;
+mod atomic_file;
 mod external_targets;
 mod native_appearance;
+mod probe_cache;
 mod reviewed_adapters;
 mod settings_jsonc;
 
+use probe_cache::ProbeCache;
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::fs;
@@ -11,9 +14,9 @@ use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
-use std::sync::{Mutex, OnceLock};
+use std::sync::Mutex;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
-use sysinfo::System;
+use sysinfo::{ProcessRefreshKind, RefreshKind, System, UpdateKind};
 
 const SUPPORT_DIRECTORY: &str = "DianaCodexLauncher";
 const RUNTIME_CHANNEL: &str = "universal-v1";
@@ -21,6 +24,7 @@ const COMPATIBILITY_MODE: &str = "runtime_probe";
 const BUNDLED_MUSIC_BYTES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/hopeful-dreamer.bin"));
 const BUNDLED_MUSIC_FILENAME: &str = env!("DIANA_BUNDLED_MUSIC_FILENAME");
 const BUNDLED_MUSIC_MIME: &str = env!("DIANA_BUNDLED_MUSIC_MIME");
+static LAUNCHER_ACTION: Mutex<()> = Mutex::new(());
 
 static RUNTIME_FILES: &[(&str, &[u8])] = &[
     (
@@ -142,12 +146,6 @@ struct InstalledCodexPackage {
     executable: String,
 }
 
-#[derive(Default)]
-struct InstalledCodexCache {
-    package: Option<InstalledCodexPackage>,
-    checked_at: Option<Instant>,
-}
-
 #[derive(Clone, Default)]
 struct CodexProcessSnapshot {
     process_count: usize,
@@ -261,7 +259,7 @@ fn parse_debug_port(command: &str) -> Option<u16> {
 
 fn query_installed_codex() -> Option<InstalledCodexPackage> {
     let powershell = powershell_runtime().ok()?;
-    let script = "$u=New-Object System.Text.UTF8Encoding($false);[Console]::OutputEncoding=$u;$OutputEncoding=$u;$p=Get-AppxPackage -Name 'OpenAI.Codex' -ErrorAction Stop;$e=Join-Path $p.InstallLocation 'app\\ChatGPT.exe';[pscustomobject]@{Version=$p.Version.ToString();Executable=$e}|ConvertTo-Json -Compress";
+    let script = "$u=New-Object System.Text.UTF8Encoding($false);[Console]::OutputEncoding=$u;$OutputEncoding=$u;$p=Get-AppxPackage -Name 'OpenAI.Codex' -ErrorAction Stop|Sort-Object Version -Descending|Select-Object -First 1;if($null -eq $p){exit 0};$e=Join-Path $p.InstallLocation 'app\\ChatGPT.exe';[pscustomobject]@{Version=$p.Version.ToString();Executable=$e}|ConvertTo-Json -Compress";
     let mut command = Command::new(powershell);
     configure_windows_powershell_environment(&mut command).ok()?;
     command
@@ -270,7 +268,25 @@ fn query_installed_codex() -> Option<InstalledCodexPackage> {
         .arg("-Command")
         .arg(script);
     hide_console(&mut command);
-    let output = command.output().ok()?;
+    // The fixed query emits at most one short JSON object. Never let a stalled
+    // AppX/WMI service retain a status worker indefinitely.
+    command
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null());
+    let mut child = command.spawn().ok()?;
+    let deadline = Instant::now() + Duration::from_secs(10);
+    loop {
+        match child.try_wait() {
+            Ok(Some(_)) => break,
+            Ok(None) if Instant::now() < deadline => std::thread::sleep(Duration::from_millis(25)),
+            _ => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return None;
+            }
+        }
+    }
+    let output = child.wait_with_output().ok()?;
     if !output.status.success() {
         return None;
     }
@@ -278,43 +294,29 @@ fn query_installed_codex() -> Option<InstalledCodexPackage> {
     serde_json::from_str(text.trim_start_matches('\u{feff}').trim()).ok()
 }
 
-fn package_cache_is_fresh(cache: &InstalledCodexCache, now: Instant) -> bool {
-    let Some(checked_at) = cache.checked_at else {
-        return false;
-    };
-    let ttl = if cache.package.is_some() {
-        Duration::from_secs(30)
-    } else {
-        Duration::from_secs(2)
-    };
-    now.saturating_duration_since(checked_at) < ttl
-}
-
 fn installed_codex() -> Option<InstalledCodexPackage> {
     installed_codex_with_refresh(false)
 }
 
 fn installed_codex_with_refresh(force: bool) -> Option<InstalledCodexPackage> {
-    static INSTALLED: OnceLock<Mutex<InstalledCodexCache>> = OnceLock::new();
-    let cache = INSTALLED.get_or_init(|| Mutex::new(InstalledCodexCache::default()));
-    let now = Instant::now();
+    static INSTALLED: ProbeCache<Option<InstalledCodexPackage>> = ProbeCache::new();
+    INSTALLED.get(Duration::from_secs(120), force, query_installed_codex)
+}
 
-    if let Ok(guard) = cache.lock() {
-        if !force && package_cache_is_fresh(&guard, now) {
-            return guard.package.clone();
-        }
-    }
-
-    let detected = query_installed_codex();
-    if let Ok(mut guard) = cache.lock() {
-        guard.package = detected.clone();
-        guard.checked_at = Some(now);
-    }
-    detected
+fn process_system() -> System {
+    // Status needs only process identity, executable and arguments; avoid
+    // collecting CPU, memory, environment and disk usage for every poll.
+    System::new_with_specifics(
+        RefreshKind::nothing().with_processes(
+            ProcessRefreshKind::nothing()
+                .with_cmd(UpdateKind::Always)
+                .with_exe(UpdateKind::Always),
+        ),
+    )
 }
 
 fn detect_codex_processes() -> CodexProcessSnapshot {
-    let system = System::new_all();
+    let system = process_system();
     let mut snapshot = CodexProcessSnapshot::default();
     for (pid, process) in system.processes() {
         let name = process.name().to_string_lossy();
@@ -346,7 +348,10 @@ fn detect_codex_processes() -> CodexProcessSnapshot {
                 .contains("--remote-debugging-address=127.0.0.1");
         }
     }
-    if let Some(installed) = installed_codex() {
+    if let Some(installed) = (snapshot.codex_version.is_none() || snapshot.codex_path.is_none())
+        .then(installed_codex)
+        .flatten()
+    {
         if snapshot.codex_version.is_none() {
             snapshot.codex_version = Some(installed.version);
         }
@@ -372,10 +377,7 @@ fn doubao_executable() -> Option<PathBuf> {
                 .is_some_and(|n| n.to_string_lossy().eq_ignore_ascii_case("Doubao.exe")))
         .then_some(path);
     }
-    let mut candidates = vec![
-        PathBuf::from(r"D:\Doubao\app\Doubao.exe"),
-        PathBuf::from(r"D:\Doubao\Doubao.exe"),
-    ];
+    let mut candidates = Vec::new();
     if let Some(local_app_data) = env::var_os("LOCALAPPDATA") {
         let local = PathBuf::from(local_app_data);
         candidates.push(
@@ -404,14 +406,23 @@ fn doubao_theme_root() -> Option<PathBuf> {
     let versions = PathBuf::from(local_app_data)
         .join("DianaDoubaoTheme")
         .join("versions");
+    newest_doubao_theme(&versions)
+}
+
+fn newest_doubao_theme(versions: &Path) -> Option<PathBuf> {
     let mut candidates = fs::read_dir(versions)
         .ok()?
         .filter_map(Result::ok)
-        .map(|entry| entry.path().join("extension"))
-        .filter(|path| path.join("manifest.json").is_file())
+        .filter_map(|entry| {
+            let version = semver::Version::parse(entry.file_name().to_str()?).ok()?;
+            let path = entry.path().join("extension");
+            path.join("manifest.json")
+                .is_file()
+                .then_some((version, path))
+        })
         .collect::<Vec<_>>();
     candidates.sort();
-    candidates.pop()
+    candidates.pop().map(|(_, path)| path)
 }
 
 fn detect_doubao_status() -> ExternalTargetStatus {
@@ -420,7 +431,7 @@ fn detect_doubao_status() -> ExternalTargetStatus {
     let theme_hint = theme_root
         .as_ref()
         .map(|path| path.to_string_lossy().to_ascii_lowercase());
-    let system = System::new_all();
+    let system = process_system();
     let mut process_count = 0usize;
     let mut main_process_id = None;
     let mut running_executable = None;
@@ -658,7 +669,8 @@ fn write_session(session: &SessionRecord) -> Result<(), String> {
     }
     let contents = serde_json::to_vec_pretty(session)
         .map_err(|error| format!("无法序列化会话状态：{error}"))?;
-    fs::write(path, contents).map_err(|error| format!("无法保存会话状态：{error}"))
+    atomic_file::write(&path, &contents)
+        .map_err(|error| format!("无法保存会话状态，旧记录保留：{error}"))
 }
 
 fn session_matches(snapshot: &CodexProcessSnapshot, session: &SessionRecord) -> bool {
@@ -691,16 +703,6 @@ fn ensure_runtime_files() -> Result<PathBuf, String> {
 }
 
 fn node_runtime_supported(candidate: &Path) -> bool {
-    static CACHE: OnceLock<Mutex<std::collections::HashMap<PathBuf, (Instant, bool)>>> =
-        OnceLock::new();
-    let cache = CACHE.get_or_init(|| Mutex::new(std::collections::HashMap::new()));
-    if let Ok(items) = cache.lock() {
-        if let Some((at, supported)) = items.get(candidate) {
-            if at.elapsed() < Duration::from_secs(10) {
-                return *supported;
-            }
-        }
-    }
     let mut command = Command::new(candidate);
     command.args(["-e", "process.exit(Number(process.versions.node.split('.')[0])>=22 && typeof WebSocket==='function' && typeof fetch==='function' && typeof AbortSignal.timeout==='function' ? 0 : 1)"])
         .stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null());
@@ -723,10 +725,13 @@ fn node_runtime_supported(candidate: &Path) -> bool {
     } else {
         false
     };
-    if let Ok(mut items) = cache.lock() {
-        items.insert(candidate.to_path_buf(), (Instant::now(), supported));
-    }
     supported
+}
+
+static NODE_STATUS: ProbeCache<Result<PathBuf, String>> = ProbeCache::new();
+
+fn node_runtime_for_status() -> Result<PathBuf, String> {
+    NODE_STATUS.get(Duration::from_secs(60), false, find_node_runtime)
 }
 
 fn find_node_runtime() -> Result<PathBuf, String> {
@@ -833,6 +838,22 @@ fn check_output(output: Output, context: &str) -> Result<String, String> {
 }
 
 fn append_launcher_event(root: &Path, event: &str, mode: Option<&str>, exit_code: Option<i32>) {
+    append_launcher_event_with_version(
+        root,
+        event,
+        mode,
+        exit_code,
+        installed_codex().map(|package| package.version),
+    );
+}
+
+fn append_launcher_event_with_version(
+    root: &Path,
+    event: &str,
+    mode: Option<&str>,
+    exit_code: Option<i32>,
+    codex_version: Option<String>,
+) {
     let time_unix_ms = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|duration| duration.as_millis() as u64)
@@ -841,7 +862,7 @@ fn append_launcher_event(root: &Path, event: &str, mode: Option<&str>, exit_code
         time_unix_ms,
         event,
         launcher_version: env!("CARGO_PKG_VERSION"),
-        codex_version: installed_codex().map(|package| package.version),
+        codex_version,
         compatibility_mode: COMPATIBILITY_MODE,
         mode,
         exit_code,
@@ -977,7 +998,7 @@ fn status_from_snapshot(
     let session_connected = session
         .map(|record| session_matches(&snapshot, record))
         .unwrap_or(false);
-    let runtime_available = find_node_runtime().is_ok();
+    let runtime_available = snapshot.codex_version.is_some() && node_runtime_for_status().is_ok();
     let stage = if snapshot.codex_version.is_none() {
         "codex_not_installed"
     } else if !runtime_available {
@@ -1008,7 +1029,7 @@ fn status_from_snapshot(
         .unwrap_or_else(|| "未知版本".to_string());
     let (message, action_required) = match stage {
         "codex_not_installed" => (
-            "暂未检测到 Microsoft Store 版 Codex；启动器会自动重试安装检测，不需要先手动打开 Codex。".to_string(),
+            "暂未检测到 Microsoft Store 版 Codex；约两分钟后自动重试。新安装后可点“关联 → 重新检测”立即检查；其他应用不受影响。".to_string(),
             Some("install_codex".to_string()),
         ),
         "runtime_missing" => (
@@ -1095,6 +1116,9 @@ fn current_status(action: Option<&str>) -> LauncherStatus {
 
 fn mount_or_switch(mode: &str) -> Result<LauncherStatus, String> {
     validate_theme_mode(mode)?;
+    // A user's mount request must see a newly installed/updated package now,
+    // not wait for the passive status cache to expire.
+    installed_codex_with_refresh(true);
     let snapshot = detect_codex_processes();
     if snapshot.codex_version.is_none() || find_node_runtime().is_err() {
         let session = read_session();
@@ -1208,28 +1232,42 @@ fn restore_native() -> Result<LauncherStatus, String> {
 }
 
 #[tauri::command]
-fn get_launcher_status() -> LauncherStatus {
-    current_status(None)
+async fn get_launcher_status() -> Result<LauncherStatus, String> {
+    tauri::async_runtime::spawn_blocking(|| current_status(None))
+        .await
+        .map_err(|error| format!("状态读取未完成：{error}"))
 }
 
 #[tauri::command]
 async fn run_launcher_action(action: String, theme_mode: String) -> Result<LauncherStatus, String> {
-    tauri::async_runtime::spawn_blocking(move || match action.as_str() {
-        "mount" => mount_or_switch(&theme_mode),
-        "restore" => restore_native(),
-        _ => Err("未知启动器操作。".to_string()),
+    tauri::async_runtime::spawn_blocking(move || {
+        let _action = LAUNCHER_ACTION
+            .try_lock()
+            .map_err(|_| "已有挂载或恢复操作进行中，请等待完成。".to_string())?;
+        NODE_STATUS.invalidate();
+        match action.as_str() {
+            "mount" => mount_or_switch(&theme_mode),
+            "restore" => restore_native(),
+            _ => Err("未知启动器操作。".to_string()),
+        }
     })
     .await
     .map_err(|error| format!("启动器后台任务异常：{error}"))?
 }
 
 #[tauri::command]
-fn get_external_target_status(target: String) -> Result<ExternalTargetStatus, String> {
-    let mut status = match target.as_str() {
+async fn get_external_target_status(target: String) -> Result<ExternalTargetStatus, String> {
+    tauri::async_runtime::spawn_blocking(move || external_target_status(&target))
+        .await
+        .map_err(|error| format!("目标状态读取未完成：{error}"))?
+}
+
+fn external_target_status(target: &str) -> Result<ExternalTargetStatus, String> {
+    let mut status = match target {
         "doubao" => Ok(detect_doubao_status()),
-        _ => external_targets::get_status(&target),
+        _ => external_targets::get_status(target),
     }?;
-    if let Err(error) = app_links::saved_path(&target) {
+    if let Err(error) = app_links::saved_path(target) {
         status.message = format!("应用关联需要处理：{error} 请点击状态栏旁的“关联”。");
     } else if status.stage.ends_with("_not_installed") {
         status
@@ -1247,6 +1285,10 @@ async fn run_external_target_action(
     experimental_approved: Option<bool>,
 ) -> Result<ExternalTargetStatus, String> {
     tauri::async_runtime::spawn_blocking(move || {
+        let _action = LAUNCHER_ACTION
+            .try_lock()
+            .map_err(|_| "已有挂载或恢复操作进行中，请等待完成。".to_string())?;
+        NODE_STATUS.invalidate();
         app_links::preflight(&target)?;
         match (target.as_str(), action.as_str()) {
             ("doubao", "launch_theme") => launch_doubao(true),
@@ -1269,6 +1311,9 @@ async fn get_app_link_status(
     rescan: Option<bool>,
 ) -> Result<app_links::LinkStatus, String> {
     tauri::async_runtime::spawn_blocking(move || {
+        if rescan.unwrap_or(false) {
+            NODE_STATUS.invalidate();
+        }
         app_links::status(&target, rescan.unwrap_or(false))
     })
     .await
@@ -1312,7 +1357,19 @@ fn quit_launcher(app: tauri::AppHandle) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let builder = tauri::Builder::default();
+    #[cfg(desktop)]
+    let builder = builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+        use tauri::Manager;
+        // Reopening only brings back the existing launcher. Never interpret
+        // second-instance arguments as a launch/mount request or consent.
+        if let Some(window) = app.get_webview_window("main") {
+            let _ = window.unminimize();
+            let _ = window.show();
+            let _ = window.set_focus();
+        }
+    }));
+    builder
         .invoke_handler(tauri::generate_handler![
             get_launcher_status,
             run_launcher_action,
@@ -1332,15 +1389,15 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::{
-        append_launcher_event, current_music_track_status, extract_codex_version,
-        is_codex_package_process, is_main_codex_process, package_cache_is_fresh, parse_debug_port,
+        append_launcher_event_with_version, current_music_track_status, extract_codex_version,
+        is_codex_package_process, is_main_codex_process, newest_doubao_theme, parse_debug_port,
         parse_session, validate_theme_mode, verify_bundled_runtime_integrity,
-        windows_powershell_module_path_for, InstalledCodexCache, InstalledCodexPackage,
-        BUNDLED_MUSIC_BYTES, BUNDLED_MUSIC_FILENAME, BUNDLED_MUSIC_MIME,
+        windows_powershell_module_path_for, BUNDLED_MUSIC_BYTES, BUNDLED_MUSIC_FILENAME,
+        BUNDLED_MUSIC_MIME,
     };
     use std::fs;
     use std::path::Path;
-    use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+    use std::time::{SystemTime, UNIX_EPOCH};
 
     #[test]
     fn extracts_store_package_version() {
@@ -1400,29 +1457,43 @@ mod tests {
     }
 
     #[test]
-    fn retries_failed_package_detection_but_temporarily_caches_success() {
-        let now = Instant::now();
-        let failed = InstalledCodexCache {
-            package: None,
-            checked_at: Some(now - Duration::from_secs(3)),
-        };
-        assert!(!package_cache_is_fresh(&failed, now));
-
-        let recent_failure = InstalledCodexCache {
-            package: None,
-            checked_at: Some(now - Duration::from_secs(1)),
-        };
-        assert!(package_cache_is_fresh(&recent_failure, now));
-
-        let successful = InstalledCodexCache {
-            package: Some(InstalledCodexPackage {
-                version: "26.820.9563.0".to_string(),
-                executable: "C:\\Program Files\\WindowsApps\\OpenAI.Codex\\app\\ChatGPT.exe"
-                    .to_string(),
-            }),
-            checked_at: Some(now - Duration::from_secs(20)),
-        };
-        assert!(package_cache_is_fresh(&successful, now));
+    fn doubao_versions_use_semver_not_path_sort_order() {
+        let root = std::env::temp_dir().join(format!(
+            "diana-version-test-{}",
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let versions = [
+            "0.1.2",
+            "0.1.10",
+            "0.2.0",
+            "0.10.0",
+            "0.10.0-beta.1",
+            "0.11.0",
+            "not-a-version",
+        ];
+        for version in versions {
+            let extension = root.join(version).join("extension");
+            fs::create_dir_all(&extension).unwrap();
+            if version != "0.11.0" {
+                fs::write(extension.join("manifest.json"), b"{}").unwrap();
+            }
+        }
+        assert_eq!(
+            newest_doubao_theme(&root),
+            Some(root.join("0.10.0/extension"))
+        );
+        for version in versions {
+            let extension = root.join(version).join("extension");
+            if version != "0.11.0" {
+                fs::remove_file(extension.join("manifest.json")).unwrap();
+            }
+            fs::remove_dir(extension).unwrap();
+            fs::remove_dir(root.join(version)).unwrap();
+        }
+        fs::remove_dir(root).unwrap();
     }
 
     #[test]
@@ -1456,7 +1527,13 @@ mod tests {
             .expect("system clock should be after Unix epoch")
             .as_nanos();
         let root = std::env::temp_dir().join(format!("diana-launcher-log-{unique}"));
-        append_launcher_event(&root, "mount_script_failed", Some("dark"), Some(1));
+        append_launcher_event_with_version(
+            &root,
+            "mount_script_failed",
+            Some("dark"),
+            Some(1),
+            Some("26.0.0.0".into()),
+        );
 
         let log_dir = root.join("logs");
         let log_path = log_dir.join("launcher-events.jsonl");

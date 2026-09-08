@@ -81,12 +81,20 @@ pub fn verify(root: &Path, target: &str) -> Result<(), String> {
     Ok(())
 }
 
-pub fn ensure(base: &Path, target: &str, shared: &[(&str, &[u8])]) -> Result<PathBuf, String> {
+/// Passive status may report bundled availability without extracting assets.
+/// The action path still calls ensure() and verifies every file before use.
+pub fn root(base: &Path, target: &str) -> Result<PathBuf, String> {
+    files(target)?;
     let root = base
         .join("reviewed-runtimes")
         .join(target)
         .join(version(target));
     no_links(&root)?;
+    Ok(root)
+}
+
+pub fn ensure(base: &Path, target: &str, shared: &[(&str, &[u8])]) -> Result<PathBuf, String> {
+    let root = root(base, target)?;
     for (name, bytes) in files(target)?.iter().copied().chain(
         shared
             .iter()
@@ -111,6 +119,19 @@ pub fn ensure(base: &Path, target: &str, shared: &[(&str, &[u8])]) -> Result<Pat
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn passive_root_lookup_does_not_extract_files() {
+        let base = std::env::temp_dir().join(format!(
+            "diana-passive-root-{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        assert!(root(&base, "cursor").unwrap().ends_with(version("cursor")));
+        assert!(root(&base, "unknown").is_err());
+        assert!(!base.exists());
+    }
     #[test]
     fn paths_reject_traversal_and_windows_streams() {
         for value in [
