@@ -769,28 +769,101 @@ fn vscode_executable() -> Option<PathBuf> {
                 .join("Code.exe"),
         );
     }
-    candidates
-        .into_iter()
-        .find(|candidate| candidate.is_file())
-        .or_else(|| find_in_path("code.exe"))
+    // The Windows installer normally adds `...\\Microsoft VS Code\\bin` to
+    // PATH, but that directory contains code.cmd rather than Code.exe. Resolve
+    // the shim back to its sibling application so auto-detection works even
+    // when the installer chose a non-default root or PATH is the only clue.
+    candidates.extend(vscode_cli_candidates());
+    candidates.into_iter().find(|candidate| candidate.is_file())
 }
 
-fn vscode_settings_path(executable: &Path) -> Result<PathBuf, String> {
+fn vscode_cli_candidates() -> Vec<PathBuf> {
+    let mut candidates = Vec::new();
+    let Some(path) = env::var_os("PATH") else {
+        return candidates;
+    };
+    for directory in env::split_paths(&path) {
+        for shim in ["code.cmd", "code.exe"] {
+            let candidate = directory.join(shim);
+            if !candidate.is_file() {
+                continue;
+            }
+            if let Some(executable) = vscode_cli_executable(&candidate) {
+                candidates.push(executable);
+            }
+        }
+    }
+    candidates
+}
+
+fn vscode_cli_executable(candidate: &Path) -> Option<PathBuf> {
+    let name = candidate.file_name()?.to_string_lossy();
+    if name.eq_ignore_ascii_case("Code.exe") {
+        return Some(candidate.to_path_buf());
+    }
+    if name.eq_ignore_ascii_case("code.cmd") {
+        return candidate
+            .parent()
+            .and_then(Path::parent)
+            .map(|root| root.join("Code.exe"));
+    }
+    None
+}
+
+fn vscode_user_data_root(executable: &Path) -> Result<PathBuf, String> {
     let root = executable
         .parent()
         .ok_or_else(|| "VS Code 安装路径无效。".to_string())?;
-    let portable = root
-        .join("data")
-        .join("user-data")
-        .join("User")
-        .join("settings.json");
-    if root.join("data").is_dir() || portable.is_file() {
+    let portable = root.join("data").join("user-data");
+    if root.join("data").is_dir() || portable.is_dir() {
         return Ok(portable);
     }
     let app_data = env::var_os("APPDATA")
         .map(PathBuf::from)
         .ok_or_else(|| "无法确定 VS Code 用户设置目录。".to_string())?;
-    Ok(app_data.join("Code").join("User").join("settings.json"))
+    Ok(app_data.join("Code"))
+}
+
+fn vscode_profile_id(user_data_root: &Path) -> Option<String> {
+    let storage = user_data_root.join("User/globalStorage/storage.json");
+    let contents = fs::read_to_string(storage).ok()?;
+    let value = serde_json::from_str::<serde_json::Value>(&contents).ok()?;
+    let id = value.get("userDataProfileId")?.as_str()?.trim();
+    if id.is_empty()
+        || id.len() > 128
+        || !id
+            .chars()
+            .all(|character| character.is_ascii_alphanumeric() || matches!(character, '-' | '_'))
+    {
+        return None;
+    }
+    Some(id.to_string())
+}
+
+fn vscode_settings_path(executable: &Path) -> Result<PathBuf, String> {
+    let user_data = vscode_user_data_root(executable)?;
+    let user = user_data.join("User");
+    // Since VS Code profiles became common, user-scoped settings can live in
+    // User/profiles/<id>/settings.json. Applying only User/settings.json makes
+    // the launcher report success while the active profile keeps its old
+    // (often dark) theme.
+    if let Some(profile_settings) = vscode_profile_settings_path(&user_data) {
+        return Ok(profile_settings);
+    }
+    Ok(user.join("settings.json"))
+}
+
+fn vscode_profile_settings_path(user_data_root: &Path) -> Option<PathBuf> {
+    let profile_id = vscode_profile_id(user_data_root)?;
+    let profile_settings = user_data_root
+        .join("User/profiles")
+        .join(profile_id)
+        .join("settings.json");
+    if profile_settings.is_file() || profile_settings.parent().is_some_and(Path::is_dir) {
+        Some(profile_settings)
+    } else {
+        None
+    }
 }
 
 fn vscode_extensions_root(executable: &Path) -> Result<PathBuf, String> {
@@ -2275,19 +2348,19 @@ fn deepseek_status() -> ExternalTargetStatus {
     let (stage, message) = if root.is_none() {
         (
             "deepseek_not_installed",
-            "未检测到 DeepSeek Harness 源码工作区；启动器不会捆绑第三方程序或 node_modules。"
+            "未检测到 DeepSeek Harness 源码工作区。请在“关联”中选择项目根目录：该目录必须同时包含 package.json 和 apps/web/package.json（例如 <你的代码目录>\\deepseek-harness），不要选择浏览器目录、文档目录或 apps/web 子目录。启动器不会捆绑第三方程序或 node_modules。"
                 .to_string(),
         )
     } else if !ready {
         (
             "deepseek_theme_needs_deploy",
-            "已检测到 Harness，但该工作区尚未合并 Diana 主题；内置资源包可交给 Codex 安全合并后重新构建。"
+            "已检测到 Harness 项目根目录，但该工作区尚未合并 Diana 主题。启动器只提供内置蓝图；请让 Codex 将蓝图安全合并到源码，安装依赖并重新构建，不会直接改写第三方工作区。"
                 .to_string(),
         )
     } else if !built || node.is_none() {
         (
             "deepseek_build_missing",
-            "Harness 缺少 Node.js 或构建产物；请先在源码目录完成构建。".to_string(),
+            "Harness 缺少 Node.js 或构建产物；请在已关联的项目根目录完成依赖安装和构建，确认 apps/cli/lib/bin.js 与 apps/web/dist/index.html 均存在后再启动。".to_string(),
         )
     } else if running {
         (
@@ -2812,8 +2885,8 @@ mod tests {
         grok_has_loopback_debug, is_cursor_main_command, is_grok_main_command,
         is_primary_app_command, jsonc_raw_value, remove_jsonc_property, replace_jsonc_raw,
         restore_editor_theme, set_editor_theme, terminal_theme_state, verify_shared_assets,
-        vscode_theme_state, write_shared_assets, zcode_adapter_theme, zcode_debug_port,
-        zcode_has_loopback_debug, zcode_runtime_assets_root,
+        vscode_profile_id, vscode_profile_settings_path, vscode_theme_state, write_shared_assets,
+        zcode_adapter_theme, zcode_debug_port, zcode_has_loopback_debug, zcode_runtime_assets_root,
     };
     use std::fs;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -2900,6 +2973,54 @@ mod tests {
         assert!(fs::read_to_string(&settings)
             .unwrap()
             .contains("Light Modern"));
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn vscode_profile_id_is_read_only_and_rejects_path_traversal() {
+        let root = std::env::temp_dir().join(format!(
+            "diana-vscode-profile-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let storage = root.join("User/globalStorage/storage.json");
+        fs::create_dir_all(storage.parent().unwrap()).unwrap();
+        fs::write(&storage, r#"{"userDataProfileId":"profile-123"}"#).unwrap();
+        assert_eq!(vscode_profile_id(&root).as_deref(), Some("profile-123"));
+        let profile_dir = root.join("User/profiles/profile-123");
+        fs::create_dir_all(&profile_dir).unwrap();
+        assert_eq!(
+            vscode_profile_settings_path(&root),
+            Some(profile_dir.join("settings.json"))
+        );
+        fs::write(&storage, r#"{"userDataProfileId":"../escape"}"#).unwrap();
+        assert!(vscode_profile_id(&root).is_none());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn vscode_cli_shim_resolves_the_sibling_application() {
+        let root = std::env::temp_dir().join(format!(
+            "diana-vscode-cli-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let shim = root.join("bin/code.cmd");
+        let executable = root.join("Code.exe");
+        fs::create_dir_all(shim.parent().unwrap()).unwrap();
+        fs::write(&shim, b"@echo off").unwrap();
+        fs::write(&executable, b"MZ").unwrap();
+        assert_eq!(super::vscode_cli_executable(&shim), Some(executable));
+        assert_eq!(
+            super::vscode_cli_executable(&root.join("bin/other.cmd")),
+            None
+        );
         fs::remove_dir_all(root).unwrap();
     }
 
