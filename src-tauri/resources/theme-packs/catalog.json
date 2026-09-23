@@ -52,7 +52,7 @@
       "artwork": "complete-on-reviewed-version",
       "modes": ["dark", "light", "system"],
       "requiresThirdPartyBinary": true,
-      "testedVersion": "0.28.0",
+      "testedVersion": "0.58.0",
       "requiresPerLaunchRiskConfirmation": true,
       "bundlesAdapterRuntime": true
     },

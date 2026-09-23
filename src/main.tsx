@@ -158,7 +158,7 @@ const targetOptions: TargetOption[] = [
     value: "grokbot",
     label: "Grok Bot",
     shortLabel: "Grok Bot",
-    hint: "完整挂载限 0.28.0；挂载后可切换日夜 / 原版",
+    hint: "完整挂载限 0.58.0；挂载后可切换日夜 / 原版",
     showThemeSwitch: true,
     modeTitle: "选择 Grok Bot 挂载主题",
     modeSubtitle: "原生配色与完整美术层同步切换",
@@ -692,7 +692,7 @@ function App() {
         [
           "即将优先为 Grok Bot 挂载完整 Diana 日夜美术。",
           "",
-          "启动器只调用内置审核版本（或已登记旧版）且 SHA-256 清单完全匹配的 Grok Bot 0.28.0 适配器。适配器会再次核验该应用已验证发布者的数字签名，然后以 --remote-debugging-address=127.0.0.1 和随机高位端口启动 Grok Bot；短时 Node.js 进程完成原生日夜切换、界面探测与挂载后立即退出，不修改 Grok Bot.exe、app.asar 或安装目录，也不创建服务、计划任务、自启动项或后台 watcher。",
+          "启动器只调用内置审核版本（或已登记旧版）且 SHA-256 清单完全匹配的 Grok Bot 0.58.0 适配器。适配器会再次核验该应用已验证发布者的数字签名，然后以 --remote-debugging-address=127.0.0.1 和随机高位端口启动 Grok Bot；短时 Node.js 进程完成原生日夜切换、界面探测与挂载后立即退出，不修改 Grok Bot.exe、app.asar 或安装目录，也不创建服务、计划任务、自启动项或后台 watcher。",
           "",
           "临时调试端口没有身份认证。同一 Windows 账户下的其他本地进程可能发现它，读取当前可见界面、执行渲染页脚本或截图。只有完整退出本次全部 Grok Bot 进程，端口和相应风险才会结束。",
           "",

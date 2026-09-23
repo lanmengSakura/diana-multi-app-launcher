@@ -40,7 +40,7 @@ Codex 未被 Windows 注册时需先完成官方安装；Node.js、Harness 依�
 
 从 rc.4 起，被动安装检测（包含未找到的结果）缓存约 120 秒，避免未装 Codex 时反复启动 PowerShell；“重新检测”和主动挂载会立即重新查找官方安装。Node.js 状态提示最多缓存 60 秒，重新检测可清除提示缓存；实际执行前仍重新检查依赖。rc.3 及更早 EXE 需手动更新。
 
-自定义盘符/便携位置不依赖作者的个人目录。首次未识别时手动关联一次即可；指定路径不会绕过 Cursor `3.17.21`、Grok Bot `0.28.0`、ZCode `3.6.5.4145` 的完整美术版本限制。
+自定义盘符/便携位置不依赖作者的个人目录。首次未识别时手动关联一次即可；指定路径不会绕过 Cursor `3.17.21`、Grok Bot `0.58.0`、ZCode `3.6.5.4145` 的完整美术版本限制。
 
 VS Code 使用非默认 Profile 时，主题设置会写入当前 Profile 的 `User/profiles/<profile-id>/settings.json`；若 VS Code 已经打开，建议先完整退出后再从启动器应用主题。工作区级别的 `workbench.colorTheme` 仍可能覆盖用户设置。
 

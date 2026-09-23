@@ -6,12 +6,12 @@ import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
-const ADAPTER_VERSION = "reviewed-grok-bot-0.28.0-v3";
+const ADAPTER_VERSION = "reviewed-grok-bot-0.58.0-v1";
 const CONFIG = options(ROOT, "Grok Bot.exe");
 const GROK_EXE = CONFIG.executable;
-const EXPECTED_FILE_VERSION = "0.28.0";
-const EXPECTED_PRODUCT_VERSION = "0.28.0.0";
-const EXPECTED_SIGNER = "A7B4A9C2C6D639E310E7579AEE16B7390B0F6269";
+const EXPECTED_FILE_VERSION = "0.58.0";
+const EXPECTED_PRODUCT_VERSION = "0.58.0.0";
+const EXPECTED_SIGNER = "F1B6A188E3C9FC49E393DC83A8C9CF970E777273";
 const SESSION_PATH = path.join(ROOT, "state", "session.json");
 const RESTORE_PATH = path.join(ROOT, "state", "restore-record.json");
 const EVENT_LOG = path.join(ROOT, "logs", "events.jsonl");

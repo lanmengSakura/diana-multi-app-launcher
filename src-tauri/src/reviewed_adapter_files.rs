@@ -14,7 +14,7 @@ pub const CURSOR_FILES: &[(&str, &[u8])] = &[
     ("theme.css", include_bytes!("../resources/theme-packs/cursor/runtime/theme.css")),
     ("SHA256SUMS.txt", include_bytes!("../resources/theme-packs/cursor/runtime/SHA256SUMS.txt")),
 ];
-pub const GROKBOT_VERSION: &str = "reviewed-grok-bot-0.28.0-v3";
+pub const GROKBOT_VERSION: &str = "reviewed-grok-bot-0.58.0-v1";
 pub const GROKBOT_FILES: &[(&str, &[u8])] = &[
     ("adapter.mjs", include_bytes!("../resources/theme-packs/grokbot/runtime/adapter.mjs")),
     ("ASSET_LICENSES.md", include_bytes!("../resources/theme-packs/grokbot/runtime/ASSET_LICENSES.md")),

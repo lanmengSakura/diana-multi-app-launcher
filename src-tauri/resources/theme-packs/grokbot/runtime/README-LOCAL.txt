@@ -1,8 +1,8 @@
-Diana Grok Bot reviewed adapter — Grok Bot 0.28.0 only
+Diana Grok Bot reviewed adapter — Grok Bot 0.58.0 only
 
 This is a version-limited, experimental, user-space adapter. It verifies file
-version 0.28.0, product version 0.28.0.0, product name Grok Bot, a valid signature
-(A7B4A9C2C6D639E310E7579AEE16B7390B0F6269), bundle hashes, process identity,
+version 0.58.0, product version 0.58.0.0, product name Grok Bot, a valid signature
+(F1B6A188E3C9FC49E393DC83A8C9CF970E777273), bundle hashes, process identity,
 loopback listener ownership and the native theme bridge. Other versions fail closed.
 
 Requirements: Windows, Windows PowerShell, Node.js 22+ (built-in WebSocket).

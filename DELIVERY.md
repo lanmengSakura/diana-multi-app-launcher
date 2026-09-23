@@ -1,6 +1,6 @@
 # 首次交付与候选验收
 
-本次公开测试包为 `0.1.0-beta.4-rc.5`，修复 VS Code 自动识别、Profile 日间配色和 DeepSeek Harness 关联说明，并保留 RC.4 的状态查询与交付修正。请下载本次 Release 的新 EXE 并核对 SHA-256；旧版不会自动更新。仍为预发布版本，不作全场景或跨版本兼容承诺。详见 [Issue #2 回执](docs/ISSUE_2_RECEIPT.md)。
+本次公开测试包为 `0.1.0-beta.4-rc.6`，更新 Grok Bot `0.58.0` 适配器，并保留 RC.5 的 VS Code 自动识别、Profile 日间配色和 DeepSeek Harness 关联说明。请下载本次 Release 的新 EXE 并核对 SHA-256；旧版不会自动更新。仍为预发布版本，不作全场景或跨版本兼容承诺。详见 [发布说明](RELEASE_NOTES.md)。
 
 ## 各入口实际需要什么
 
@@ -8,7 +8,7 @@
 |---|---|---|
 | Codex | 官方 Codex、Node.js 22+ | 已内置运行时，不必先用模型重造适配器；退出后挂载 |
 | Cursor | Cursor 3.17.21、Node.js 22+ | 新增版本限定完整运行组件；保留旧登记会话，不覆盖恢复记录 |
-| Grok Bot | Grok Bot 0.28.0、Node.js 22+ | 新增版本限定完整运行组件，不再依赖作者机器 |
+| Grok Bot | Grok Bot 0.58.0、Node.js 22+ | 更新版本限定完整运行组件，不再依赖作者机器 |
 | ZCode | ZCode 3.6.5.4145、Node.js 22+ | 已内置版本限定运行组件 |
 | 豆包浏览器 | 官方 Doubao.exe | 内置 MV3 扩展；工作区主题，不是“豆包工作” |
 | VS Code | 官方 VS Code | 默认官方颜色主题；完整美术是另行选择的安装资源修改路线 |

@@ -4,7 +4,7 @@
 
 The CSS blueprint is inert and cannot mount the artwork by itself.
 
-The new `runtime/` source is a separate, opt-in, version-limited delivery candidate for Grok Bot 0.28.0. It is derived from the local experiment but removes machine-specific paths, development screenshots/discovery commands and private state. It must pass final real-app acceptance before public release. Existing beta Release assets do not silently gain this runtime.
+The new `runtime/` source is a separate, opt-in, version-limited delivery candidate for Grok Bot 0.58.0. It is derived from the local experiment but removes machine-specific paths, development screenshots/discovery commands and private state. It must pass final real-app acceptance before public release. Existing beta Release assets do not silently gain this runtime.
 
 ## Experimental runtime boundary
 

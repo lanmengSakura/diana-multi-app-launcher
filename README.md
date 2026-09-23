@@ -1,10 +1,10 @@
 # Diana Multi-App Launcher
 
-嘉然 Diana 多应用主题启动器。当前公开测试版本为 **`v0.1.0-beta.4-rc.5`**，仅面向 Windows 测试用户；安装器和便携版均未签名，不代表八目标全部场景已完成认证。
+嘉然 Diana 多应用主题启动器。当前公开测试版本为 **`v0.1.0-beta.4-rc.6`**，仅面向 Windows 测试用户；安装器和便携版均未签名，不代表八目标全部场景已完成认证。
 
-RC.5 修复 VS Code 自动识别、Profile 日间配色和 DeepSeek Harness 关联说明；同时保留 RC.4 的状态查询与交付修正。**已有旧版 EXE 需手动更新**。详情见 [Issue #2 处理回执](docs/ISSUE_2_RECEIPT.md)。
+RC.6 更新 Grok Bot `0.58.0` 适配器，并保留 RC.5 的 VS Code 自动识别、Profile 日间配色和 DeepSeek Harness 关联说明。**已有旧版 EXE 需手动更新**。详情见 [发布说明](RELEASE_NOTES.md)。
 
-[八应用主题体验](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes) · [启动器演示](https://diana-launcher-demo.szbluedream01.chatgpt.site) · [Codex 主题演示](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes?app=codex) · [下载新版测试版](https://github.com/lanmengSakura/diana-multi-app-launcher/releases/tag/v0.1.0-beta.4-rc.5)
+[八应用主题体验](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes) · [启动器演示](https://diana-launcher-demo.szbluedream01.chatgpt.site) · [Codex 主题演示](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes?app=codex) · [下载新版测试版](https://github.com/lanmengSakura/diana-multi-app-launcher/releases/tag/v0.1.0-beta.4-rc.6)
 
 **完整功能由你选择启用。** 本启动器公开提供完整挂载组件；下载、安装、打开或关联应用位置不代表同意调试连接。Codex、Cursor、Grok Bot、ZCode 新开实验调试会话前会告知风险并等待确认，取消不会执行本次挂载。回环端口没有身份认证，同机进程可能读取界面、执行脚本或截图；仅关闭启动器或撤下皮肤不会关闭目标应用持有的端口，须完整退出目标应用。请先看 [风险与退出方法](SECURITY.md)。
 
@@ -39,8 +39,8 @@ Cursor 与 DeepSeek Harness 的真实主题源已同步日间莓粉线稿修正�
 
 在 GitHub Releases 下载下列任一文件：
 
-- `Diana-Multi-App-Launcher_0.1.0-beta.4-rc.5_x64-setup.exe`：当前用户 NSIS 安装包；
-- `diana-multi-app-launcher_0.1.0-beta.4-rc.5_x64-portable.exe`：免安装便携版。
+- `Diana-Multi-App-Launcher_0.1.0-beta.4-rc.6_x64-setup.exe`：当前用户 NSIS 安装包；
+- `diana-multi-app-launcher_0.1.0-beta.4-rc.6_x64-portable.exe`：免安装便携版。
 
 `v0.1.0-beta.1` 的 Windows 构建会因主题 CSS 换行转换触发 `SHA-256 mismatch`，请勿继续使用；该问题已在 Beta.2 修复。
 
@@ -63,7 +63,7 @@ Windows SmartScreen 可能提示“未知发布者”，因为当前 Beta 没有
 | Windows Terminal | 用户级 Fragment、独立配置和恢复脚本 | 不创建后台进程；默认配置只在用户明确选择时改变 |
 | Visual Studio Code | 标准 Diana Day/Night 颜色主题 | 自动识别安装器/用户安装；跟随当前 VS Code Profile 设置，不修改 VS Code 安装资源 |
 | Cursor | 内置版本限定完整适配器，另有标准颜色主题 | 当前限 3.17.21 与指定有效签名；需要 Node.js 22+，逐次确认调试风险 |
-| Grok Bot | 内置版本限定完整适配器 | 当前限 0.28.0 与指定有效签名；需要 Node.js 22+，逐次确认调试风险 |
+| Grok Bot | 内置版本限定完整适配器 | 当前限 0.58.0 与指定有效签名；需要 Node.js 22+，逐次确认调试风险 |
 | DeepSeek Harness | 检测并启动本地源码部署 | 不捆绑上游源码、模型 Key 或用户资料 |
 | ZCode | 版本限定的实验性完整美术挂载 | 当前只接受已验证的 `3.6.5.4145` 和有效签名；版本不符时拒绝开启端口 |
 
@@ -72,10 +72,10 @@ Windows SmartScreen 可能提示“未知发布者”，因为当前 Beta 没有
 ### 常见误会
 
 - **不要求八款应用全部安装。** 只选自己安装的应用；没有 Codex 不应影响豆包等其他入口。RC.4 已修复缺少 Codex 时的高频检测阻塞。新安装/更新后可用“关联 → 重新检测”立即刷新位置。
-- **关联成功不等于版本受支持。** 完整挂载限定为 Cursor `3.17.21`、Grok Bot `0.28.0`、ZCode `3.6.5.4145`。例如 ZCode `3.11.2.6792` 不在当前范围；不会通过关闭校验来强行挂载。请等待对应适配更新，或继续使用原版。
+- **关联成功不等于版本受支持。** 完整挂载限定为 Cursor `3.17.21`、Grok Bot `0.58.0`、ZCode `3.6.5.4145`。例如 ZCode `3.11.2.6792` 不在当前范围；不会通过关闭校验来强行挂载。请等待对应适配更新，或继续使用原版。
 - **豆包小窗口可能只显示角落线条。** 扩展视口宽度不超过 1320 CSS 像素时隐藏立绘；宽度不超过 900 或高度不超过 560 时，还会隐藏左下简笔画和上方装饰。放大窗口、留足正文空间后再看；Windows 缩放会影响实际 CSS 视口，不能只看显示器分辨率。这是防遮挡策略，不一定是挂载失败。
 - **免安装不等于不使用本机目录。** 便携 EXE 与安装版的启动器主体相同，仍使用 WebView2 和用户目录保存关联/主题运行文件。无需把 NSIS 安装包再包成便携版。
-- **VS Code 日间主题仍是默认深色时。** 先关闭正在运行的 VS Code，再从 RC.5 启动器重新应用；如果使用了 Profile，主题会写入当前 Profile 的设置文件，而不是只改全局 `User/settings.json`。工作区自己的 `workbench.colorTheme` 仍可能覆盖用户主题。
+- **VS Code 日间主题仍是默认深色时。** 先关闭正在运行的 VS Code，再从 RC.6 启动器重新应用；如果使用了 Profile，主题会写入当前 Profile 的设置文件，而不是只改全局 `User/settings.json`。工作区自己的 `workbench.colorTheme` 仍可能覆盖用户主题。
 - **DeepSeek Harness 关联的是源码项目根目录。** 目录应同时包含 `package.json`、`apps/web/package.json`；完成主题合并、依赖安装和构建后，还应有 `apps/cli/lib/bin.js` 与 `apps/web/dist/index.html`。不要选择浏览器目录、文档目录或 `apps/web` 子目录。
 
 ## 实验性调试连接
