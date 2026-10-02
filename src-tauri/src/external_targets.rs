@@ -1144,8 +1144,8 @@ fn vscode_theme_state(
 ) -> &'static str {
     if !available {
         "unavailable"
-    } else if extension_installed && selected && visual_layer {
-        "deployed"
+    } else if visual_layer {
+        "legacy"
     } else if extension_installed && selected {
         "selected"
     } else if extension_installed {
@@ -1187,16 +1187,16 @@ fn vscode_status() -> ExternalTargetStatus {
             "vscode_not_installed",
             "未检测到 Visual Studio Code。".to_string(),
         )
+    } else if visual_layer {
+        (
+            "vscode_legacy_visual_layer",
+            "检测到旧版 VS Code 美术层已写入安装资源；为避免“Code 似乎损坏”提示，启动器不会继续挂载。请先运行主题目录中的 visual-layer\\restore.ps1 恢复原文件，再使用 Diana 用户颜色主题。".to_string(),
+        )
     } else if extension_installed && selected {
         (
             "vscode_diana_ready",
-            if visual_layer {
-                "Diana 日夜配色已选择；美术层跟随颜色主题。先选日间 / 暗夜，再点击主按钮应用。"
-                    .to_string()
-            } else {
-                "Diana 官方颜色主题已就绪；完整美术蓝图已随启动器携带，但不会默认改写 VS Code 安装资源。"
-                    .to_string()
-            },
+            "Diana 官方颜色主题已就绪；完整美术蓝图已随启动器携带，但不会默认改写 VS Code 安装资源。"
+                .to_string(),
         )
     } else {
         (
@@ -3095,7 +3095,7 @@ mod tests {
     fn distinguishes_installed_selected_deployed_and_mounted_states() {
         assert_eq!(terminal_theme_state(true, true), "installed");
         assert_eq!(vscode_theme_state(true, true, true, false), "selected");
-        assert_eq!(vscode_theme_state(true, true, true, true), "deployed");
+        assert_eq!(vscode_theme_state(true, true, true, true), "legacy");
         assert_eq!(deepseek_theme_state(true, true, false), "deployed");
         assert_eq!(deepseek_theme_state(true, true, true), "running");
         assert_ne!(terminal_theme_state(true, true), "mounted");

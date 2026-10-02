@@ -24,6 +24,7 @@ type ExternalThemeState =
   | "installed"
   | "selected"
   | "deployed"
+  | "legacy"
   | "running"
   | "mounted"
   | "plain"
@@ -1017,6 +1018,7 @@ function App() {
     externalStatus.stage === "cursor_plain_running" ||
     externalStatus.stage === "cursor_unmanaged_debug" ||
     externalStatus.stage === "cursor_runtime_missing" ||
+    externalStatus.stage === "vscode_legacy_visual_layer" ||
     externalStatus.stage === "grokbot_plain_running" ||
     externalStatus.stage === "grokbot_unmanaged_debug" ||
     externalStatus.stage === "grokbot_runtime_missing" ||
@@ -1039,6 +1041,8 @@ function App() {
             ? "调试实例未接管"
             : externalStatus.themeState === "blocked"
               ? "完整挂载受阻"
+              : externalStatus.themeState === "legacy"
+                ? "旧版美术层待恢复"
         : externalStatus.themeState === "selected"
             ? "Diana 配色已启用"
             : externalStatus.themeState === "installed"
@@ -1073,6 +1077,8 @@ function App() {
       ? "error"
     : phase === "working"
       ? "working"
+      : externalStatus.themeState === "legacy"
+        ? "error"
       : externalStatus.running
           ? "running"
           : "idle";
@@ -1108,6 +1114,9 @@ function App() {
           ? "打开 Diana 终端"
           : "安装并打开 Diana 终端";
       case "vscode":
+        if (externalStatus.stage === "vscode_legacy_visual_layer") {
+          return "先恢复 VS Code 安装";
+        }
         return `应用并打开 Diana ${modeLabel(themeMode)}`;
       case "cursor":
         if (externalStatus.stage === "cursor_plain_running") {
@@ -1223,9 +1232,11 @@ function App() {
             ? "COLOR"
             : externalStatus.themeState === "installed"
               ? "INSTALLED"
-              : externalStatus.themeState === "deployed"
-                ? "DEPLOYED"
-                : externalStatus.themeState === "disabled"
+                : externalStatus.themeState === "deployed"
+                  ? "DEPLOYED"
+                  : externalStatus.themeState === "legacy"
+                    ? "RESTORE"
+                  : externalStatus.themeState === "disabled"
                   ? "DISABLED"
                   : externalStatus.themeState === "blocked"
                     ? "BLOCKED"
@@ -1434,7 +1445,7 @@ function App() {
                 phase === "working" ||
                 (targetIsCodex
                   ? pendingAction === "mount"
-                  : externalNotInstalled)
+                  : externalNotInstalled || externalStatus.stage === "vscode_legacy_visual_layer")
               }
               onClick={() => {
                 if (!targetIsCodex) {
@@ -1501,6 +1512,8 @@ function App() {
                         ? selectedTarget === "vscode"
                           ? "Diana 美术层 · 已部署"
                           : "Diana 源码 · 已部署"
+                        : externalStatus.themeState === "legacy"
+                          ? "旧版美术层 · 待恢复"
                         : externalStatus.themeState === "running" && selectedTarget === "deepseek"
                           ? "Diana 源码 · 服务运行"
                   : selectedTarget === "zcode" || selectedTarget === "grokbot"
