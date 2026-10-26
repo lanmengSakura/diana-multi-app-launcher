@@ -25,7 +25,7 @@ function record(name) { checks.push(name); }
 function mockDesktop() {
   const savedKey = "qa-app-links";
   const names = { cursor: "Cursor.exe", grokbot: "Grok Bot.exe", zcode: "ZCode.exe",
-    vscode: "Code.exe", doubao: "Doubao.exe", terminal: "wt.exe", deepseek: "Harness 项目根目录", codex: "官方安装包" };
+    vscode: "Code.exe", doubao: "Doubao.exe", terminal: "wt.exe", deepseek: "Harness 项目根目录", "deepseek-desktop": "DeepSeek Harness.exe", codex: "官方安装包" };
   const state = window.__linkQA = { calls: [], picks: [], missing: [], failRead: false, failPick: false, holdPick: false, releasePick: null, appsReady: false };
   const stored = () => JSON.parse(localStorage.getItem(savedKey) || "{}");
   function link(target) {
@@ -57,7 +57,7 @@ function mockDesktop() {
       };
       if (command === "get_external_target_status") return {
         target: args.target, stage: `${args.target}_${state.appsReady ? "ready" : "not_installed"}`, running: false, themed: false,
-        themeState: state.appsReady ? "available" : "unavailable", themeScope: "fixture", processCount: 0, mainProcessId: null,
+        themeState: state.appsReady ? "available" : "unavailable", themeScope: args.target === "deepseek-desktop" ? "official_plugin" : "fixture", processCount: 0, mainProcessId: null,
         executable: stored()[args.target] ?? null, themeRoot: null, message: "界面检查：没有操作本机应用。"
       };
       if (command === "get_music_track_status") return { available: false, fileName: null, mimeType: null, sizeBytes: null, issue: "隔离检查不播放音乐。" };
@@ -81,7 +81,12 @@ function mockDesktop() {
         localStorage.setItem(savedKey, JSON.stringify(links));
         return link(args.target);
       }
-      // Any accidental launch/restore/music/quit call fails this test.
+      if (command === "run_external_target_action" && state.allowHarnessActions && ["deepseek", "deepseek-desktop"].includes(args.target)) {
+        return {target:args.target,stage:'fixture_done',running:false,themed:false,themeState:'available',
+          themeScope:args.target==='deepseek-desktop'?'official_plugin':'source_theme',processCount:0,mainProcessId:null,
+          executable:null,themeRoot:null,message:'仅模拟此入口动作，未操作真实应用。'};
+      }
+      // Only the explicit DeepSeek route checks below may invoke mocked actions.
       throw new Error(`Forbidden or unexpected IPC during association: ${command}`);
     }
   };
@@ -207,6 +212,24 @@ try {
   record("Harness folder instructions and dialog layout stay readable at narrow widths");
   await page.keyboard.press("Escape");
   await modal.waitFor({ state: "detached" });
+  await open("deepseek-desktop");
+  await page.getByText("应用位置", { exact: true }).waitFor();
+  await page.getByText(/此入口使用原生主题插件，不读取网页端项目关联/).waitFor();
+  const desktopPath = "E:\\程序示例\\DeepSeek Harness\\DeepSeek Harness.exe";
+  await input.fill(desktopPath); await save.click(); await ready();
+  assert.deepEqual(await page.evaluate(() => {
+    const links = JSON.parse(localStorage.getItem('qa-app-links'));
+    return [links.deepseek, links['deepseek-desktop']];
+  }), ["E:\\项目示例\\deepseek-harness", desktopPath]);
+  await page.screenshot({path:resolve(output,'deepseek-desktop-link.png')});
+  await close.click();
+  await page.screenshot({path:resolve(output,'deepseek-desktop-entry.png')});
+  await open("deepseek");
+  assert.equal(await input.inputValue(), "E:\\项目示例\\deepseek-harness");
+  await page.screenshot({path:resolve(output,'deepseek-web-link.png')});
+  await close.click();
+  await page.screenshot({path:resolve(output,'deepseek-web-entry.png')});
+  record("Harness desktop EXE and web folder keep separate selectors, copy and saved links");
   await page.evaluate(() => { window.__linkQA.failRead = true; });
   await open("grokbot");
   await page.getByRole("alert").waitFor();
@@ -233,6 +256,39 @@ try {
     assert.ok(!(await page.evaluate(() => window.__linkQA.calls)).some(call => /^run_/.test(call.command)));
     record(`${target}: explicit debugger-risk notice, cancellation never invokes a mount (Codex fixture has an existing palette record)`);
   }
+
+  await page.evaluate(() => { window.__linkQA.allowHarnessActions = true; });
+  const actionCalls = () => page.evaluate(() => window.__linkQA.calls.filter(call => call.command === 'run_external_target_action'));
+  await select.selectOption('deepseek');
+  await page.locator('.primary-action').filter({hasText:'启动 DeepSeek 网页端'}).waitFor();
+  await page.locator('.primary-action').click();
+  await page.waitForFunction(() => window.__linkQA.calls.some(call => call.command === 'run_external_target_action' && call.args.target === 'deepseek'));
+  await page.getByRole('button',{name:'打开页面',exact:true}).click();
+  await page.waitForFunction(() => window.__linkQA.calls.filter(call => call.command === 'run_external_target_action').length === 2);
+  assert.deepEqual((await actionCalls()).map(call=>[call.args.target,call.args.action]), [['deepseek','launch_theme'],['deepseek','launch_native']]);
+  record('web mount and open-page actions route only to the web target');
+
+  await select.selectOption('deepseek-desktop');
+  await page.locator('.primary-action').filter({hasText:'安装 Diana 插件并启动'}).waitFor();
+  const cancelled = page.waitForEvent('dialog').then(async dialog=>{
+    assert.match(dialog.message(), /官方插件机制/);
+    assert.match(dialog.message(), /不打开调试端口/);
+    await dialog.dismiss();
+  });
+  await Promise.all([cancelled,page.locator('.primary-action').click()]);
+  assert.equal((await actionCalls()).length,2);
+  record('desktop plugin consent cancellation does not call either target');
+  const accepted = page.waitForEvent('dialog').then(dialog=>dialog.accept());
+  await Promise.all([accepted,page.locator('.primary-action').click()]);
+  await page.waitForFunction(() => window.__linkQA.calls.filter(call => call.command === 'run_external_target_action').length === 3);
+  const desktopCall = (await actionCalls())[2];
+  assert.equal(desktopCall.args.target,'deepseek-desktop');
+  assert.equal(desktopCall.args.action,'launch_theme');
+  assert.equal(desktopCall.args.experimentalApproved,true);
+  await page.getByRole('button',{name:'原版启动',exact:true}).click();
+  await page.waitForFunction(() => window.__linkQA.calls.filter(call => call.command === 'run_external_target_action').length === 4);
+  assert.deepEqual((await actionCalls()).slice(2).map(call=>[call.args.target,call.args.action]), [['deepseek-desktop','launch_theme'],['deepseek-desktop','launch_native']]);
+  record('desktop plugin and native-start actions route only to the desktop target');
 
   const preview = await browser.newPage({ viewport: { width: 636, height: 930 } });
   preview.on("pageerror", error => errors.push(error.message));

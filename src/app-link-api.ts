@@ -4,15 +4,15 @@ export type AppLinkStatus = {
   path: string | null;
   savedPath: string | null;
   canChoose: boolean;
-  kind: "file" | "directory" | "fileOrDirectory" | "system";
+  kind: "file" | "directory" | "system";
   expected: string;
   message: string;
 };
 
 export const previewLinkStatus = (target: string): AppLinkStatus => ({
   target, state: "preview", path: null, savedPath: null, canChoose: false,
-  kind: target === "codex" ? "system" : target === "deepseek" ? "fileOrDirectory" : "file",
-  expected: target === "deepseek" ? "DeepSeek Harness.exe 或源码版项目根目录" : "应用程序",
+  kind: target === "codex" ? "system" : target === "deepseek" ? "directory" : "file",
+  expected: target === "deepseek" ? "Harness 网页项目根目录" : target === "deepseek-desktop" ? "DeepSeek Harness.exe" : "应用程序",
   message: "网页仅展示关联界面，不读取或保存本机路径。请在桌面启动器中使用。"
 });
 

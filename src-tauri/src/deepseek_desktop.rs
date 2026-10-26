@@ -16,7 +16,7 @@ fn desktop_layout(path: &Path) -> bool {
         && root.join("resources/runtime/cli/bin/dsh.cmd").is_file())
 }
 pub(super) fn deepseek_desktop_executable() -> Option<PathBuf> {
-    match crate::app_links::saved_path("deepseek") {
+    match crate::app_links::saved_path("deepseek-desktop") {
         Ok(Some(path)) => return desktop_layout(&path).then_some(path),
         Err(_) => return None,
         Ok(None) => {}
@@ -47,7 +47,7 @@ pub(super) fn deepseek_desktop_status(executable: &Path) -> ExternalTargetStatus
     let ready = plugin_selected();
     let running = snapshot.process_count > 0;
     ExternalTargetStatus {
-        target: "deepseek".into(), running, themed: ready,
+        target: "deepseek-desktop".into(), running, themed: ready,
         stage: if ready { "deepseek_desktop_plugin_ready" } else { "deepseek_desktop_needs_plugin" }.into(),
         theme_state: if ready { "deployed" } else { "available" }.into(),
         theme_scope: "official_plugin".into(),
@@ -61,6 +61,19 @@ pub(super) fn deepseek_desktop_status(executable: &Path) -> ExternalTargetStatus
         } else {
             "已找到官方 Harness 桌面端；确认后通过官方机制安装 Diana 插件并启动。原版启动不装插件，不会打开源码服务或文档文件夹。".into()
         },
+    }
+}
+
+pub(super) fn current_status() -> ExternalTargetStatus {
+    if let Some(executable) = deepseek_desktop_executable() {
+        return deepseek_desktop_status(&executable);
+    }
+    ExternalTargetStatus {
+        target: "deepseek-desktop".into(), stage: "deepseek_desktop_not_installed".into(),
+        running: false, themed: false, theme_state: "unavailable".into(),
+        theme_scope: "official_plugin".into(), process_count: 0, main_process_id: None,
+        executable: None, theme_root: None,
+        message: "未找到 DeepSeek 官方桌面端。请在“关联”中选择安装目录中的 DeepSeek Harness.exe；此入口不会启动网页端项目或本地网页服务。".into(),
     }
 }
 pub(super) fn launch_deepseek_desktop(executable: &Path, theme: bool, approved: bool) -> Result<ExternalTargetStatus,String> {

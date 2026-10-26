@@ -2,7 +2,7 @@
 
 从 `v0.1.0-beta.4-rc.3` 起提供。rc.2 及更早下载包需手动更新，不会自动获得此入口。
 
-2026-10-26 的 `main` 源码新增官方 Harness Desktop 的 EXE 关联；已发布 RC.7 不包含此变化。ZCode 的新版登记仅连接使用者另行批准和制作的本机适配器，保存路径不代表授权或跨版本兼容。
+RC.8 新增独立“DeepSeek 桌面端”入口，与“DeepSeek 网页端”的项目目录关联完全分开。ZCode 的新版登记仅连接使用者另行批准和制作的本机适配器，保存路径不代表授权或跨版本兼容。
 
 ## 怎么使用
 
@@ -20,11 +20,14 @@
 | 豆包浏览器 | `Doubao.exe`，不是“豆包工作”或安装包 |
 | VS Code | `Code.exe`；自动识别也会从 PATH 中的 `code.cmd` shim 回溯到对应安装目录 |
 | Windows Terminal | `wt.exe` 或 `WindowsTerminal.exe`；不是 `cmd.exe` |
-| DeepSeek Harness | `main` 新增：安装目录中的 `DeepSeek Harness.exe`，并检查相邻官方资源；旧源码部署仍可粘贴包含 `package.json` 和 `apps/web/package.json` 的项目根目录 |
+| DeepSeek 桌面端 | 安装目录中的 `DeepSeek Harness.exe`，并检查相邻官方资源；不接受网页项目文件夹 |
+| DeepSeek 网页端 | 包含 `package.json` 和 `apps/web/package.json` 的项目根目录；不接受桌面 EXE、浏览器或官网网址 |
 
 文件选择窗口不可用时可以直接粘贴路径。取消选择不会保存或清空已有路径；选错程序时保留原关联。支持中文、空格及从资源管理器复制的带引号路径。此入口不接受下载网址、网络共享、命令/参数或安装包。
 
 ## 保存和恢复
+
+两个入口分别使用 `deepseek-desktop` 与 `deepseek` 键；清除其中一个关联不会清除另一个。旧版 `deepseek` 项目目录仍属于网页端；此前本机候选版在该键下保存的 `DeepSeek Harness.exe` 会只读识别到桌面端，直到用户主动保存才备份并写入拆分结果。已存在的独立桌面关联优先，不被旧记录覆盖；EXE 已失效时提示修复，不转而启动网页端。
 
 - 保存于当前用户 `%LOCALAPPDATA%\DianaCodexLauncher\app-links.json`，不写入应用安装目录，也不放在易随启动器更新替换的运行时目录里。
 - 优先级：当前应用的手动关联 → 原有环境变量/常见目录/PATH 检测。手动路径失效时停止，提示重新关联；不会默默启动另一份安装。

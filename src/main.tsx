@@ -16,6 +16,7 @@ type TargetId =
   | "cursor"
   | "grokbot"
   | "deepseek"
+  | "deepseek-desktop"
   | "zcode";
 
 type ExternalThemeState =
@@ -167,14 +168,25 @@ const targetOptions: TargetOption[] = [
     secondaryLabel: "切回原版"
   },
   {
-    value: "deepseek",
-    label: "DeepSeek Harness",
-    shortLabel: "Harness",
-    hint: "官方桌面版使用原生插件；兼容旧源码入口",
+    value: "deepseek-desktop",
+    label: "DeepSeek 桌面端",
+    shortLabel: "DS 桌面端",
+    hint: "官方 Harness 桌面版 · 关联 EXE · 原生插件",
     showThemeSwitch: false,
-    modeTitle: "跟随 Harness 外观",
-    modeSubtitle: "日间 / 暗夜 / 跟随系统由 Harness 原生设置决定",
-    primaryNote: "桌面版不改安装包、不开调试端口；原生插件页可禁用，原版启动需完整退出后操作",
+    modeTitle: "跟随桌面端外观",
+    modeSubtitle: "日间 / 暗夜 / 跟随系统由桌面端原生设置决定",
+    primaryNote: "官方插件，不改安装包、不开调试端口；原版启动需先完整退出，也可在插件页禁用",
+    secondaryLabel: "原版启动"
+  },
+  {
+    value: "deepseek",
+    label: "DeepSeek 网页端",
+    shortLabel: "DS 网页端",
+    hint: "Harness 本地网页项目 · 关联项目根目录",
+    showThemeSwitch: false,
+    modeTitle: "跟随网页端外观",
+    modeSubtitle: "日间 / 暗夜由 Harness 网页原生设置决定",
+    primaryNote: "启动已部署的本地网页服务；不是官网聊天页，不会操作桌面端插件",
     secondaryLabel: "打开页面"
   },
   {
@@ -729,7 +741,7 @@ function App() {
       return;
     }
 
-    if (selectedTarget === "deepseek" && action === "launch_theme" && desktopRuntime
+    if (selectedTarget === "deepseek-desktop" && action === "launch_theme" && desktopRuntime
       && externalStatus.themeScope === "official_plugin" && !externalStatus.themed && !externalStatus.running) {
       if (!window.confirm("将通过官方插件机制安装本机 Diana 主题。插件会在 Harness 界面内执行样式代码，请只安装可信来源。此包不访问账号、聊天内容或网络，不修改安装文件，也不打开调试端口；会备份插件配置，可从插件页禁用或卸载。继续安装并启动吗？")) return;
       experimentalApproved = true;
@@ -1167,16 +1179,18 @@ function App() {
         return externalStatus.themed
           ? `应用 Diana ${modeLabel(themeMode)}`
           : `挂载并启动 Diana ${modeLabel(themeMode)}`;
-      case "deepseek":
-        if (externalStatus.themeScope === "official_plugin" && !externalStatus.themed) {
-          return externalStatus.running ? "请先完全退出 Harness" : "安装 Diana 插件并启动";
+      case "deepseek-desktop":
+        if (!externalStatus.themed) {
+          return externalStatus.running ? "请先退出 DeepSeek 桌面端" : "安装 Diana 插件并启动";
         }
+        return "打开 DeepSeek 桌面端";
+      case "deepseek":
         if (externalStatus.stage === "deepseek_theme_needs_deploy") {
           return "解包 Diana 蓝图";
         }
         return externalStatus.running
-          ? "打开 Diana Harness"
-          : "启动 Diana Harness";
+          ? "打开 DeepSeek 网页端"
+          : "启动 DeepSeek 网页端";
       case "zcode":
         if (externalStatus.stage === "zcode_waiting_workspace") {
           return "进入工作区后挂载";
@@ -1489,9 +1503,7 @@ function App() {
                   ? pendingAction === "restore"
                     ? "取消等待"
                     : selectedTargetOption.secondaryLabel
-                  : selectedTarget === "deepseek" && externalStatus.themeScope === "official_plugin"
-                    ? "原版启动"
-                    : selectedTargetOption.secondaryLabel}
+                  : selectedTargetOption.secondaryLabel}
               </span>
             </button>
           </div>
@@ -1527,7 +1539,9 @@ function App() {
                         ? "Diana Fragment · 已安装"
                         : "Diana 主题 · 已安装"
                       : externalStatus.themeState === "deployed"
-                        ? selectedTarget === "vscode"
+                        ? selectedTarget === "deepseek-desktop"
+                          ? "Diana 插件 · 已配置"
+                        : selectedTarget === "vscode"
                           ? "Diana 美术层 · 已部署"
                           : "Diana 源码 · 已部署"
                         : externalStatus.themeState === "legacy"

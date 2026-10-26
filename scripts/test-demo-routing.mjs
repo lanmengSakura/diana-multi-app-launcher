@@ -71,6 +71,19 @@ test('standalone fallback and reverse preference mapping use the same catalog', 
   await fixture.bridge.invoke('run_launcher_action', {action:'mount', themeMode:'system'});
   assert.deepEqual(fixture.navigated, ['/themes?app=codex&theme=dark&scene=conversation']);
 });
+
+test('new desktop entry never impersonates the legacy Harness web demonstration', async () => {
+  const fixture = bridgeFixture();
+  assert.equal(catalog.fromLauncher('deepseek-desktop', 'dark'), null);
+  for (const action of ['launch_theme', 'launch_native']) {
+    const result = await fixture.bridge.invoke('run_external_target_action', {target:'deepseek-desktop',action,themeMode:'light'});
+    assert.equal(result.target, 'deepseek-desktop');
+    assert.match(result.message, /尚无独立桌面布局演示/);
+  }
+  assert.equal(fixture.sent.filter(message => message.type === 'navigate').length, 0);
+  assert.equal(appLinkApi.previewLinkStatus('deepseek').kind, 'directory');
+  assert.equal(appLinkApi.previewLinkStatus('deepseek-desktop').kind, 'file');
+});
 test('explicit simulated failure blocks navigation, retry works; foreign messages ignored', async () => {
   const fixture = bridgeFixture();
   const message = {source:'diana-demo-shell',type:'fail-next'};

@@ -3,7 +3,7 @@ import { configQuery, fromLauncher, launcherTargets, parseConfig, type DemoConfi
 import { previewLinkStatus } from '../src/app-link-api';
 declare const __DEMO_MUSIC_BYTES__: number;
 type Mode = "dark" | "light" | "system";
-type Target = "codex" | "doubao" | "terminal" | "vscode" | "cursor" | "grokbot" | "deepseek" | "zcode";
+type Target = "codex" | "doubao" | "terminal" | "vscode" | "cursor" | "grokbot" | "deepseek" | "deepseek-desktop" | "zcode";
 const send = (type: string, detail: unknown = null) => window.parent.postMessage({ source: "diana-demo", type, detail }, window.location.origin);
 const delay = (ms: number) => new Promise<void>(resolve => window.setTimeout(resolve, ms));
 const query = new URLSearchParams(location.search || window.parent.location.search);
@@ -21,7 +21,7 @@ function navigate(target: Target, mode: string, original: boolean) {
   if (window.parent === window) location.assign(`/themes?${configQuery(config)}`);
   else send('navigate', config);
 }
-const titles: Record<Target, string> = { codex: "Codex", doubao: "豆包", terminal: "Windows Terminal", vscode: "VS Code", cursor: "Cursor", grokbot: "Grok Bot", deepseek: "DeepSeek Harness", zcode: "ZCode" };
+const titles: Record<Target, string> = { codex: "Codex", doubao: "豆包", terminal: "Windows Terminal", vscode: "VS Code", cursor: "Cursor", grokbot: "Grok Bot", deepseek: "DeepSeek 网页端", "deepseek-desktop": "DeepSeek 桌面端", zcode: "ZCode" };
 let selected: Target = "codex";
 let failNext = false;
 let codex = {
@@ -89,6 +89,13 @@ const bridge = {
       case "run_external_target_action": {
         const target = args.target as Target;
         const status = external(target);
+        if (target === 'deepseek-desktop') {
+          const message = 'DeepSeek 桌面端使用官方主题插件，当前网页尚无独立桌面布局演示；未跳转到旧网页端，也未操作本机。请在桌面启动器中选择此入口。';
+          const next = { ...status, message };
+          states.set(target, next);
+          send('activity', message);
+          return structuredClone(next);
+        }
         send("activity", `正在打开 ${titles[target]} 的网页演示……`);
         await delay(180);
         if (failNext) { failNext = false; throw new Error("演示异常：运行时核验未通过。操作已中止，请查看状态信息。"); }

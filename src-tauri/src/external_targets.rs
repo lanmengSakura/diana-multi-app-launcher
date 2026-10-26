@@ -16,7 +16,7 @@ use std::time::Duration;
 
 #[path = "deepseek_desktop.rs"]
 mod deepseek_desktop;
-use deepseek_desktop::{deepseek_desktop_executable, deepseek_desktop_status, launch_deepseek_desktop};
+use deepseek_desktop::{deepseek_desktop_executable, launch_deepseek_desktop};
 
 const MULTI_APP_CHANNEL: &str = "multi-app-v1";
 pub(crate) const DOUBAO_THEME_VERSION: &str = "0.1.2";
@@ -2340,7 +2340,6 @@ fn deepseek_http_ready() -> bool {
 }
 
 fn deepseek_status() -> ExternalTargetStatus {
-    if let Some(executable) = deepseek_desktop_executable() { return deepseek_desktop_status(&executable); }
     let root = deepseek_root();
     let ready = root.as_deref().map(deepseek_theme_ready).unwrap_or(false);
     let snapshot = deepseek_processes(root.as_deref());
@@ -2508,7 +2507,8 @@ pub(crate) fn application_path(target: &str) -> Option<PathBuf> {
         "vscode" => vscode_executable(),
         "cursor" => cursor_executable(),
         "grokbot" => grok_executable(),
-        "deepseek" => deepseek_desktop_executable().or_else(deepseek_root),
+        "deepseek" => deepseek_root(),
+        "deepseek-desktop" => deepseek_desktop_executable(),
         "zcode" => zcode_executable(),
         _ => None,
     }
@@ -2876,6 +2876,7 @@ pub(crate) fn get_status(target: &str) -> Result<ExternalTargetStatus, String> {
         "cursor" => Ok(cursor_status()),
         "grokbot" => Ok(grok_status()),
         "deepseek" => Ok(deepseek_status()),
+        "deepseek-desktop" => Ok(deepseek_desktop::current_status()),
         "zcode" => Ok(zcode_status()),
         _ => Err("尚未接入该目标应用。".to_string()),
     }
@@ -2907,10 +2908,11 @@ pub(crate) fn run_action(
         ("cursor", "launch_native") => launch_cursor_native(),
         ("grokbot", "launch_theme") => launch_grok_theme(mode, experimental_approved),
         ("grokbot", "launch_native") => launch_grok_native(),
-        ("deepseek", "launch_theme") | ("deepseek", "launch_native") => {
-            if let Some(executable) = deepseek_desktop_executable() {
-                launch_deepseek_desktop(&executable, action == "launch_theme", experimental_approved)
-            } else { launch_deepseek() }
+        ("deepseek", "launch_theme") | ("deepseek", "launch_native") => launch_deepseek(),
+        ("deepseek-desktop", "launch_theme") | ("deepseek-desktop", "launch_native") => {
+            let executable = deepseek_desktop_executable()
+                .ok_or("未找到官方 DeepSeek 桌面端，请关联 DeepSeek Harness.exe；不会改用网页端。")?;
+            launch_deepseek_desktop(&executable, action == "launch_theme", experimental_approved)
         },
         ("zcode", "launch_theme") => launch_zcode_theme(mode, experimental_approved),
         ("zcode", "launch_native") => launch_zcode_native(),

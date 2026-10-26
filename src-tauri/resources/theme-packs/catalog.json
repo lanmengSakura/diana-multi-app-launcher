@@ -58,8 +58,16 @@
     },
     {
       "id": "deepseek",
-      "name": "DeepSeek Harness",
-      "deployment": "official-desktop-plugin-or-legacy-source-checkout",
+      "name": "DeepSeek 网页端 (Harness)",
+      "deployment": "themed-source-checkout",
+      "artwork": "complete-when-source-is-prepared",
+      "modes": ["native"],
+      "requiresThirdPartyBinary": true
+    },
+    {
+      "id": "deepseek-desktop",
+      "name": "DeepSeek 桌面端 (Harness Desktop)",
+      "deployment": "official-desktop-plugin",
       "artwork": "complete-on-verified-desktop-layout",
       "testedDesktopVersion": "0.2.1-rc.3",
       "modes": ["native"],

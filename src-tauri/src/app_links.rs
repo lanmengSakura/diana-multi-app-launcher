@@ -11,7 +11,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 const MAX_CONFIG_BYTES: u64 = 64 * 1024;
 const TARGETS: &[&str] = &[
-    "codex", "cursor", "grokbot", "zcode", "doubao", "vscode", "terminal", "deepseek",
+    "codex", "cursor", "grokbot", "zcode", "doubao", "vscode", "terminal", "deepseek", "deepseek-desktop",
 ];
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -65,7 +65,7 @@ fn expected_names(target: &str) -> &'static [&'static str] {
         "cursor" => &["Cursor.exe"],
         "grokbot" => &["Grok Bot.exe"],
         "zcode" => &["ZCode.exe"],
-        "deepseek" => &["DeepSeek Harness.exe"],
+        "deepseek-desktop" => &["DeepSeek Harness.exe"],
         "doubao" => &["Doubao.exe"],
         "vscode" => &["Code.exe"],
         "terminal" => &["wt.exe", "WindowsTerminal.exe"],
@@ -82,7 +82,8 @@ fn expected(target: &str) -> &'static str {
         "doubao" => "Doubao.exe",
         "vscode" => "Code.exe",
         "terminal" => "wt.exe 或 WindowsTerminal.exe",
-        "deepseek" => "桌面版 DeepSeek Harness.exe，或旧源码版项目根目录",
+        "deepseek" => "网页端 Harness 项目根目录（包含 package.json 和 apps/web/package.json）",
+        "deepseek-desktop" => "官方桌面端安装目录中的 DeepSeek Harness.exe",
         _ => "",
     }
 }
@@ -129,12 +130,28 @@ fn read_config(path: &Path) -> Result<LinkConfig, String> {
         return Err("关联设置过大，未覆盖原文件。".into());
     }
     let bytes = bytes.strip_prefix(&[0xef, 0xbb, 0xbf]).unwrap_or(&bytes);
-    let config: LinkConfig = serde_json::from_slice(bytes)
+    let mut config: LinkConfig = serde_json::from_slice(bytes)
         .map_err(|_| "关联设置格式损坏，请保留原文件排查；未重置其他应用的关联。".to_string())?;
     if config.schema_version != 1 {
         return Err("关联设置来自不支持的版本，未覆盖原文件。".into());
     }
+    split_legacy_deepseek(&mut config);
     Ok(config)
+}
+
+// RC.7 used `deepseek` for the web checkout. An unpublished local candidate
+// also allowed an EXE there. Normalize the latter only in memory while reading;
+// a later explicit save uses the existing backup/atomic-write path. Never let a
+// missing EXE fall through to the web target, or replace an explicit new link.
+fn split_legacy_deepseek(config: &mut LinkConfig) {
+    let desktop = config.targets.get("deepseek").is_some_and(|link| {
+        Path::new(&link.path).file_name().and_then(|name| name.to_str())
+            .is_some_and(|name| name.eq_ignore_ascii_case("DeepSeek Harness.exe"))
+    });
+    if desktop {
+        let legacy = config.targets.remove("deepseek").expect("checked above");
+        config.targets.entry("deepseek-desktop".into()).or_insert(legacy);
+    }
 }
 
 fn local_absolute_path(value: &str) -> Result<PathBuf, String> {
@@ -182,7 +199,7 @@ fn validate_path(target: &str, value: &str) -> Result<PathBuf, String> {
         );
     }
     let path = local_absolute_path(value)?;
-    if target == "deepseek" && path.is_dir() {
+    if target == "deepseek" {
         if !path.is_dir()
             || !path.join("package.json").is_file()
             || !path.join("apps/web/package.json").is_file()
@@ -219,7 +236,7 @@ fn validate_path(target: &str, value: &str) -> Result<PathBuf, String> {
                 return Err("未识别到 Windows 程序文件头，未保存关联。".into());
             }
         }
-        if target == "deepseek" && !path.parent().is_some_and(|root| {
+        if target == "deepseek-desktop" && !path.parent().is_some_and(|root| {
             root.join("resources/app.asar").is_file()
                 && root.join("resources/runtime/cli/bin/dsh.cmd").is_file()
         }) {
@@ -267,7 +284,7 @@ fn describe(
         path: None,
         saved_path: None,
         can_choose: target != "codex",
-        kind: if target == "deepseek" { "fileOrDirectory" } else { "file" },
+        kind: if target == "deepseek" { "directory" } else { "file" },
         expected: expected(target),
         message: String::new(),
     };
@@ -454,7 +471,7 @@ pub(crate) fn pick(target: &str) -> Result<Option<String>, String> {
         .args(["-NoProfile", "-STA", "-Command", PICKER_SCRIPT])
         .env(
             "DIANA_LINK_PICKER_KIND",
-            "file",
+            if target == "deepseek" { "directory" } else { "file" },
         );
     crate::hide_console(&mut command);
     let output = command
@@ -628,14 +645,66 @@ mod tests {
     fn harness_desktop_requires_exe_and_runtime_without_executing_it() {
         let f = Fixture::new();
         let path = f.exe("DeepSeek Harness.exe");
-        assert!(validate_path("deepseek", path.to_str().unwrap()).is_err());
+        assert!(validate_path("deepseek-desktop", path.to_str().unwrap()).is_err());
         let resources = path.parent().unwrap().join("resources");
         fs::create_dir_all(resources.join("runtime/cli/bin")).unwrap();
         fs::write(resources.join("app.asar"), b"fixture").unwrap();
         fs::write(resources.join("runtime/cli/bin/dsh.cmd"), b"fixture").unwrap();
-        assert_eq!(validate_path("deepseek", path.to_str().unwrap()).unwrap(), path);
-        save_at(&f.config(), "deepseek", Some(path.to_str().unwrap())).unwrap();
-        assert_eq!(saved_path_at(&f.config(), "deepseek").unwrap(), Some(path));
+        assert_eq!(validate_path("deepseek-desktop", path.to_str().unwrap()).unwrap(), path);
+        assert!(validate_path("deepseek", path.to_str().unwrap()).is_err());
+        save_at(&f.config(), "deepseek-desktop", Some(path.to_str().unwrap())).unwrap();
+        assert_eq!(saved_path_at(&f.config(), "deepseek-desktop").unwrap(), Some(path));
+        assert_eq!(saved_path_at(&f.config(), "deepseek").unwrap(), None);
+    }
+
+    #[test]
+    fn harness_links_are_independent_and_legacy_exe_read_is_not_a_write() {
+        let f = Fixture::new();
+        let exe = f.exe("DeepSeek Harness.exe");
+        let resources = exe.parent().unwrap().join("resources");
+        fs::create_dir_all(resources.join("runtime/cli/bin")).unwrap();
+        fs::write(resources.join("app.asar"), b"fixture").unwrap();
+        fs::write(resources.join("runtime/cli/bin/dsh.cmd"), b"fixture").unwrap();
+        fs::create_dir_all(f.0.join("apps/web")).unwrap();
+        fs::write(f.0.join("package.json"), b"{}").unwrap();
+        fs::write(f.0.join("apps/web/package.json"), b"{}").unwrap();
+        assert!(validate_path("deepseek-desktop", f.0.to_str().unwrap()).is_err());
+        let legacy = serde_json::json!({"schemaVersion":1,"targets":{"deepseek":{"path":exe}},"custom":"keep"});
+        fs::create_dir_all(f.config().parent().unwrap()).unwrap();
+        fs::write(f.config(), serde_json::to_vec(&legacy).unwrap()).unwrap();
+        let before = fs::read(f.config()).unwrap();
+        assert_eq!(saved_path_at(&f.config(), "deepseek-desktop").unwrap(), Some(exe.clone()));
+        assert_eq!(saved_path_at(&f.config(), "deepseek").unwrap(), None);
+        assert_eq!(fs::read(f.config()).unwrap(), before);
+        save_at(&f.config(), "deepseek", Some(f.0.to_str().unwrap())).unwrap();
+        assert_eq!(saved_path_at(&f.config(), "deepseek-desktop").unwrap(), Some(exe.clone()));
+        assert_eq!(saved_path_at(&f.config(), "deepseek").unwrap(), Some(f.0.clone()));
+        assert_eq!(read_config(&f.config()).unwrap().extra["custom"], "keep");
+        save_at(&f.config(), "deepseek", None).unwrap();
+        assert_eq!(saved_path_at(&f.config(), "deepseek-desktop").unwrap(), Some(exe));
+        assert_eq!(saved_path_at(&f.config(), "deepseek").unwrap(), None);
+        save_at(&f.config(), "deepseek", Some(f.0.to_str().unwrap())).unwrap();
+        save_at(&f.config(), "deepseek-desktop", None).unwrap();
+        assert_eq!(saved_path_at(&f.config(), "deepseek").unwrap(), Some(f.0.clone()));
+        assert_eq!(saved_path_at(&f.config(), "deepseek-desktop").unwrap(), None);
+    }
+
+    #[test]
+    fn missing_legacy_exe_remains_an_error_and_explicit_desktop_wins() {
+        let f = Fixture::new();
+        let missing = f.0.join("old/DeepSeek Harness.exe");
+        let explicit = f.0.join("new/DeepSeek Harness.exe");
+        let legacy = serde_json::json!({"schemaVersion":1,"targets":{"deepseek":{"path":missing}}});
+        fs::create_dir_all(f.config().parent().unwrap()).unwrap();
+        fs::write(f.config(), serde_json::to_vec(&legacy).unwrap()).unwrap();
+        assert!(saved_path_at(&f.config(), "deepseek-desktop").is_err());
+        assert_eq!(saved_path_at(&f.config(), "deepseek").unwrap(), None);
+        let mut config = read_config(&f.config()).unwrap();
+        config.targets.insert("deepseek".into(), SavedLink{path:missing.to_string_lossy().into_owned()});
+        config.targets.insert("deepseek-desktop".into(), SavedLink{path:explicit.to_string_lossy().into_owned()});
+        split_legacy_deepseek(&mut config);
+        assert_eq!(config.targets["deepseek-desktop"].path, explicit.to_string_lossy());
+        assert!(!config.targets.contains_key("deepseek"));
     }
     #[test]
     fn codex_is_system_managed_and_unknown_targets_are_rejected() {

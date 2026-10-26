@@ -18,8 +18,8 @@ export const apps: { id: AppId; name: string; short: string; subtitle: string; r
     note: '完整美术层视觉演示，日间使用独立立绘与着色线稿。标准 VSIX 默认提供颜色主题，美术层需另行适配。' },
   { id: 'terminal', name: 'Windows Terminal', short: 'Terminal', subtitle: 'PowerShell / CMD', repo: 'diana-windows-terminal-theme', day: false,
     note: '沿用正式 Diana Night Fragment 与背景图，没有额外制作日间主题。两个标签可切换；命令输入仅在网页内模拟，不执行系统命令。' },
-  { id: 'deepseek', name: 'DeepSeek Harness', short: 'DeepSeek', subtitle: '工作区 · 会话 · 详情', repo: 'diana-dsh-theme', day: true,
-    note: '这是 Harness 本地工作台的主题演示，不是 DeepSeek 官网聊天页。真实使用需要先部署 Harness；演示不包含模型服务。' },
+  { id: 'deepseek', name: 'DeepSeek 网页端 (Harness)', short: 'DS 网页端', subtitle: '本地网页项目 · 会话 · 详情', repo: 'diana-dsh-theme', day: true,
+    note: '这是旧 Harness 本地网页项目的主题演示，不是官网聊天页，也不是新版官方桌面端的实机画面。真实使用需要先部署网页项目；演示不包含模型服务。' },
 ];
 
 export function parseConfig(search: string): DemoConfig {

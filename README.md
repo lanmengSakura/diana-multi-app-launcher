@@ -1,10 +1,10 @@
 # Diana Multi-App Launcher
 
-嘉然 Diana 多应用主题启动器。当前公开测试版本为 **`v0.1.0-beta.4-rc.7`**，仅面向 Windows 测试用户；安装器和便携版均未签名，不代表八目标全部场景已完成认证。
+嘉然 Diana 多应用主题启动器。当前公开测试版本为 **`v0.1.0-beta.4-rc.8`**，仅面向 Windows 测试用户；安装器和便携版均未签名，不代表所有目标全部场景已完成认证。
 
-RC.7 修复 Codex 桌宠/紧凑窗口的原生透明，并在检测到旧版 VS Code 安装目录美术层时先提示恢复，避免继续触发完整性警告。**已有旧版 EXE 需手动更新**。详情见 [发布说明](RELEASE_NOTES.md)。
+RC.8 将 **DeepSeek 桌面端**与**DeepSeek 网页端**拆成独立入口，加入官方 Harness Desktop 主题插件，并保留 RC.7 的 Codex 透明窗口和旧 VS Code 安装目录保护。**已有旧版 EXE 需手动更新**。详情见 [发布说明](docs/RELEASE_RC8.md)。
 
-[八应用主题体验](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes) · [启动器演示](https://diana-launcher-demo.szbluedream01.chatgpt.site) · [Codex 主题演示](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes?app=codex) · [下载新版测试版](https://github.com/lanmengSakura/diana-multi-app-launcher/releases/tag/v0.1.0-beta.4-rc.7)
+[八应用主题体验](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes) · [启动器演示](https://diana-launcher-demo.szbluedream01.chatgpt.site) · [Codex 主题演示](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes?app=codex) · [下载新版测试版](https://github.com/lanmengSakura/diana-multi-app-launcher/releases/tag/v0.1.0-beta.4-rc.8)
 
 **完整功能由你选择启用。** 本启动器公开提供完整挂载组件；下载、安装、打开或关联应用位置不代表同意调试连接。Codex、Cursor、Grok Bot、ZCode 新开实验调试会话前会告知风险并等待确认，取消不会执行本次挂载。回环端口没有身份认证，同机进程可能读取界面、执行脚本或截图；仅关闭启动器或撤下皮肤不会关闭目标应用持有的端口，须完整退出目标应用。请先看 [风险与退出方法](SECURITY.md)。
 
@@ -17,7 +17,9 @@ RC.7 修复 Codex 桌宠/紧凑窗口的原生透明，并在检测到旧版 VS 
 | [Codex](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes?app=codex) | [豆包浏览器](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes?app=doubao) |
 | [Cursor](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes?app=cursor) | [Grok Bot](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes?app=grok) |
 | [ZCode](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes?app=zcode) | [VS Code](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes?app=vscode) |
-| [Windows Terminal](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes?app=terminal) | [DeepSeek Harness](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes?app=deepseek) |
+| [Windows Terminal](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes?app=terminal) | [DeepSeek 网页端](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes?app=deepseek) |
+
+DeepSeek 桌面端是新增的独立启动入口；上面的 DeepSeek 演示仍是旧 Harness 网页项目，不作为桌面版实机效果。当前没有单独发布桌面端高保真网页演示，本轮也未更新线上演示站点。
 
 终端仅展示已有暗夜主题；原版参考是网页重建，不是真实客户端。演示使用正式主题 CSS/素材，不捆绑用户会话或目标应用运行时，完整美术演示不等于公开包自动提供完整挂载能力。说明见 [网页主题演示](demo/THEME_DEMOS.md)。已发布的 Windows Beta.3 安装包不会随网页或源码提交自动更新。
 
@@ -25,15 +27,18 @@ RC.7 修复 Codex 桌宠/紧凑窗口的原生透明，并在检测到旧版 VS 
 
 ## 首次交付说明
 
-### 2026-10-26 源码更新：官方 Harness 桌面版与新版 ZCode 关联
+### RC.8：DeepSeek 两种入口分开
 
-`main` 已加入 DeepSeek Harness Desktop **0.2.1-rc.3** 的官方插件部署，关联时可选 `DeepSeek Harness.exe`，同时兼容旧源码目录。保持既有日夜美术和布局，使用应用原生外观设置，不修改安装包或开启调试端口。
+| 启动器入口 | 关联内容 | 部署与恢复 |
+|---|---|---|
+| **DeepSeek 桌面端** | 官方 Harness Desktop **0.2.1-rc.3** 的 `DeepSeek Harness.exe` | 官方主题插件；日夜跟随原生外观，插件页可禁用，启动器“原版启动”需先完整退出 |
+| **DeepSeek 网页端** | 已部署的 Harness 项目根目录 | 启动本地网页服务；日夜在网页中切换，“打开页面”不撤下源码主题 |
+
+两个入口分别保存路径、检测状态和执行动作，不会因为安装了桌面端就抢走原来的网页入口。旧网页目录关联继续有效；此前本机候选版在旧 `deepseek` 字段保存的 EXE 会只读识别到桌面入口，显式保存时才通过原有备份流程写入独立字段。网页版不是 `chat.deepseek.com` 官网聊天页。
 
 ZCode **3.16.3.8992** 新增的是经单独批准的**本机适配记录接入**及“等待进入工作区”状态；本机实验脚本、路径记录和登录态不进入仓库。不等于把新版本一键适配器内置给所有用户，也不会跳过版本、签名或文件校验。
 
-本次仅同步源码，**未替换下方 RC.7 Release 的旧 EXE**。测试范围、构建和恢复方式见 [本次适配说明](docs/DESKTOP_ADAPTATION_20261026.md)。
-
-以下发行说明仍描述已经发布的 RC.7 下载包。
+本次提供 RC.8 的新安装版与便携版，旧 RC.7 下载文件不被覆盖。测试范围、构建和恢复方式见 [适配说明](docs/DESKTOP_ADAPTATION_20261026.md) 与 [RC.8 发布说明](docs/RELEASE_RC8.md)。
 
 使用前请看 [对应入口、依赖、恢复方式与测试范围](DELIVERY.md)。本版补齐 Cursor / Grok Bot 的可分发完整运行组件，修复 Cursor 跟随系统时的明暗混用；需要手动下载更新，不会自动替换旧 EXE。已测范围与剩余限制见 [本次发布说明](RELEASE_NOTES.md)。
 
@@ -41,16 +46,16 @@ rc.3 新增状态栏旁的“关联”入口，可手动选择并记住应用位
 
 ## 日间线稿源码修正（2026-09-06）
 
-Cursor 与 DeepSeek Harness 的真实主题源已同步日间莓粉线稿修正，夜间及布局不变。Cursor 加载器校验兼容原先和修正版的两个精确清单指纹，仍逐个验证文件，不放宽未知版本或被修改文件的校验；机器专用适配器不在公开包内。DeepSeek 必须重新构建实际 ui-theme 模块并刷新页面，单改网页演示不生效。
+Cursor 与 DeepSeek Harness 网页端的真实主题源已同步日间莓粉线稿修正，夜间及布局不变。Cursor 加载器校验兼容原先和修正版的两个精确清单指纹，仍逐个验证文件，不放宽未知版本或被修改文件的校验。DeepSeek 网页端须重新构建实际 ui-theme 模块并刷新页面，单改网页演示不生效；桌面端则由独立官方插件承载。
 
-此修正已包含在本次 rc.2 Windows 安装版与便携版中。DeepSeek 的实际源码部署仍须自行构建，不能由启动器里的演示代替。
+此修正自 rc.2 起包含在 Windows 包中。DeepSeek 网页端的实际源码部署仍须自行构建，不能由启动器里的演示代替。
 
 ## 下载与使用
 
 在 GitHub Releases 下载下列任一文件：
 
-- `Diana-Multi-App-Launcher_0.1.0-beta.4-rc.7_x64-setup.exe`：当前用户 NSIS 安装包；
-- `diana-multi-app-launcher_0.1.0-beta.4-rc.7_x64-portable.exe`：免安装便携版。
+- `Diana-Multi-App-Launcher_0.1.0-beta.4-rc.8_x64-setup.exe`：当前用户 NSIS 安装包；
+- `diana-multi-app-launcher_0.1.0-beta.4-rc.8_x64-portable.exe`：免安装便携版。
 
 `v0.1.0-beta.1` 的 Windows 构建会因主题 CSS 换行转换触发 `SHA-256 mismatch`，请勿继续使用；该问题已在 Beta.2 修复。
 
@@ -64,7 +69,7 @@ Cursor 与 DeepSeek Harness 的真实主题源已同步日间莓粉线稿修正�
 
 Windows SmartScreen 可能提示“未知发布者”，因为当前 Beta 没有代码签名证书。请只从本仓库 Release 下载，并核对发布页给出的 SHA-256。
 
-## 已发布 RC.7 下载包的目标
+## RC.8 下载包的入口
 
 | 目标 | Beta 形态 | 重要边界 |
 |---|---|---|
@@ -74,8 +79,9 @@ Windows SmartScreen 可能提示“未知发布者”，因为当前 Beta 没有
 | Visual Studio Code | 标准 Diana Day/Night 颜色主题 | 自动识别安装器/用户安装；跟随当前 VS Code Profile 设置，不修改 VS Code 安装资源 |
 | Cursor | 内置版本限定完整适配器，另有标准颜色主题 | 当前限 3.17.21 与指定有效签名；需要 Node.js 22+，逐次确认调试风险 |
 | Grok Bot | 内置版本限定完整适配器 | 当前限 0.58.0 与指定有效签名；需要 Node.js 22+，逐次确认调试风险 |
-| DeepSeek Harness | 检测并启动本地源码部署 | 不捆绑上游源码、模型 Key 或用户资料 |
-| ZCode | 版本限定的实验性完整美术挂载 | 当前只接受已验证的 `3.6.5.4145` 和有效签名；版本不符时拒绝开启端口 |
+| DeepSeek 桌面端 | 官方原生主题插件 | 限 Harness Desktop `0.2.1-rc.3` 与有效签名；不改应用资源，不开调试端口 |
+| DeepSeek 网页端 | 检测并启动本地源码部署 | 单独关联项目目录，不操作桌面插件；不捆绑上游源码、模型 Key 或用户资料 |
+| ZCode | 版本限定实验挂载 + 本机适配登记入口 | 公开包仍内置 `3.6.5.4145`；`3.16.3.8992` 新适配器仅本机，未随包分发 |
 
 完整美术兼容性是“目标版本 + 运行时结构”联合条件。挂载操作会核验渲染结果；后续状态主要依据本次成功记录与对应进程，不是持续截图或逐项人工验收。页面重载、应用更新或恢复流程仍需实际复核，`MOUNTED` 不代表所有交互与恢复测试均已完成。
 
@@ -86,7 +92,7 @@ Windows SmartScreen 可能提示“未知发布者”，因为当前 Beta 没有
 - **豆包小窗口可能只显示角落线条。** 扩展视口宽度不超过 1320 CSS 像素时隐藏立绘；宽度不超过 900 或高度不超过 560 时，还会隐藏左下简笔画和上方装饰。放大窗口、留足正文空间后再看；Windows 缩放会影响实际 CSS 视口，不能只看显示器分辨率。这是防遮挡策略，不一定是挂载失败。
 - **免安装不等于不使用本机目录。** 便携 EXE 与安装版的启动器主体相同，仍使用 WebView2 和用户目录保存关联/主题运行文件。无需把 NSIS 安装包再包成便携版。
 - **VS Code 日间主题仍是默认深色时。** 先关闭正在运行的 VS Code，再从 RC.7 启动器重新应用；如果检测到旧版安装目录美术层，请先运行 `visual-layer\\restore.ps1` 恢复原文件，再使用正式用户颜色主题。使用 Profile 时，主题会写入当前 Profile 的设置文件；工作区自己的 `workbench.colorTheme` 仍可能覆盖用户主题。
-- **DeepSeek Harness 关联的是源码项目根目录。** 目录应同时包含 `package.json`、`apps/web/package.json`；完成主题合并、依赖安装和构建后，还应有 `apps/cli/lib/bin.js` 与 `apps/web/dist/index.html`。不要选择浏览器目录、文档目录或 `apps/web` 子目录。
+- **DeepSeek 桌面端与网页端不是同一个关联。** 桌面端选 `DeepSeek Harness.exe`。网页端目录应同时包含 `package.json`、`apps/web/package.json`；完成主题合并、依赖安装和构建后，还应有 `apps/cli/lib/bin.js` 与 `apps/web/dist/index.html`。不要选择浏览器目录、文档目录或 `apps/web` 子目录。
 
 ## 实验性调试连接
 

@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { chromium } from "playwright-core";
+import { createServer } from "vite";
 
 const chromeCandidates = [
   process.env.CHROME_PATH,
@@ -15,6 +16,10 @@ if (!executablePath) {
 }
 
 const browserMessages = [];
+// Own a temporary fixture server; never attach to a user's running launcher.
+const server = await createServer({server:{host:'127.0.0.1',port:0,strictPort:false}});
+await server.listen();
+const origin = `http://127.0.0.1:${server.httpServer.address().port}`;
 const browser = await chromium.launch({ executablePath, headless: true });
 
 try {
@@ -33,7 +38,7 @@ try {
     browserMessages.push("pageerror: " + error.message);
   });
 
-  await page.goto("http://127.0.0.1:1421/", { waitUntil: "networkidle" });
+  await page.goto(origin, { waitUntil: "networkidle" });
 
   const selectorAssemblyReady = await page
     .locator(".target-assembly-art")
@@ -104,7 +109,8 @@ try {
     { value: "vscode", shortLabel: "VS Code", heading: "日间" },
     { value: "cursor", shortLabel: "Cursor", heading: "日间" },
     { value: "grokbot", shortLabel: "Grok Bot", heading: "日间" },
-    { value: "deepseek", shortLabel: "Harness", heading: "跟随 Harness 外观" },
+    { value: "deepseek", shortLabel: "DS 网页端", heading: "跟随网页端外观" },
+    { value: "deepseek-desktop", shortLabel: "DS 桌面端", heading: "跟随桌面端外观" },
     { value: "zcode", shortLabel: "ZCode", heading: "选择 ZCode 挂载主题" }
   ];
   const externalChecks = [];
@@ -124,7 +130,7 @@ try {
       .waitFor();
     const expectedSecondary = {
       doubao: "原版启动", terminal: "原版启动", vscode: "切回原版",
-      cursor: "切回原版", grokbot: "切回原版", deepseek: "打开页面", zcode: "切回原版"
+      cursor: "切回原版", grokbot: "切回原版", deepseek: "打开页面", "deepseek-desktop": "原版启动", zcode: "切回原版"
     }[target.value];
     const secondary = page.locator(".secondary-action");
     const secondaryReadable = await secondary.locator("span").evaluate(node => {
@@ -142,7 +148,7 @@ try {
   await targetSelect.selectOption("grokbot");
   const grokMountPriority =
     (await page.locator(".primary-action").innerText()).includes("挂载并启动 Diana") &&
-    (await page.getByText("完整 Diana 日夜美术", { exact: false }).count()) > 0;
+    (await page.locator(".primary-action").getAttribute("title")) === "不改写应用资源；新开调试会话前会说明风险并确认";
   await targetSelect.selectOption("zcode");
   const zcodeMountPriority =
     (await page.locator(".primary-action").innerText()).includes("挂载并启动 Diana") &&
@@ -202,7 +208,7 @@ try {
     !result.restoreEnabled ||
     result.externalChecks.length !== externalTargets.length ||
     result.externalChecks.some((check) => !check.enabled || !check.secondaryCorrect) ||
-    result.targetOptionCount !== 8 ||
+    result.targetOptionCount !== 9 ||
     result.selectedTarget !== "codex" ||
     !result.dynamicLabelVisible ||
     !result.selectorAssemblyReady ||
@@ -218,4 +224,5 @@ try {
   }
 } finally {
   await browser.close();
+  await server.close();
 }
