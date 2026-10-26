@@ -38,8 +38,15 @@ fn profile_path() -> Option<PathBuf> {
 fn plugin_selected() -> bool {
     let Some(path) = profile_path() else { return false };
     let Ok(bytes) = fs::read(path) else { return false };
-    let Ok(value) = serde_json::from_slice::<serde_json::Value>(&bytes) else { return false };
-    value.get("dependencies").and_then(|v| v.get(PLUGIN_NAME)).is_some()
+    plugin_selected_from_bytes(&bytes)
+}
+fn plugin_selected_from_bytes(bytes: &[u8]) -> bool {
+    // Match the official-plugin manager's BOM-tolerant profile reader and
+    // installed/selected checks; a Windows-written BOM is not a missing plugin.
+    let bytes = bytes.strip_prefix(&[0xef, 0xbb, 0xbf]).unwrap_or(bytes);
+    let Ok(value) = serde_json::from_slice::<serde_json::Value>(bytes) else { return false };
+    value.get("name").and_then(|v| v.as_str()) == Some("dsh-profile-desktop")
+        && value.get("dependencies").and_then(|v| v.get(PLUGIN_NAME)).and_then(|v| v.as_str()).is_some()
         && value.pointer("/dsh/profile/bundles").and_then(|v| v.as_array()).is_some_and(|a| a.iter().any(|v| v.as_str()==Some(PLUGIN_NAME)))
 }
 pub(super) fn deepseek_desktop_status(executable: &Path) -> ExternalTargetStatus {
@@ -103,4 +110,38 @@ pub(super) fn launch_deepseek_desktop(executable: &Path, theme: bool, approved: 
     }
     spawn_detached(executable, &[])?;
     Ok(deepseek_desktop_status(executable))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn manifest() -> serde_json::Value {
+        serde_json::json!({
+            "name": "dsh-profile-desktop",
+            "dependencies": {"dsh-diana-theme": "file:fixture"},
+            "dsh": {"profile": {"bundles": ["dsh-diana-theme"]}},
+        })
+    }
+
+    #[test]
+    fn recognizes_the_same_desktop_plugin_with_or_without_windows_bom() {
+        let raw = serde_json::to_vec(&manifest()).unwrap();
+        assert!(plugin_selected_from_bytes(&raw));
+        assert!(plugin_selected_from_bytes(&[b"\xef\xbb\xbf".as_slice(), &raw].concat()));
+    }
+
+    #[test]
+    fn requires_a_desktop_profile_and_installed_selected_dependency() {
+        for (pointer, replacement) in [
+            ("/name", serde_json::json!("dsh-profile-web")),
+            ("/dependencies/dsh-diana-theme", serde_json::Value::Null),
+            ("/dsh/profile/bundles", serde_json::json!([])),
+        ] {
+            let mut record = manifest();
+            *record.pointer_mut(pointer).unwrap() = replacement;
+            assert!(!plugin_selected_from_bytes(&serde_json::to_vec(&record).unwrap()));
+        }
+        assert!(!plugin_selected_from_bytes(b"not json"));
+    }
 }

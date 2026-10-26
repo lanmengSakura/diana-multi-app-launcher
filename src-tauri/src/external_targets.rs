@@ -1534,6 +1534,10 @@ fn cursor_status() -> ExternalTargetStatus {
         .map(|path| path.join("package.json").is_file())
         .unwrap_or(false);
     let adapter_root = status_adapter_root("cursor");
+    let adapter_check = adapter_root
+        .as_deref()
+        .map(|root| adapter_verification_for_status("cursor", root));
+    let adapter_error = adapter_check.as_ref().and_then(|check| check.as_ref().err());
     let session = adapter_root.as_deref().and_then(read_cursor_session);
     let managed_debug = session
         .as_ref()
@@ -1550,8 +1554,9 @@ fn cursor_status() -> ExternalTargetStatus {
         .map(cursor_has_loopback_debug)
         .unwrap_or(false)
         && !managed_debug;
-    let adapter_ready =
-        executable.is_some() && adapter_root.is_some() && node_runtime_for_status().is_ok();
+    let adapter_ready = executable.is_some()
+        && adapter_check.as_ref().is_some_and(Result::is_ok)
+        && node_runtime_for_status().is_ok();
     let restore_pending = session
         .as_ref()
         .map(|record| record.status == "disabled" || record.status == "restore_ready_for_exit")
@@ -1590,6 +1595,11 @@ fn cursor_status() -> ExternalTargetStatus {
         (
             "cursor_plain_running",
             "普通 Cursor 正在运行。请先完整退出，再从这里启动并挂载完整 Diana 美术。".to_string(),
+        )
+    } else if let Some(error) = adapter_error {
+        (
+            "cursor_adapter_invalid",
+            format!("本机 Cursor 适配器校验失败：{error}；未执行或开启调试端口。可点击主按钮重新校验；内置文件会从审核资源修复，外部适配器须先修复原文件。"),
         )
     } else if adapter_root.is_some() && !adapter_ready {
         (
@@ -1976,42 +1986,72 @@ fn run_grok_adapter(root: &Path, action: &str, mode: &str) -> Result<String, Str
     Err(message)
 }
 
-fn grok_adapter_verified_for_status(root: &Path) -> bool {
-    // An unextracted compiled bundle is available, not already verified on disk.
-    // require_grok_adapter_root + run_grok_adapter still do fresh action checks.
-    if !root.exists() {
-        return multi_app_root()
-            .ok()
-            .and_then(|base| crate::reviewed_adapters::root(&base, "grokbot").ok())
-            .as_deref()
-            == Some(root);
+type AdapterCheckCache = std::sync::Mutex<BTreeMap<
+    (String, PathBuf),
+    std::sync::Arc<crate::probe_cache::ProbeCache<Result<(), String>>>,
+>>;
+
+fn adapter_checks() -> &'static AdapterCheckCache {
+    static CHECKS: std::sync::OnceLock<AdapterCheckCache> = std::sync::OnceLock::new();
+    CHECKS.get_or_init(|| std::sync::Mutex::new(BTreeMap::new()))
+}
+
+pub(super) fn invalidate_adapter_status(target: &str) {
+    let checks = adapter_checks().lock().unwrap_or_else(|error| error.into_inner());
+    for ((cached_target, _), check) in checks.iter() {
+        if cached_target == target {
+            check.invalidate();
+        }
     }
-    use std::sync::{Arc, Mutex, OnceLock};
-    type Cache = crate::probe_cache::ProbeCache<bool>;
-    static CHECKS: OnceLock<Mutex<BTreeMap<PathBuf, Arc<Cache>>>> = OnceLock::new();
+}
+
+fn check_adapter_for_status(target: &str, root: &Path, bundled_root: &Path) -> Result<(), String> {
+    // Availability of a not-yet-extracted compiled bundle is not on-disk verification.
+    // Passive checks never extract or repair files. Actions still verify afresh.
+    if !matches!(target, "cursor" | "grokbot") {
+        return Err("未知适配器。".into());
+    }
+    match root.try_exists() {
+        Ok(false) if root == bundled_root => return Ok(()),
+        Ok(false) => return Err("本机适配器目录缺失。".into()),
+        Err(error) => return Err(format!("无法读取本机适配器目录：{error}")),
+        Ok(true) => {}
+    }
+    match target {
+        "cursor" => verify_cursor_adapter(root),
+        "grokbot" => verify_grok_adapter(root),
+        _ => Err("未知适配器。".into()),
+    }
+}
+
+fn cached_adapter_check(target: &str, root: &Path, bundled_root: &Path) -> Result<(), String> {
     let cache = {
-        let mut checks = CHECKS
-            .get_or_init(|| Mutex::new(BTreeMap::new()))
+        let mut checks = adapter_checks()
             .lock()
             .unwrap_or_else(|e| e.into_inner());
         checks
-            .entry(root.to_path_buf())
-            .or_insert_with(|| Arc::new(Cache::new()))
+            .entry((target.to_string(), root.to_path_buf()))
+            .or_insert_with(|| std::sync::Arc::new(crate::probe_cache::ProbeCache::new()))
             .clone()
     };
     cache.get(Duration::from_secs(60), false, || {
-        verify_grok_adapter(root).is_ok()
+        check_adapter_for_status(target, root, bundled_root)
     })
+}
+
+fn adapter_verification_for_status(target: &str, root: &Path) -> Result<(), String> {
+    let bundled_root = crate::reviewed_adapters::root(&multi_app_root()?, target)?;
+    cached_adapter_check(target, root, &bundled_root)
 }
 
 fn grok_status() -> ExternalTargetStatus {
     let executable = grok_executable();
     let snapshot = detect_grok_processes(executable.as_deref());
     let adapter_root = status_adapter_root("grokbot");
-    let adapter_verified = adapter_root
+    let adapter_check = adapter_root
         .as_deref()
-        .map(grok_adapter_verified_for_status)
-        .unwrap_or(false);
+        .map(|root| adapter_verification_for_status("grokbot", root));
+    let adapter_verified = adapter_check.as_ref().is_some_and(Result::is_ok);
     let session = adapter_root.as_deref().and_then(read_grok_session);
     let managed_debug = session
         .as_ref()
@@ -2070,7 +2110,8 @@ fn grok_status() -> ExternalTargetStatus {
     } else if adapter_root.is_some() && !adapter_verified {
         (
             "grokbot_adapter_invalid",
-            "本机 Grok Bot 适配器未通过 SHA-256 清单复核；本次不会执行或开启调试端口。".to_string(),
+            format!("本机 Grok Bot 适配器校验失败：{}；未执行或开启调试端口。可点击主按钮重新校验；内置文件会从审核资源修复，外部适配器须先修复原文件。",
+                adapter_check.as_ref().and_then(|check| check.as_ref().err()).map(String::as_str).unwrap_or("缺少适配器")),
         )
     } else if adapter_root.is_some() && !adapter_ready {
         (
@@ -2711,6 +2752,7 @@ fn run_zcode_adapter(
 
 fn zcode_status() -> ExternalTargetStatus {
     let executable = zcode_executable();
+    let registration = crate::local_zcode_runtime::load();
     let snapshot = detect_named_processes(&["zcode.exe"], executable.as_deref());
     let session = read_zcode_session();
     let managed_debug = session
@@ -2731,6 +2773,8 @@ fn zcode_status() -> ExternalTargetStatus {
     let runtime_root = zcode_runtime_root().ok();
     let (stage, message) = if executable.is_none() {
         ("zcode_not_installed", "未检测到 ZCode。".to_string())
+    } else if let Err(error) = &registration {
+        ("zcode_adapter_invalid", error.clone())
     } else if themed {
         let mode = session
             .as_ref()
@@ -2777,10 +2821,15 @@ fn zcode_status() -> ExternalTargetStatus {
     } else {
         (
             "zcode_ready",
-            match crate::local_zcode_runtime::load() {
+            match &registration {
                 Ok(Some(local)) => format!("本机 ZCode {} 适配已关联；点击后校验文件、版本与官方签名，确认风险后挂载。", local.file_version),
-                Ok(None) => "内置适配限 ZCode 3.6.5.4145；新版需要单独关联已确认的本机适配器，不会直接放开版本校验。".into(),
-                Err(error) => error,
+                Ok(None) => format!(
+                    "内置适配限 ZCode 3.6.5.4145；未找到本机适配登记：{}。新版需要单独关联已确认的本机适配器，不会直接放开版本校验。",
+                    crate::local_zcode_runtime::registration_path()
+                        .map(|path| path.display().to_string())
+                        .unwrap_or_else(|error| error),
+                ),
+                Err(error) => error.clone(),
             },
         )
     };
@@ -2789,7 +2838,9 @@ fn zcode_status() -> ExternalTargetStatus {
         stage: stage.to_string(),
         running: snapshot.process_count > 0,
         themed,
-        theme_state: if stage == "zcode_waiting_workspace" {
+        theme_state: if stage == "zcode_adapter_invalid" {
+            "blocked"
+        } else if stage == "zcode_waiting_workspace" {
             "pending"
         } else if executable.is_none() {
             "unavailable"
@@ -2932,6 +2983,57 @@ mod tests {
     };
     use std::fs;
     use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn adapter_status_checks_missing_and_corrupt_files_without_extracting_or_executing() {
+        let base = std::env::temp_dir().join(format!(
+            "diana-adapter-status-{}-{}", std::process::id(),
+            SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos(),
+        ));
+        assert!(!base.exists());
+        for target in ["cursor", "grokbot"] {
+            let bundled = crate::reviewed_adapters::root(&base, target).unwrap();
+            assert!(super::check_adapter_for_status(target, &bundled, &bundled).is_ok());
+            assert!(super::check_adapter_for_status(target, &base.join("private"), &bundled).is_err());
+        }
+        assert!(super::check_adapter_for_status("unknown", &base, &base).is_err());
+        assert!(!base.exists(), "passive status must not extract any file");
+        fs::create_dir(&base).unwrap();
+        fs::write(base.join("SHA256SUMS.txt"), "invalid fixture manifest").unwrap();
+        for target in ["cursor", "grokbot"] {
+            assert!(super::check_adapter_for_status(target, &base, &base).is_err());
+        }
+        assert_eq!(fs::read(base.join("SHA256SUMS.txt")).unwrap(), b"invalid fixture manifest");
+        assert_eq!(fs::read_dir(&base).unwrap().count(), 1);
+        assert_eq!(base.parent().unwrap(), std::env::temp_dir());
+        fs::remove_dir_all(&base).unwrap();
+    }
+
+    #[test]
+    fn adapter_rescan_refreshes_both_failed_and_successful_checks() {
+        let base = std::env::temp_dir().join(format!(
+            "diana-adapter-rescan-{}-{}", std::process::id(),
+            SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos(),
+        ));
+        assert!(!base.exists());
+        for target in ["cursor", "grokbot"] {
+            let root = crate::reviewed_adapters::ensure(&base, target, super::RUNTIME_FILES).unwrap();
+            fs::create_dir(root.join("state")).unwrap();
+            let state = root.join("state/session.json");
+            fs::write(&state, b"fixture session: preserve exactly").unwrap();
+            assert!(super::cached_adapter_check(target, &root, &root).is_ok());
+            let css = fs::read(root.join("theme.css")).unwrap();
+            fs::write(root.join("theme.css"), b"corrupt fixture").unwrap();
+            super::invalidate_adapter_status(target);
+            assert!(super::cached_adapter_check(target, &root, &root).is_err());
+            fs::write(root.join("theme.css"), css).unwrap();
+            super::invalidate_adapter_status(target);
+            assert!(super::cached_adapter_check(target, &root, &root).is_ok());
+            assert_eq!(fs::read(&state).unwrap(), b"fixture session: preserve exactly");
+        }
+        assert_eq!(base.parent().unwrap(), std::env::temp_dir());
+        fs::remove_dir_all(&base).unwrap();
+    }
 
     #[test]
     fn native_terminal_does_not_reopen_the_diana_default() {

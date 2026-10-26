@@ -1040,9 +1040,9 @@ function App() {
     externalStatus.stage === "grokbot_plain_running" ||
     externalStatus.stage === "grokbot_unmanaged_debug" ||
     externalStatus.stage === "grokbot_runtime_missing" ||
-    externalStatus.stage === "grokbot_adapter_invalid" ||
     externalStatus.stage === "zcode_plain_running" ||
     externalStatus.stage === "zcode_unmanaged_debug" ||
+    externalStatus.stage === "zcode_adapter_invalid" ||
     externalStatus.stage === "zcode_runtime_missing";
   const externalMounted = externalStatus.themeState === "mounted";
   const externalStatusLabel = externalMounted
@@ -1141,6 +1141,9 @@ function App() {
         }
         return `应用并打开 Diana ${modeLabel(themeMode)}`;
       case "cursor":
+        if (externalStatus.stage === "cursor_adapter_invalid") {
+          return "重新校验并挂载";
+        }
         if (externalStatus.stage === "cursor_plain_running") {
           return "请先退出普通 Cursor";
         }
@@ -1171,7 +1174,7 @@ function App() {
           return "缺少本机适配器";
         }
         if (externalStatus.stage === "grokbot_adapter_invalid") {
-          return "适配器校验失败";
+          return "重新校验并挂载";
         }
         if (externalStatus.stage === "grokbot_theme_disabled") {
           return `重新挂载 Diana ${modeLabel(themeMode)}`;
@@ -1192,6 +1195,9 @@ function App() {
           ? "打开 DeepSeek 网页端"
           : "启动 DeepSeek 网页端";
       case "zcode":
+        if (externalStatus.stage === "zcode_adapter_invalid") {
+          return "请检查适配登记";
+        }
         if (externalStatus.stage === "zcode_waiting_workspace") {
           return "进入工作区后挂载";
         }

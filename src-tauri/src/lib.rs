@@ -1291,6 +1291,7 @@ async fn run_external_target_action(
             .map_err(|_| "已有挂载或恢复操作进行中，请等待完成。".to_string())?;
         NODE_STATUS.invalidate();
         app_links::preflight(&target)?;
+        external_targets::invalidate_adapter_status(&target);
         match (target.as_str(), action.as_str()) {
             ("doubao", "launch_theme") => launch_doubao(true),
             ("doubao", "launch_native") => launch_doubao(false),
@@ -1314,6 +1315,7 @@ async fn get_app_link_status(
     tauri::async_runtime::spawn_blocking(move || {
         if rescan.unwrap_or(false) {
             NODE_STATUS.invalidate();
+            external_targets::invalidate_adapter_status(&target);
         }
         app_links::status(&target, rescan.unwrap_or(false))
     })
@@ -1326,7 +1328,11 @@ async fn set_app_link(
     target: String,
     path: Option<String>,
 ) -> Result<app_links::LinkStatus, String> {
-    tauri::async_runtime::spawn_blocking(move || app_links::save(&target, path.as_deref()))
+    tauri::async_runtime::spawn_blocking(move || {
+        let status = app_links::save(&target, path.as_deref())?;
+        external_targets::invalidate_adapter_status(&target);
+        Ok(status)
+    })
         .await
         .map_err(|error| format!("关联保存未完成：{error}"))?
 }

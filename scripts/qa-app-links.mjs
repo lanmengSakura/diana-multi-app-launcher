@@ -58,7 +58,8 @@ function mockDesktop() {
       if (command === "get_external_target_status") return {
         target: args.target, stage: `${args.target}_${state.appsReady ? "ready" : "not_installed"}`, running: false, themed: false,
         themeState: state.appsReady ? "available" : "unavailable", themeScope: args.target === "deepseek-desktop" ? "official_plugin" : "fixture", processCount: 0, mainProcessId: null,
-        executable: stored()[args.target] ?? null, themeRoot: null, message: "界面检查：没有操作本机应用。"
+        executable: stored()[args.target] ?? null, themeRoot: null, message: "界面检查：没有操作本机应用。",
+        ...(state.statusOverride?.target === args.target ? state.statusOverride : {})
       };
       if (command === "get_music_track_status") return { available: false, fileName: null, mimeType: null, sizeBytes: null, issue: "隔离检查不播放音乐。" };
       if (command === "get_app_link_status") {
@@ -289,6 +290,31 @@ try {
   await page.waitForFunction(() => window.__linkQA.calls.filter(call => call.command === 'run_external_target_action').length === 4);
   assert.deepEqual((await actionCalls()).slice(2).map(call=>[call.args.target,call.args.action]), [['deepseek-desktop','launch_theme'],['deepseek-desktop','launch_native']]);
   record('desktop plugin and native-start actions route only to the desktop target');
+
+  for (const target of ['cursor', 'grokbot', 'zcode']) {
+    const beforeActions = (await actionCalls()).length;
+    await page.evaluate(target => {
+      window.__linkQA.statusOverride = {target, stage:`${target}_adapter_invalid`,
+        themeState:'blocked', themeScope:'full_artwork_adapter', message:`${target} 模拟适配校验失败`};
+    }, target);
+    await select.selectOption(target);
+    await page.getByText(`${target} 模拟适配校验失败`, {exact:true}).waitFor();
+    await page.getByText('完整挂载受阻', {exact:true}).waitFor();
+    await page.screenshot({path:resolve(output, `${target}-adapter-invalid.png`)});
+    if (target === 'zcode') {
+      assert.equal(await page.getByRole('button', {name:'请检查适配登记',exact:true}).isDisabled(), true);
+    } else {
+      const retry = page.getByRole('button', {name:'重新校验并挂载',exact:true});
+      assert.equal(await retry.isEnabled(), true);
+      const cancelRetry = page.waitForEvent('dialog').then(async dialog => {
+        assert.match(dialog.message(), /127\.0\.0\.1/);
+        await dialog.dismiss();
+      });
+      await Promise.all([cancelRetry, retry.click()]);
+    }
+    assert.equal((await actionCalls()).length, beforeActions);
+    record(`${target}: failed adapter check is not READY; no automatic mount and retry still requires consent`);
+  }
 
   const preview = await browser.newPage({ viewport: { width: 636, height: 930 } });
   preview.on("pageerror", error => errors.push(error.message));
