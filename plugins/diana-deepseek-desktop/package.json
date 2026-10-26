@@ -1,0 +1,22 @@
+{
+  "name": "dsh-diana-theme",
+  "version": "0.1.0-local.2",
+  "description": "嘉然 Diana 日夜主题：完整本地美术，跟随 Harness 外观，可禁用恢复。",
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": ["@deepseek-ai/dsh-client-ui-theme"]
+    }
+  },
+  "files": ["index.js", "client.js", "cordis.patch.yml", "README.md", "LICENSE", "ASSET_LICENSES.md"]
+}

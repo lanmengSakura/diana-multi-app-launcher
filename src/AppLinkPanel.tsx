@@ -127,7 +127,7 @@ export function AppLinkPanel({ target, label, onClose, onSaved, onBusyChange }: 
             onClick={() => void perform("pick")}>浏览…</button>}
         </div>
         {info?.canChoose && <p className="app-link-hint">请选择 {info.expected}。支持中文和空格路径，不需要修改环境变量。</p>}
-        {info?.kind === "directory" && <p className="app-link-hint">请选择包含 <code>package.json</code> 与 <code>apps/web/package.json</code> 的项目根目录（例如 <code>C:\src\deepseek-harness</code>），不要选浏览器目录、文档目录或 <code>apps/web</code> 子目录。关联只定位项目；依赖安装、构建和模型配置仍按项目说明准备。</p>}
+        {info?.kind === "fileOrDirectory" && <p className="app-link-hint">官方桌面版：浏览选择安装目录中的 <code>DeepSeek Harness.exe</code>。旧源码版：粘贴同时包含 <code>package.json</code> 与 <code>apps/web/package.json</code> 的项目根目录。两种入口分开处理，关联时不会启动应用或安装插件。</p>}
         {error && <p className="app-link-feedback app-link-error" role="alert">{error}</p>}
         {notice && <p className="app-link-feedback" role="status">{notice}</p>}
         <div className="app-link-actions">

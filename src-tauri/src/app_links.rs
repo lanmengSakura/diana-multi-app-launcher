@@ -65,6 +65,7 @@ fn expected_names(target: &str) -> &'static [&'static str] {
         "cursor" => &["Cursor.exe"],
         "grokbot" => &["Grok Bot.exe"],
         "zcode" => &["ZCode.exe"],
+        "deepseek" => &["DeepSeek Harness.exe"],
         "doubao" => &["Doubao.exe"],
         "vscode" => &["Code.exe"],
         "terminal" => &["wt.exe", "WindowsTerminal.exe"],
@@ -81,7 +82,7 @@ fn expected(target: &str) -> &'static str {
         "doubao" => "Doubao.exe",
         "vscode" => "Code.exe",
         "terminal" => "wt.exe 或 WindowsTerminal.exe",
-        "deepseek" => "包含 package.json 和 apps/web/package.json 的项目根目录",
+        "deepseek" => "桌面版 DeepSeek Harness.exe，或旧源码版项目根目录",
         _ => "",
     }
 }
@@ -181,7 +182,7 @@ fn validate_path(target: &str, value: &str) -> Result<PathBuf, String> {
         );
     }
     let path = local_absolute_path(value)?;
-    if target == "deepseek" {
+    if target == "deepseek" && path.is_dir() {
         if !path.is_dir()
             || !path.join("package.json").is_file()
             || !path.join("apps/web/package.json").is_file()
@@ -217,6 +218,12 @@ fn validate_path(target: &str, value: &str) -> Result<PathBuf, String> {
             if &header != b"MZ" {
                 return Err("未识别到 Windows 程序文件头，未保存关联。".into());
             }
+        }
+        if target == "deepseek" && !path.parent().is_some_and(|root| {
+            root.join("resources/app.asar").is_file()
+                && root.join("resources/runtime/cli/bin/dsh.cmd").is_file()
+        }) {
+            return Err("未找到官方 Harness 桌面运行资源；请选择安装目录中的 DeepSeek Harness.exe，不是安装器或单独复制的 EXE。".into());
         }
     }
     Ok(path)
@@ -260,11 +267,7 @@ fn describe(
         path: None,
         saved_path: None,
         can_choose: target != "codex",
-        kind: if target == "deepseek" {
-            "directory"
-        } else {
-            "file"
-        },
+        kind: if target == "deepseek" { "fileOrDirectory" } else { "file" },
         expected: expected(target),
         message: String::new(),
     };
@@ -451,11 +454,7 @@ pub(crate) fn pick(target: &str) -> Result<Option<String>, String> {
         .args(["-NoProfile", "-STA", "-Command", PICKER_SCRIPT])
         .env(
             "DIANA_LINK_PICKER_KIND",
-            if target == "deepseek" {
-                "directory"
-            } else {
-                "file"
-            },
+            "file",
         );
     crate::hide_console(&mut command);
     let output = command
@@ -624,6 +623,19 @@ mod tests {
         fs::write(f.0.join("apps/web/package.json"), "{}").unwrap();
         assert!(validate_path("deepseek", f.0.to_str().unwrap()).is_ok());
         assert!(validate_path("deepseek", f.0.join("apps/web").to_str().unwrap()).is_err());
+    }
+    #[test]
+    fn harness_desktop_requires_exe_and_runtime_without_executing_it() {
+        let f = Fixture::new();
+        let path = f.exe("DeepSeek Harness.exe");
+        assert!(validate_path("deepseek", path.to_str().unwrap()).is_err());
+        let resources = path.parent().unwrap().join("resources");
+        fs::create_dir_all(resources.join("runtime/cli/bin")).unwrap();
+        fs::write(resources.join("app.asar"), b"fixture").unwrap();
+        fs::write(resources.join("runtime/cli/bin/dsh.cmd"), b"fixture").unwrap();
+        assert_eq!(validate_path("deepseek", path.to_str().unwrap()).unwrap(), path);
+        save_at(&f.config(), "deepseek", Some(path.to_str().unwrap())).unwrap();
+        assert_eq!(saved_path_at(&f.config(), "deepseek").unwrap(), Some(path));
     }
     #[test]
     fn codex_is_system_managed_and_unknown_targets_are_rejected() {

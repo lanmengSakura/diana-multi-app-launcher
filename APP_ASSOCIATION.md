@@ -2,6 +2,8 @@
 
 从 `v0.1.0-beta.4-rc.3` 起提供。rc.2 及更早下载包需手动更新，不会自动获得此入口。
 
+2026-10-26 的 `main` 源码新增官方 Harness Desktop 的 EXE 关联；已发布 RC.7 不包含此变化。ZCode 的新版登记仅连接使用者另行批准和制作的本机适配器，保存路径不代表授权或跨版本兼容。
+
 ## 怎么使用
 
 1. 在启动器下方选择应用，点击**状态栏旁的“关联”**。
@@ -18,7 +20,7 @@
 | 豆包浏览器 | `Doubao.exe`，不是“豆包工作”或安装包 |
 | VS Code | `Code.exe`；自动识别也会从 PATH 中的 `code.cmd` shim 回溯到对应安装目录 |
 | Windows Terminal | `wt.exe` 或 `WindowsTerminal.exe`；不是 `cmd.exe` |
-| DeepSeek Harness | 包含 `package.json` 和 `apps/web/package.json` 的项目根目录；不是浏览器、文档目录或 `apps/web` 子目录 |
+| DeepSeek Harness | `main` 新增：安装目录中的 `DeepSeek Harness.exe`，并检查相邻官方资源；旧源码部署仍可粘贴包含 `package.json` 和 `apps/web/package.json` 的项目根目录 |
 
 文件选择窗口不可用时可以直接粘贴路径。取消选择不会保存或清空已有路径；选错程序时保留原关联。支持中文、空格及从资源管理器复制的带引号路径。此入口不接受下载网址、网络共享、命令/参数或安装包。
 
@@ -44,7 +46,7 @@ Codex 未被 Windows 注册时需先完成官方安装；Node.js、Harness 依�
 
 VS Code 使用非默认 Profile 时，主题设置会写入当前 Profile 的 `User/profiles/<profile-id>/settings.json`；若 VS Code 已经打开，建议先完整退出后再从启动器应用主题。工作区级别的 `workbench.colorTheme` 仍可能覆盖用户设置。
 
-DeepSeek Harness 的项目根目录示例：
+官方 Harness 桌面版不需要下面的源码目录。选择 EXE 后，首次部署需完整退出应用，再确认安装本地主题插件；原版启动会在完整退出后撤下该插件。原生插件页也可禁用。源码版项目根目录示例：
 
 ```text
 deepseek-harness/

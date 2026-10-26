@@ -1,0 +1,11 @@
+/* Geometry, assets and breakpoints are taken from the existing approved
+   DeepSeek blueprint by build-deepseek-plugin.mjs. No visual redesign here.
+   Only the anchor changes: Desktop owns the sidebar/header/composer itself. */
+body.diana-dsh-host .diana-dsh-surface { isolation: isolate; }
+body.diana-dsh-host .diana-dsh-art {
+  --diana-sidebar-safe: 0px;
+  position: absolute; inset: 0; z-index: -1; overflow: hidden;
+  pointer-events: none; user-select: none;
+}
+.diana-dsh-art, .diana-dsh-art * { pointer-events: none !important; }
+.diana-dsh-art > span { display: block; position: absolute; inset: 0; }

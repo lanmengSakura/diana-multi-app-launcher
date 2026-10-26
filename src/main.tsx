@@ -170,18 +170,18 @@ const targetOptions: TargetOption[] = [
     value: "deepseek",
     label: "DeepSeek Harness",
     shortLabel: "Harness",
-    hint: "启动本机 Harness 服务；日夜在页面内切换",
+    hint: "官方桌面版使用原生插件；兼容旧源码入口",
     showThemeSwitch: false,
     modeTitle: "跟随 Harness 外观",
-    modeSubtitle: "日间 / 暗夜由 Harness 页面原生状态决定",
-    primaryNote: "等待本地服务就绪后打开页面；此入口不切换为原版，也不消耗模型额度",
+    modeSubtitle: "日间 / 暗夜 / 跟随系统由 Harness 原生设置决定",
+    primaryNote: "桌面版不改安装包、不开调试端口；原生插件页可禁用，原版启动需完整退出后操作",
     secondaryLabel: "打开页面"
   },
   {
     value: "zcode",
     label: "ZCode",
     shortLabel: "ZCode",
-    hint: "完整挂载限 3.6.5.4145；更新版本暂不支持",
+    hint: "按本机适配记录核验精确版本；挂载前确认临时端口风险",
     showThemeSwitch: true,
     modeTitle: "选择 ZCode 挂载主题",
     modeSubtitle: "精确版本核验通过后，前台一次性挂载完整美术",
@@ -729,6 +729,12 @@ function App() {
       return;
     }
 
+    if (selectedTarget === "deepseek" && action === "launch_theme" && desktopRuntime
+      && externalStatus.themeScope === "official_plugin" && !externalStatus.themed && !externalStatus.running) {
+      if (!window.confirm("将通过官方插件机制安装本机 Diana 主题。插件会在 Harness 界面内执行样式代码，请只安装可信来源。此包不访问账号、聊天内容或网络，不修改安装文件，也不打开调试端口；会备份插件配置，可从插件页禁用或卸载。继续安装并启动吗？")) return;
+      experimentalApproved = true;
+    }
+
     if (
       selectedTarget === "zcode" &&
       action === "launch_theme" &&
@@ -743,7 +749,7 @@ function App() {
         [
           "即将优先为 ZCode 挂载完整 Diana 日夜美术。",
           "",
-          "启动器只接受已验证的 ZCode 3.6.5.4145 与官方数字签名，然后以 --remote-debugging-address=127.0.0.1 和随机高位端口启动 ZCode。短时 Node.js 适配器完成界面探测与挂载后立即退出；不修改 ZCode.exe、app.asar 或安装目录，也不创建服务、计划任务、自启动项或后台 watcher。",
+          "启动器核验本机适配记录指定的精确 ZCode 版本、官方数字签名与适配文件校验值，然后以 --remote-debugging-address=127.0.0.1 和随机高位端口启动 ZCode。短时 Node.js 适配器完成界面探测与挂载后立即退出；不修改 ZCode.exe、app.asar 或安装目录，也不创建服务、计划任务、自启动项或后台 watcher。",
           "",
           "临时调试端口没有身份认证。同一 Windows 账户下的其他本地进程可能发现它，读取当前可见界面、执行渲染页脚本或截图。回环地址不能消除这一风险；必须完整退出所有本次 ZCode 进程，端口才会关闭。",
           "",
@@ -1037,6 +1043,8 @@ function App() {
         ? `正在启动${selectedTargetOption.shortLabel}`
         : externalStatus.themeState === "disabled"
           ? "Diana 已撤下"
+          : externalStatus.stage === "zcode_waiting_workspace"
+            ? "等待进入工作区"
           : externalStatus.themeState === "unmanaged"
             ? "调试实例未接管"
             : externalStatus.themeState === "blocked"
@@ -1050,7 +1058,9 @@ function App() {
                 ? "Diana 配置已安装"
                 : "Diana 主题已安装"
               : externalStatus.themeState === "deployed"
-                ? selectedTarget === "vscode"
+                ? externalStatus.themeScope === "official_plugin"
+                  ? "Diana 插件已配置"
+                : selectedTarget === "vscode"
                   ? "Diana 美术层已部署"
                   : "Diana 源码已部署"
                 : externalStatus.themeState === "running" && selectedTarget === "deepseek"
@@ -1158,6 +1168,9 @@ function App() {
           ? `应用 Diana ${modeLabel(themeMode)}`
           : `挂载并启动 Diana ${modeLabel(themeMode)}`;
       case "deepseek":
+        if (externalStatus.themeScope === "official_plugin" && !externalStatus.themed) {
+          return externalStatus.running ? "请先完全退出 Harness" : "安装 Diana 插件并启动";
+        }
         if (externalStatus.stage === "deepseek_theme_needs_deploy") {
           return "解包 Diana 蓝图";
         }
@@ -1165,6 +1178,9 @@ function App() {
           ? "打开 Diana Harness"
           : "启动 Diana Harness";
       case "zcode":
+        if (externalStatus.stage === "zcode_waiting_workspace") {
+          return "进入工作区后挂载";
+        }
         if (externalStatus.stage === "zcode_plain_running") {
           return "请先退出普通 ZCode";
         }
@@ -1473,7 +1489,9 @@ function App() {
                   ? pendingAction === "restore"
                     ? "取消等待"
                     : selectedTargetOption.secondaryLabel
-                  : selectedTargetOption.secondaryLabel}
+                  : selectedTarget === "deepseek" && externalStatus.themeScope === "official_plugin"
+                    ? "原版启动"
+                    : selectedTargetOption.secondaryLabel}
               </span>
             </button>
           </div>

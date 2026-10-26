@@ -59,8 +59,9 @@
     {
       "id": "deepseek",
       "name": "DeepSeek Harness",
-      "deployment": "themed-source-checkout",
-      "artwork": "complete-when-source-is-prepared",
+      "deployment": "official-desktop-plugin-or-legacy-source-checkout",
+      "artwork": "complete-on-verified-desktop-layout",
+      "testedDesktopVersion": "0.2.1-rc.3",
       "modes": ["native"],
       "requiresThirdPartyBinary": true
     },
@@ -72,6 +73,8 @@
       "modes": ["dark", "light", "system"],
       "requiresThirdPartyBinary": true,
       "testedVersion": "3.6.5.4145",
+      "machineLocalAdapterVersion": "3.16.3.8992",
+      "bundlesNewLocalAdapter": false,
       "requiresPerLaunchRiskConfirmation": true
     }
   ],

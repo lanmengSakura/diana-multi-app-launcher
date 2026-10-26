@@ -1,4 +1,5 @@
 mod app_links;
+mod local_zcode_runtime;
 mod atomic_file;
 mod external_targets;
 mod native_appearance;

@@ -14,6 +14,10 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::Duration;
 
+#[path = "deepseek_desktop.rs"]
+mod deepseek_desktop;
+use deepseek_desktop::{deepseek_desktop_executable, deepseek_desktop_status, launch_deepseek_desktop};
+
 const MULTI_APP_CHANNEL: &str = "multi-app-v1";
 pub(crate) const DOUBAO_THEME_VERSION: &str = "0.1.2";
 const VSCODE_THEME_VERSION: &str = "0.2.0";
@@ -2171,7 +2175,7 @@ fn launch_grok_native() -> Result<ExternalTargetStatus, String> {
 
 fn deepseek_root() -> Option<PathBuf> {
     match crate::app_links::saved_path("deepseek") {
-        Ok(Some(path)) => return Some(path),
+        Ok(Some(path)) => return path.is_dir().then_some(path),
         Err(_) => return None,
         Ok(None) => {}
     }
@@ -2336,6 +2340,7 @@ fn deepseek_http_ready() -> bool {
 }
 
 fn deepseek_status() -> ExternalTargetStatus {
+    if let Some(executable) = deepseek_desktop_executable() { return deepseek_desktop_status(&executable); }
     let root = deepseek_root();
     let ready = root.as_deref().map(deepseek_theme_ready).unwrap_or(false);
     let snapshot = deepseek_processes(root.as_deref());
@@ -2503,13 +2508,14 @@ pub(crate) fn application_path(target: &str) -> Option<PathBuf> {
         "vscode" => vscode_executable(),
         "cursor" => cursor_executable(),
         "grokbot" => grok_executable(),
-        "deepseek" => deepseek_root(),
+        "deepseek" => deepseek_desktop_executable().or_else(deepseek_root),
         "zcode" => zcode_executable(),
         _ => None,
     }
 }
 
 fn zcode_runtime_root() -> Result<PathBuf, String> {
+    if let Some(local) = crate::local_zcode_runtime::load()? { return Ok(local.root); }
     Ok(local_app_data()?
         .join("DianaZCodeTheme")
         .join("experimental-3.6.5"))
@@ -2533,6 +2539,11 @@ fn verify_shared_assets(root: &Path, mapping: &[(&str, &str)]) -> Result<(), Str
 }
 
 fn ensure_zcode_runtime() -> Result<PathBuf, String> {
+    if let Some(local) = crate::local_zcode_runtime::load()? {
+        let executable = zcode_executable().ok_or("未找到 ZCode。")?;
+        local.verify(&executable)?;
+        return Ok(local.root);
+    }
     let root = zcode_runtime_root()?;
     write_files(&root, ZCODE_RUNTIME_FILES)?;
     let assets_root = zcode_runtime_assets_root(&root);
@@ -2572,11 +2583,16 @@ fn zcode_has_loopback_debug(command: &str) -> bool {
 
 fn zcode_session_matches(snapshot: &ProcessSnapshot, session: &ZcodeSessionRecord) -> bool {
     let command = snapshot.main_command.as_deref().unwrap_or_default();
+    let (version, adapter) = match crate::local_zcode_runtime::load() {
+        Ok(Some(local)) => (local.file_version, local.adapter_version),
+        Ok(None) => (EXPECTED_ZCODE_VERSION.to_string(), ZCODE_ADAPTER_VERSION.to_string()),
+        Err(_) => return false,
+    };
     snapshot.main_process_id == Some(session.pid)
         && zcode_has_loopback_debug(command)
         && zcode_debug_port(command) == Some(session.port)
-        && session.version == EXPECTED_ZCODE_VERSION
-        && session.adapter_version == ZCODE_ADAPTER_VERSION
+        && session.version == version
+        && session.adapter_version == adapter
 }
 
 fn zcode_trust_report(executable: &Path) -> Result<ZcodeTrustReport, String> {
@@ -2606,6 +2622,16 @@ fn zcode_trust_report(executable: &Path) -> Result<ZcodeTrustReport, String> {
 
 fn validate_zcode_target(executable: &Path, require_tested_version: bool) -> Result<(), String> {
     let report = zcode_trust_report(executable)?;
+    if require_tested_version {
+        if let Some(local) = crate::local_zcode_runtime::load()? {
+            local.verify(executable)?;
+            if report.signature != "Valid" || !report.signer_thumbprint.eq_ignore_ascii_case(&local.signer_thumbprint)
+                || report.file_version != local.file_version || report.product_version != local.product_version {
+                return Err("ZCode 版本或官方签名已变化，本机适配需重新验证；未开启调试端口。".into());
+            }
+            return Ok(());
+        }
+    }
     if !report.signature.eq_ignore_ascii_case("Valid")
         || !report
             .signer_thumbprint
@@ -2721,6 +2747,11 @@ fn zcode_status() -> ExternalTargetStatus {
                 }
             ),
         )
+    } else if managed_debug && session.as_ref().is_some_and(|record| record.status == "waiting_workspace") {
+        (
+            "zcode_waiting_workspace",
+            "ZCode 已启动，等待登录或进入主工作区；尚未挂载，也没有迁移登录态。进入工作区后再点击挂载。完整退出 ZCode 才会关闭本次临时端口。".to_string(),
+        )
     } else if managed_debug {
         (
             "zcode_theme_disabled",
@@ -2746,8 +2777,11 @@ fn zcode_status() -> ExternalTargetStatus {
     } else {
         (
             "zcode_ready",
-            "内置 ZCode 3.6.5.4145 适配器可用；仅支持该精确版本。点击后核验本机版本与官方签名，不支持更新版本时不会开启调试端口。"
-                .to_string(),
+            match crate::local_zcode_runtime::load() {
+                Ok(Some(local)) => format!("本机 ZCode {} 适配已关联；点击后校验文件、版本与官方签名，确认风险后挂载。", local.file_version),
+                Ok(None) => "内置适配限 ZCode 3.6.5.4145；新版需要单独关联已确认的本机适配器，不会直接放开版本校验。".into(),
+                Err(error) => error,
+            },
         )
     };
     ExternalTargetStatus {
@@ -2755,7 +2789,9 @@ fn zcode_status() -> ExternalTargetStatus {
         stage: stage.to_string(),
         running: snapshot.process_count > 0,
         themed,
-        theme_state: if executable.is_none() {
+        theme_state: if stage == "zcode_waiting_workspace" {
+            "pending"
+        } else if executable.is_none() {
             "unavailable"
         } else if themed {
             "mounted"
@@ -2790,7 +2826,7 @@ fn launch_zcode_theme(mode: &str, approved: bool) -> Result<ExternalTargetStatus
     validate_zcode_target(&executable, true)?;
     let root = ensure_zcode_runtime()?;
 
-    if before.running && !before.themed && before.stage != "zcode_theme_disabled" {
+    if before.running && !before.themed && !matches!(before.stage.as_str(), "zcode_theme_disabled" | "zcode_waiting_workspace") {
         return Ok(before);
     }
 
@@ -2801,7 +2837,7 @@ fn launch_zcode_theme(mode: &str, approved: bool) -> Result<ExternalTargetStatus
     run_zcode_adapter(&root, &executable, action, mode)?;
     std::thread::sleep(Duration::from_millis(450));
     let status = zcode_status();
-    if !status.themed {
+    if !status.themed && status.stage != "zcode_waiting_workspace" {
         return Err(
             "ZCode 挂载器已经返回，但主题状态未通过复核；请完整退出 ZCode 后再试。".to_string(),
         );
@@ -2871,7 +2907,11 @@ pub(crate) fn run_action(
         ("cursor", "launch_native") => launch_cursor_native(),
         ("grokbot", "launch_theme") => launch_grok_theme(mode, experimental_approved),
         ("grokbot", "launch_native") => launch_grok_native(),
-        ("deepseek", "launch_theme") | ("deepseek", "launch_native") => launch_deepseek(),
+        ("deepseek", "launch_theme") | ("deepseek", "launch_native") => {
+            if let Some(executable) = deepseek_desktop_executable() {
+                launch_deepseek_desktop(&executable, action == "launch_theme", experimental_approved)
+            } else { launch_deepseek() }
+        },
         ("zcode", "launch_theme") => launch_zcode_theme(mode, experimental_approved),
         ("zcode", "launch_native") => launch_zcode_native(),
         _ => Err("未知的目标应用操作。".to_string()),
@@ -3073,6 +3113,16 @@ mod tests {
         assert!(!super::is_deepseek_page(
             "HTTP/1.1 200 OK\r\n\r\nAnother app"
         ));
+    }
+
+    // Explicit opt-in, read-only diagnostics: never starts or changes an app.
+    #[test]
+    #[ignore]
+    fn local_external_status_smoke() {
+        let target = std::env::var("DIANA_SMOKE_TARGET").expect("explicit target required");
+        assert!(matches!(target.as_str(), "zcode" | "deepseek"));
+        let result = super::get_status(&target).expect("read-only local status");
+        println!("{}", serde_json::to_string_pretty(&result).unwrap());
     }
 
     // Explicit opt-in: this starts a real local application; excluded from normal cargo test.

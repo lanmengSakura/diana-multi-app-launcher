@@ -7,6 +7,7 @@
 !/src-tauri/private-assets/README.md
 /.preview-profile/
 /artifacts/
+/src-tauri/resources/theme-packs/deepseek/desktop-plugin/
 /release/
 /release-candidates/
 /install-backups/
