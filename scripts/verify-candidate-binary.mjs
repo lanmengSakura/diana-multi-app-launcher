@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import { runtimeFiles as modernZcodeFiles } from './zcode-runtime-files.mjs';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const executable=process.argv[2];
 if(!executable || !path.isAbsolute(executable)) throw new Error('Pass the candidate EXE absolute path. This check never executes it.');
@@ -24,6 +25,8 @@ for(const target of ['cursor','grokbot']) {
 }
 const zcode=path.join(root,'src-tauri/resources/theme-packs/zcode/runtime');
 for(const line of fs.readFileSync(path.join(zcode,'manifest.sha256'),'utf8').trim().split(/\r?\n/)) protectedFiles.add(path.join(zcode,line.split(' *')[1]));
+for(const file of modernZcodeFiles.values()) protectedFiles.add(path.resolve(file));
+protectedFiles.add(path.join(root,'src-tauri/resources/theme-packs/zcode/discover-install.ps1'));
 for(const file of protectedFiles) if(binary.indexOf(fs.readFileSync(file))<0) throw new Error(`Compiled file bytes missing: ${path.relative(root,file)}`);
 const copies=[];
 for(const file of fs.readdirSync(path.join(root,'theme-preview/assets')).filter(f=>f.endsWith('.png'))) {

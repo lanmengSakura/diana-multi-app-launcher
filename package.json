@@ -1,6 +1,6 @@
 {
   "name": "diana-codex-launcher",
-  "version": "0.1.0-beta.4-rc.9",
+  "version": "0.1.0-beta.4-rc.10",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 1421",
@@ -10,6 +10,7 @@
     "qa:demo:routing": "node --test scripts/test-demo-routing.mjs scripts/test-demo-worker.mjs scripts/test-native-chat-layouts.mjs",
     "build": "node scripts/build-deepseek-plugin.mjs && npm run qa:runtime && tsc --noEmit && vite build",
     "qa:desktop-adaptation": "node --test scripts/test-desktop-adaptation.mjs && node scripts/qa-desktop-artwork.mjs",
+    "qa:zcode": "node --test scripts/test-zcode-public-runtime.mjs",
     "preview": "vite preview --host 127.0.0.1 --port 4173",
     "qa:screenshot": "node scripts/qa-screenshot.mjs",
     "qa:interactions": "node scripts/qa-interactions.mjs",

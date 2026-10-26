@@ -38,9 +38,9 @@ try {
   }
   assert.deepEqual(errors,[]);
   // ZCode fixture uses the exact native frame markers from 3.16.3.
-  const local=resolve('../local-zcode/adapter.mjs');
-  if(existsSync(local)) {
-    const {expression}=await import(new URL(`file:///${local.replaceAll('\\','/')}`));
+  const {expression:makeExpression}=await import('../src-tauri/resources/theme-packs/zcode/runtime-3.16.3/adapter.mjs');
+  const expression=mode=>makeExpression(mode,resolve('theme-preview/assets'),resolve('src-tauri/resources/theme-packs/zcode/runtime/theme.css'));
+  {
     await page.setContent(`<html class=theme-zai-dark><head><style>html,body{margin:0;height:100%;}#content{position:absolute;inset:40px 0 0 260px}section{position:relative;height:100%;background:#111}textarea{position:absolute;bottom:25px;left:10%;width:75%;height:80px;z-index:7;background:var(--color-input)}</style></head><body><div id=root><div id=content data-panel><section data-workspace-conversation-frame=true><textarea aria-label=输入></textarea></section></div></div></body></html>`);
     const original=await page.locator('textarea').boundingBox();
     for(const mode of ['dark','light','auto']) {
@@ -55,6 +55,16 @@ try {
     await page.evaluate(()=>window.__DIANA_ZCODE_THEME__.disable());
     assert.equal(await page.locator('#diana-zcode-chrome').count(),0);
     assert.equal(await page.locator('html').getAttribute('class'),'theme-zai-dark');
+    // Auto follows a native light/dark change and survives native frame replacement.
+    await page.evaluate(expression('auto'));
+    await page.locator('html').evaluate(el=>{el.classList.remove('theme-zai-dark');el.classList.add('theme-zai-light');});
+    assert.equal(await page.evaluate(()=>window.__DIANA_ZCODE_THEME__.snapshot().rootTheme),'light');
+    await page.locator('section').evaluate(el=>{const replacement=el.cloneNode(true);replacement.querySelector('#diana-zcode-chrome')?.remove();el.replaceWith(replacement);});
+    await page.waitForFunction(()=>window.__DIANA_ZCODE_THEME__.snapshot().mounted);
+    assert.equal(await page.locator('#diana-zcode-chrome').count(),1);
+    await page.evaluate(()=>window.__DIANA_ZCODE_THEME__.disable());
+    assert.equal(await page.locator('html').getAttribute('class'),'theme-zai-light');
+    assert.equal(await page.locator('#diana-zcode-runtime-style').count(),0);
     await page.locator('section').evaluate(el=>el.removeAttribute('data-workspace-conversation-frame'));
     assert.equal((await page.evaluate(expression('dark'))).mounted,false);
   }

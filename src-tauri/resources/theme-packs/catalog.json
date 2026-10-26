@@ -76,11 +76,13 @@
     {
       "id": "zcode",
       "name": "ZCode",
-      "deployment": "local-approved-loopback-adapter",
+      "deployment": "version-pinned-opt-in-loopback-adapter",
       "artwork": "complete",
       "modes": ["dark", "light", "system"],
       "requiresThirdPartyBinary": true,
-      "testedVersion": "3.6.5.4145",
+      "testedVersion": "3.16.3.8992",
+      "supportedVersions": ["3.6.5.4145", "3.16.3.8992"],
+      "bundlesAdapterRuntime": true,
       "machineLocalAdapterVersion": "3.16.3.8992",
       "bundlesNewLocalAdapter": false,
       "requiresPerLaunchRiskConfirmation": true

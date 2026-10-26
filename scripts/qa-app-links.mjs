@@ -252,6 +252,7 @@ try {
       assert.match(message, /其他本地进程/);
       assert.match(message, /执行渲染页?脚本/);
       assert.match(message, /完整退出|被完整退出/);
+      if (target === 'zcode') { assert.match(message, /3\.16\.3\.8992/); assert.match(message, /无需另装/); }
     });
     await Promise.all([confirmation, page.locator(".primary-action").click()]);
     assert.ok(!(await page.evaluate(() => window.__linkQA.calls)).some(call => /^run_/.test(call.command)));
@@ -315,6 +316,17 @@ try {
     assert.equal((await actionCalls()).length, beforeActions);
     record(`${target}: failed adapter check is not READY; no automatic mount and retry still requires consent`);
   }
+
+  await page.evaluate(() => { window.__linkQA.statusOverride = {target:'zcode', stage:'zcode_bundle_invalid',
+    themeState:'blocked', themeScope:'full_artwork_adapter', message:'公开适配文件待修复'}; });
+  await select.selectOption('cursor'); await select.selectOption('zcode');
+  const zcodeRetry=page.getByRole('button',{name:'重新校验并挂载',exact:true});
+  await zcodeRetry.waitFor(); assert.ok(await zcodeRetry.isEnabled());
+  const countBefore=(await actionCalls()).length;
+  const cancelZcodeRetry=page.waitForEvent('dialog').then(async dialog=>{assert.match(dialog.message(),/3\.16\.3\.8992/);await dialog.dismiss();});
+  await Promise.all([cancelZcodeRetry,zcodeRetry.click()]);
+  assert.equal((await actionCalls()).length,countBefore);
+  record('public ZCode bundle can retry repair, but cancellation still cannot execute a mount');
 
   const preview = await browser.newPage({ viewport: { width: 636, height: 930 } });
   preview.on("pageerror", error => errors.push(error.message));

@@ -29,6 +29,9 @@ scripts/render-launcher-arm-panel-layout-guide.mjs
 src-tauri/resources/theme-packs/zcode/runtime/assets/
 src-tauri/resources/theme-packs/zcode/runtime/state/
 src-tauri/resources/theme-packs/zcode/runtime-recovered/
+src-tauri/resources/theme-packs/zcode/runtime-3.16.3/assets/
+src-tauri/resources/theme-packs/zcode/runtime-3.16.3/state/
+src-tauri/resources/theme-packs/zcode/runtime-3.16.3/logs/
 src-tauri/resources/diana-runtime/assets/
 *.log
 .DS_Store

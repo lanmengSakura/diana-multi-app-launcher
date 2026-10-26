@@ -724,7 +724,7 @@ dependencies = [
 
 [[package]]
 name = "diana-codex-launcher"
-version = "0.1.0-beta.4-rc.9"
+version = "0.1.0-beta.4-rc.10"
 dependencies = [
  "semver",
  "serde",

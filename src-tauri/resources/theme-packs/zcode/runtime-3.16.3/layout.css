@@ -1,0 +1,3 @@
+/* 3.16's native conversation frame owns the artwork; no window-wide overlay. */
+html.diana-zcode-host .diana-zcode-workspace { isolation: isolate; }
+html.diana-zcode-host #diana-zcode-chrome { position: absolute; inset: 0; z-index: -1; }

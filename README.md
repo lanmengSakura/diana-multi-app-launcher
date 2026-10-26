@@ -1,10 +1,10 @@
 # Diana Multi-App Launcher
 
-嘉然 Diana 多应用主题启动器。当前公开测试版本为 **`v0.1.0-beta.4-rc.9`**，仅面向 Windows 测试用户；安装器和便携版均未签名，不代表所有目标全部场景已完成认证。
+嘉然 Diana 多应用主题启动器。当前公开测试版本为 **`v0.1.0-beta.4-rc.10`**，仅面向 Windows 测试用户；安装器和便携版均未签名，不代表所有目标全部场景已完成认证。
 
-RC.9 修正 ZCode 本机适配登记读取与错误状态、Cursor 适配文件异常仍报就绪、Cursor/Grok 重新检测沿用旧校验结果，以及 DeepSeek 桌面端带 BOM 配置漏认。保留 RC.8 的桌面端/网页端独立入口及现有美术、配乐。**已有旧版 EXE 需手动更新；ZCode 3.16 的新实验适配器仍未随公开包分发**。详情见 [发布说明](docs/RELEASE_RC9.md)。
+RC.10 **将 ZCode 3.16.3.8992 的独立公开适配组件实际内置进安装版和便携版**：不再要求另行制作个人适配器或 `local-runtime.json`。保留旧版 3.6.5.4145、已有本机适配的恢复记录，以及 RC.9 的状态修复。**旧 EXE 不会自动更新，需要下载本版**。详情和验收边界见 [发布说明](docs/RELEASE_RC10.md)。
 
-[八应用主题体验](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes) · [启动器演示](https://diana-launcher-demo.szbluedream01.chatgpt.site) · [Codex 主题演示](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes?app=codex) · [下载新版测试版](https://github.com/lanmengSakura/diana-multi-app-launcher/releases/tag/v0.1.0-beta.4-rc.9)
+[八应用主题体验](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes) · [启动器演示](https://diana-launcher-demo.szbluedream01.chatgpt.site) · [Codex 主题演示](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes?app=codex) · [下载新版测试版](https://github.com/lanmengSakura/diana-multi-app-launcher/releases/tag/v0.1.0-beta.4-rc.10)
 
 **完整功能由你选择启用。** 本启动器公开提供完整挂载组件；下载、安装、打开或关联应用位置不代表同意调试连接。Codex、Cursor、Grok Bot、ZCode 新开实验调试会话前会告知风险并等待确认，取消不会执行本次挂载。回环端口没有身份认证，同机进程可能读取界面、执行脚本或截图；仅关闭启动器或撤下皮肤不会关闭目标应用持有的端口，须完整退出目标应用。请先看 [风险与退出方法](SECURITY.md)。
 
@@ -36,9 +36,13 @@ DeepSeek 桌面端是新增的独立启动入口；上面的 DeepSeek 演示仍�
 
 两个入口分别保存路径、检测状态和执行动作，不会因为安装了桌面端就抢走原来的网页入口。旧网页目录关联继续有效；此前本机候选版在旧 `deepseek` 字段保存的 EXE 会只读识别到桌面入口，显式保存时才通过原有备份流程写入独立字段。网页版不是 `chat.deepseek.com` 官网聊天页。
 
-ZCode **3.16.3.8992** 新增的是经单独批准的**本机适配记录接入**及“等待进入工作区”状态；本机实验脚本、路径记录和登录态不进入仓库。不等于把新版本一键适配器内置给所有用户，也不会跳过版本、签名或文件校验。
+### RC.10：新版 ZCode 不再依赖个人登记
 
-当前提供 RC.9 的安装版与便携版，旧 RC.8/RC.7 下载文件不被覆盖。适配范围见 [适配说明](docs/DESKTOP_ADAPTATION_20261026.md)，本次修复与测试边界见 [RC.9 发布说明](docs/RELEASE_RC9.md)。
+RC.8/RC.9 只接入本机适配记录，没有把新版适配交付给普通用户。RC.10 补齐 **3.16.3.8992** 公开运行组件：选择实际 `ZCode.exe`、完整退出应用，再确认风险即可使用。无需复制作者目录、登录态或登记 JSON。首次主工作区未出现时显示“等待进入工作区”，进入后再点击挂载；日夜沿用现有美术，自动模式跟随 ZCode 原生主题。
+
+自动发现补充 Windows 安装登记和正在运行的程序位置；仍找不到时手动关联 EXE 即可。签名、精确双版本字段、程序资源摘要、监听归属与适配文件检查仍保留，未知版本不会放开。
+
+当前提供 RC.10 的安装版与便携版，旧下载文件不被覆盖。DeepSeek 入口说明见 [适配说明](docs/DESKTOP_ADAPTATION_20261026.md)，新版 ZCode 的交付与测试边界见 [RC.10 发布说明](docs/RELEASE_RC10.md)。
 
 使用前请看 [对应入口、依赖、恢复方式与测试范围](DELIVERY.md)。本版补齐 Cursor / Grok Bot 的可分发完整运行组件，修复 Cursor 跟随系统时的明暗混用；需要手动下载更新，不会自动替换旧 EXE。已测范围与剩余限制见 [本次发布说明](RELEASE_NOTES.md)。
 
@@ -54,8 +58,8 @@ Cursor 与 DeepSeek Harness 网页端的真实主题源已同步日间莓粉线�
 
 在 GitHub Releases 下载下列任一文件：
 
-- `Diana-Multi-App-Launcher_0.1.0-beta.4-rc.9_x64-setup.exe`：当前用户 NSIS 安装包；
-- `diana-multi-app-launcher_0.1.0-beta.4-rc.9_x64-portable.exe`：免安装便携版。
+- `Diana-Multi-App-Launcher_0.1.0-beta.4-rc.10_x64-setup.exe`：当前用户 NSIS 安装包；
+- `diana-multi-app-launcher_0.1.0-beta.4-rc.10_x64-portable.exe`：免安装便携版。
 
 `v0.1.0-beta.1` 的 Windows 构建会因主题 CSS 换行转换触发 `SHA-256 mismatch`，请勿继续使用；该问题已在 Beta.2 修复。
 
@@ -69,7 +73,7 @@ Cursor 与 DeepSeek Harness 网页端的真实主题源已同步日间莓粉线�
 
 Windows SmartScreen 可能提示“未知发布者”，因为当前 Beta 没有代码签名证书。请只从本仓库 Release 下载，并核对发布页给出的 SHA-256。
 
-## RC.9 下载包的入口
+## RC.10 下载包的入口
 
 | 目标 | Beta 形态 | 重要边界 |
 |---|---|---|
@@ -81,14 +85,14 @@ Windows SmartScreen 可能提示“未知发布者”，因为当前 Beta 没有
 | Grok Bot | 内置版本限定完整适配器 | 当前限 0.58.0 与指定有效签名；需要 Node.js 22+，逐次确认调试风险 |
 | DeepSeek 桌面端 | 官方原生主题插件 | 限 Harness Desktop `0.2.1-rc.3` 与有效签名；不改应用资源，不开调试端口 |
 | DeepSeek 网页端 | 检测并启动本地源码部署 | 单独关联项目目录，不操作桌面插件；不捆绑上游源码、模型 Key 或用户资料 |
-| ZCode | 版本限定实验挂载 + 本机适配登记入口 | 公开包仍内置 `3.6.5.4145`；`3.16.3.8992` 新适配器仅本机，未随包分发 |
+| ZCode | 内置版本限定完整适配器；兼容已有本机登记 | `3.6.5.4145` / `3.16.3.8992`，Node.js 22+；新用户无需登记文件，逐次确认风险 |
 
 完整美术兼容性是“目标版本 + 运行时结构”联合条件。挂载操作会核验渲染结果；后续状态主要依据本次成功记录与对应进程，不是持续截图或逐项人工验收。页面重载、应用更新或恢复流程仍需实际复核，`MOUNTED` 不代表所有交互与恢复测试均已完成。
 
 ### 常见误会
 
 - **不要求八款应用全部安装。** 只选自己安装的应用；没有 Codex 不应影响豆包等其他入口。RC.4 已修复缺少 Codex 时的高频检测阻塞。新安装/更新后可用“关联 → 重新检测”立即刷新位置。
-- **关联成功不等于版本受支持。** 完整挂载限定为 Cursor `3.17.21`、Grok Bot `0.58.0`、ZCode `3.6.5.4145`。例如 ZCode `3.11.2.6792` 不在当前范围；不会通过关闭校验来强行挂载。请等待对应适配更新，或继续使用原版。
+- **关联成功不等于任意版本受支持。** 完整挂载限定为 Cursor `3.17.21`、Grok Bot `0.58.0`、ZCode `3.6.5.4145` / `3.16.3.8992`。例如 ZCode `3.11.2.6792` 不在当前范围；不会通过关闭校验来强行挂载。请等待对应适配更新，或继续使用原版。
 - **豆包小窗口可能只显示角落线条。** 扩展视口宽度不超过 1320 CSS 像素时隐藏立绘；宽度不超过 900 或高度不超过 560 时，还会隐藏左下简笔画和上方装饰。放大窗口、留足正文空间后再看；Windows 缩放会影响实际 CSS 视口，不能只看显示器分辨率。这是防遮挡策略，不一定是挂载失败。
 - **免安装不等于不使用本机目录。** 便携 EXE 与安装版的启动器主体相同，仍使用 WebView2 和用户目录保存关联/主题运行文件。无需把 NSIS 安装包再包成便携版。
 - **VS Code 日间主题仍是默认深色时。** 先关闭正在运行的 VS Code，再从 RC.7 启动器重新应用；如果检测到旧版安装目录美术层，请先运行 `visual-layer\\restore.ps1` 恢复原文件，再使用正式用户颜色主题。使用 Profile 时，主题会写入当前 Profile 的设置文件；工作区自己的 `workbench.colorTheme` 仍可能覆盖用户主题。

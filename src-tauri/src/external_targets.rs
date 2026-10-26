@@ -35,6 +35,7 @@ const GROK_ADAPTER_VERSION: &str = "experimental-grok-bot-0.58.0-v1";
 const GROK_ADAPTER_MANIFEST_SHA256: &str =
     "543FAC3DF796CC36FBAD6436F8DEC675BC7B09965A86D6013271A263D08FA721";
 const EXPECTED_ZCODE_VERSION: &str = "3.6.5.4145";
+const CURRENT_ZCODE_VERSION: &str = "3.16.3.8992";
 const EXPECTED_ZCODE_SIGNER_THUMBPRINT: &str = "6F7B147DC610F91425750D2449C46002C3385BCF";
 const ZCODE_ADAPTER_VERSION: &str = "experimental-3.6.5-v3";
 
@@ -302,7 +303,7 @@ struct GrokSessionRecord {
     mode: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct ZcodeTrustReport {
     file_version: String,
@@ -1997,6 +1998,11 @@ fn adapter_checks() -> &'static AdapterCheckCache {
 }
 
 pub(super) fn invalidate_adapter_status(target: &str) {
+    if target == "zcode" {
+        ZCODE_DISCOVERY.invalidate();
+        let checks = zcode_trust_checks().lock().unwrap_or_else(|error| error.into_inner());
+        for check in checks.values() { check.invalidate(); }
+    }
     let checks = adapter_checks().lock().unwrap_or_else(|error| error.into_inner());
     for ((cached_target, _), check) in checks.iter() {
         if cached_target == target {
@@ -2008,7 +2014,7 @@ pub(super) fn invalidate_adapter_status(target: &str) {
 fn check_adapter_for_status(target: &str, root: &Path, bundled_root: &Path) -> Result<(), String> {
     // Availability of a not-yet-extracted compiled bundle is not on-disk verification.
     // Passive checks never extract or repair files. Actions still verify afresh.
-    if !matches!(target, "cursor" | "grokbot") {
+    if !matches!(target, "cursor" | "grokbot" | "zcode") {
         return Err("未知适配器。".into());
     }
     match root.try_exists() {
@@ -2020,6 +2026,7 @@ fn check_adapter_for_status(target: &str, root: &Path, bundled_root: &Path) -> R
     match target {
         "cursor" => verify_cursor_adapter(root),
         "grokbot" => verify_grok_adapter(root),
+        "zcode" => crate::reviewed_adapters::verify(root, target),
         _ => Err("未知适配器。".into()),
     }
 }
@@ -2520,6 +2527,39 @@ fn launch_deepseek() -> Result<ExternalTargetStatus, String> {
     ))
 }
 
+static ZCODE_DISCOVERY: crate::probe_cache::ProbeCache<Vec<PathBuf>> = crate::probe_cache::ProbeCache::new();
+
+fn zcode_registry_candidates() -> Vec<PathBuf> {
+    ZCODE_DISCOVERY.get(Duration::from_secs(60), false, || {
+        let Ok(powershell) = powershell_runtime() else { return Vec::new() };
+        let mut command = Command::new(powershell);
+        if configure_windows_powershell_environment(&mut command).is_err() { return Vec::new(); }
+        command.args(["-NoProfile", "-NonInteractive", "-Command"])
+            .arg(include_str!("../resources/theme-packs/zcode/discover-install.ps1"))
+            .stdout(Stdio::piped()).stderr(Stdio::null());
+        hide_console(&mut command);
+        let Ok(mut child) = command.spawn() else { return Vec::new() };
+        let deadline = std::time::Instant::now() + Duration::from_secs(8);
+        loop {
+            match child.try_wait() {
+                Ok(Some(_)) => break,
+                Ok(None) if std::time::Instant::now() < deadline => std::thread::sleep(Duration::from_millis(25)),
+                _ => { let _ = child.kill(); let _ = child.wait(); return Vec::new(); }
+            }
+        }
+        let Ok(output) = child.wait_with_output() else { return Vec::new() };
+        let text = clean_output(&output.stdout);
+        serde_json::from_str::<Vec<String>>(text.trim_start_matches('\u{feff}').trim())
+            .unwrap_or_default().into_iter().map(PathBuf::from).filter(|path| zcode_install_path(path)).collect()
+    })
+}
+
+fn zcode_install_path(path: &Path) -> bool {
+    path.is_absolute() && !path.to_string_lossy().starts_with([ '\\', '/' ])
+        && path.file_name().is_some_and(|name| name.to_string_lossy().eq_ignore_ascii_case("ZCode.exe"))
+        && path.is_file() && path.parent().is_some_and(|root| root.join("resources/app.asar").is_file())
+}
+
 fn zcode_executable() -> Option<PathBuf> {
     match crate::app_links::saved_path("zcode") {
         Ok(Some(path)) => return Some(path),
@@ -2532,9 +2572,15 @@ fn zcode_executable() -> Option<PathBuf> {
         candidates.push(local.join("Programs").join("ZCode").join("ZCode.exe"));
         candidates.push(local.join("ZCode").join("ZCode.exe"));
     }
+    for process in process_system().processes().values() {
+        if process.name().to_string_lossy().eq_ignore_ascii_case("ZCode.exe") {
+            if let Some(path) = process.exe() { candidates.push(path.to_path_buf()); }
+        }
+    }
     candidates
         .into_iter()
-        .find(|candidate| candidate.is_file())
+        .find(|candidate| zcode_install_path(candidate))
+        .or_else(|| zcode_registry_candidates().into_iter().find(|path| zcode_install_path(path)))
         .or_else(|| find_in_path("ZCode.exe"))
 }
 
@@ -2555,11 +2601,65 @@ pub(crate) fn application_path(target: &str) -> Option<PathBuf> {
     }
 }
 
-fn zcode_runtime_root() -> Result<PathBuf, String> {
-    if let Some(local) = crate::local_zcode_runtime::load()? { return Ok(local.root); }
-    Ok(local_app_data()?
-        .join("DianaZCodeTheme")
-        .join("experimental-3.6.5"))
+#[derive(Debug, PartialEq)]
+enum ZcodeRuntimeKind { Legacy, Bundled, Local }
+
+struct ZcodeRuntimeSelection {
+    root: PathBuf,
+    version: String,
+    adapter: String,
+    kind: ZcodeRuntimeKind,
+}
+
+type ZcodeTrustCache = std::sync::Mutex<BTreeMap<PathBuf,
+    std::sync::Arc<crate::probe_cache::ProbeCache<Result<ZcodeTrustReport, String>>>>>;
+fn zcode_trust_checks() -> &'static ZcodeTrustCache {
+    static CHECKS: std::sync::OnceLock<ZcodeTrustCache> = std::sync::OnceLock::new();
+    CHECKS.get_or_init(|| std::sync::Mutex::new(BTreeMap::new()))
+}
+fn cached_zcode_trust(executable: &Path, fresh: bool) -> Result<ZcodeTrustReport, String> {
+    let cache = zcode_trust_checks().lock().unwrap_or_else(|e| e.into_inner())
+        .entry(executable.to_path_buf()).or_insert_with(|| std::sync::Arc::new(crate::probe_cache::ProbeCache::new())).clone();
+    cache.get(Duration::from_secs(60), fresh, || zcode_trust_report(executable))
+}
+
+fn bundled_zcode_kind(report: &ZcodeTrustReport) -> Result<ZcodeRuntimeKind, String> {
+    if report.signature != "Valid" || !report.signer_thumbprint.eq_ignore_ascii_case(EXPECTED_ZCODE_SIGNER_THUMBPRINT) {
+        return Err("ZCode 官方数字签名核验失败；未开启调试端口。".into());
+    }
+    if report.file_version == CURRENT_ZCODE_VERSION && report.product_version == CURRENT_ZCODE_VERSION {
+        Ok(ZcodeRuntimeKind::Bundled)
+    } else if report.file_version == EXPECTED_ZCODE_VERSION && report.product_version == EXPECTED_ZCODE_VERSION {
+        Ok(ZcodeRuntimeKind::Legacy)
+    } else {
+        Err(format!("当前 ZCode {} 不在内置适配范围（{} / {}）；未开启调试端口。", report.file_version, EXPECTED_ZCODE_VERSION, CURRENT_ZCODE_VERSION))
+    }
+}
+
+fn zcode_runtime_selection(executable: &Path, fresh: bool) -> Result<ZcodeRuntimeSelection, String> {
+    // Keep an existing private recovery cycle intact. Invalid records still fail
+    // closed; a clean machine no longer needs any registration to use 3.16.
+    let local = crate::local_zcode_runtime::load()?;
+    let report = cached_zcode_trust(executable, fresh)?;
+    bundled_zcode_kind(&report)?;
+    if let Some(local) = local {
+        if report.file_version != local.file_version || report.product_version != local.product_version {
+            return Err("ZCode 版本与已有本机适配登记不一致；请先处理原适配恢复记录。".into());
+        }
+        local.verify(executable)?;
+        return Ok(ZcodeRuntimeSelection { root: local.root, version: local.file_version, adapter: local.adapter_version, kind: ZcodeRuntimeKind::Local });
+    }
+    bundled_zcode_selection_at(&local_app_data()?, &report)
+}
+
+fn bundled_zcode_selection_at(local_base: &Path, report: &ZcodeTrustReport) -> Result<ZcodeRuntimeSelection, String> {
+    let kind = bundled_zcode_kind(report)?;
+    let (root, version, adapter) = if kind == ZcodeRuntimeKind::Bundled {
+        (crate::reviewed_adapters::root(&local_base.join("DianaCodexLauncher").join(MULTI_APP_CHANNEL), "zcode")?, CURRENT_ZCODE_VERSION, crate::reviewed_adapters::version("zcode"))
+    } else {
+        (local_base.join("DianaZCodeTheme").join("experimental-3.6.5"), EXPECTED_ZCODE_VERSION, ZCODE_ADAPTER_VERSION)
+    };
+    Ok(ZcodeRuntimeSelection { root, version: version.into(), adapter: adapter.into(), kind })
 }
 
 fn zcode_runtime_assets_root(root: &Path) -> PathBuf {
@@ -2579,17 +2679,18 @@ fn verify_shared_assets(root: &Path, mapping: &[(&str, &str)]) -> Result<(), Str
     Ok(())
 }
 
-fn ensure_zcode_runtime() -> Result<PathBuf, String> {
-    if let Some(local) = crate::local_zcode_runtime::load()? {
-        let executable = zcode_executable().ok_or("未找到 ZCode。")?;
-        local.verify(&executable)?;
-        return Ok(local.root);
-    }
-    let root = zcode_runtime_root()?;
-    write_files(&root, ZCODE_RUNTIME_FILES)?;
-    let assets_root = zcode_runtime_assets_root(&root);
-    write_shared_assets(&assets_root, SHARED_ASSET_MAP)?;
-    verify_shared_assets(&assets_root, SHARED_ASSET_MAP)?;
+fn ensure_zcode_runtime(selection: &ZcodeRuntimeSelection) -> Result<PathBuf, String> {
+    if selection.kind == ZcodeRuntimeKind::Local { return Ok(selection.root.clone()); }
+    let root = if selection.kind == ZcodeRuntimeKind::Bundled {
+        crate::reviewed_adapters::ensure(&multi_app_root()?, "zcode", RUNTIME_FILES)?
+    } else {
+        let root = selection.root.clone();
+        write_files(&root, ZCODE_RUNTIME_FILES)?;
+        let assets_root = zcode_runtime_assets_root(&root);
+        write_shared_assets(&assets_root, SHARED_ASSET_MAP)?;
+        verify_shared_assets(&assets_root, SHARED_ASSET_MAP)?;
+        root
+    };
     fs::create_dir_all(root.join("logs"))
         .map_err(|error| format!("无法创建 ZCode 主题日志目录：{error}"))?;
     fs::create_dir_all(root.join("state"))
@@ -2598,11 +2699,8 @@ fn ensure_zcode_runtime() -> Result<PathBuf, String> {
     Ok(root)
 }
 
-fn read_zcode_session() -> Option<ZcodeSessionRecord> {
-    let path = zcode_runtime_root()
-        .ok()?
-        .join("state")
-        .join("session.json");
+fn read_zcode_session(root: &Path) -> Option<ZcodeSessionRecord> {
+    let path = root.join("state").join("session.json");
     let contents = fs::read_to_string(path).ok()?;
     serde_json::from_str(contents.trim_start_matches('\u{feff}').trim()).ok()
 }
@@ -2622,18 +2720,13 @@ fn zcode_has_loopback_debug(command: &str) -> bool {
     command.contains("--remote-debugging-address=127.0.0.1") && zcode_debug_port(command).is_some()
 }
 
-fn zcode_session_matches(snapshot: &ProcessSnapshot, session: &ZcodeSessionRecord) -> bool {
+fn zcode_session_matches(snapshot: &ProcessSnapshot, session: &ZcodeSessionRecord, selection: &ZcodeRuntimeSelection) -> bool {
     let command = snapshot.main_command.as_deref().unwrap_or_default();
-    let (version, adapter) = match crate::local_zcode_runtime::load() {
-        Ok(Some(local)) => (local.file_version, local.adapter_version),
-        Ok(None) => (EXPECTED_ZCODE_VERSION.to_string(), ZCODE_ADAPTER_VERSION.to_string()),
-        Err(_) => return false,
-    };
     snapshot.main_process_id == Some(session.pid)
         && zcode_has_loopback_debug(command)
         && zcode_debug_port(command) == Some(session.port)
-        && session.version == version
-        && session.adapter_version == adapter
+        && session.version == selection.version
+        && session.adapter_version == selection.adapter
 }
 
 fn zcode_trust_report(executable: &Path) -> Result<ZcodeTrustReport, String> {
@@ -2662,32 +2755,14 @@ fn zcode_trust_report(executable: &Path) -> Result<ZcodeTrustReport, String> {
 }
 
 fn validate_zcode_target(executable: &Path, require_tested_version: bool) -> Result<(), String> {
+    if require_tested_version { return zcode_runtime_selection(executable, true).map(|_| ()); }
     let report = zcode_trust_report(executable)?;
-    if require_tested_version {
-        if let Some(local) = crate::local_zcode_runtime::load()? {
-            local.verify(executable)?;
-            if report.signature != "Valid" || !report.signer_thumbprint.eq_ignore_ascii_case(&local.signer_thumbprint)
-                || report.file_version != local.file_version || report.product_version != local.product_version {
-                return Err("ZCode 版本或官方签名已变化，本机适配需重新验证；未开启调试端口。".into());
-            }
-            return Ok(());
-        }
-    }
     if !report.signature.eq_ignore_ascii_case("Valid")
         || !report
             .signer_thumbprint
             .eq_ignore_ascii_case(EXPECTED_ZCODE_SIGNER_THUMBPRINT)
     {
         return Err("ZCode 数字签名与已验证的官方发布者不一致，启动器拒绝接管。".to_string());
-    }
-    if require_tested_version
-        && (report.file_version != EXPECTED_ZCODE_VERSION
-            || report.product_version != EXPECTED_ZCODE_VERSION)
-    {
-        return Err(format!(
-            "当前 ZCode {} 尚未通过 Diana 挂载验证；已验证版本为 {}。本次不会开启调试端口。",
-            report.file_version, EXPECTED_ZCODE_VERSION
-        ));
     }
     Ok(())
 }
@@ -2717,6 +2792,9 @@ fn run_zcode_adapter(
         .arg(zcode_adapter_theme(mode)?)
         .env("DIANA_ZCODE_EXE", executable)
         .env("DIANA_POWERSHELL_EXE", powershell);
+    // Only reached after the native per-launch consent gate below. Legacy/local
+    // adapters ignore this extra flag; the new public adapter also enforces it.
+    if action == "start" { command.arg("--approved"); }
     configure_windows_powershell_environment(&mut command)?;
     hide_console(&mut command);
     let output = command
@@ -2734,6 +2812,8 @@ fn run_zcode_adapter(
         "ZCode 版本与本机已验证适配版本不一致，本次没有开启调试端口。".to_string()
     } else if details.contains("ZCODE_SIGNATURE_MISMATCH") {
         "ZCode 数字签名核验失败，本次没有开启调试端口。".to_string()
+    } else if details.contains("ZCODE_RESOURCE_MISMATCH") {
+        "ZCode 程序资源与 3.16.3.8992 已适配发行包不一致；没有修改安装文件或开启调试端口。请反馈具体安装版本。".to_string()
     } else if details.contains("POWERSHELL_NOT_FOUND")
         || details.contains("POWERSHELL_PREFLIGHT_FAILED")
         || details.contains("POWERSHELL_PREFLIGHT_INVALID_JSON")
@@ -2752,12 +2832,16 @@ fn run_zcode_adapter(
 
 fn zcode_status() -> ExternalTargetStatus {
     let executable = zcode_executable();
-    let registration = crate::local_zcode_runtime::load();
+    let selection = executable.as_deref().map(|exe| zcode_runtime_selection(exe, false)).transpose();
     let snapshot = detect_named_processes(&["zcode.exe"], executable.as_deref());
-    let session = read_zcode_session();
+    let selected = selection.as_ref().ok().and_then(|value| value.as_ref());
+    let session = selected.and_then(|value| read_zcode_session(&value.root));
+    let bundle_error = selected.filter(|value| value.kind == ZcodeRuntimeKind::Bundled && snapshot.process_count == 0)
+        .and_then(|value| cached_adapter_check("zcode", &value.root, &value.root).err());
     let managed_debug = session
         .as_ref()
-        .map(|record| zcode_session_matches(&snapshot, record))
+        .zip(selected)
+        .map(|(record, selected)| zcode_session_matches(&snapshot, record, selected))
         .unwrap_or(false);
     let themed = managed_debug
         && session
@@ -2770,11 +2854,13 @@ fn zcode_status() -> ExternalTargetStatus {
         .map(zcode_has_loopback_debug)
         .unwrap_or(false)
         && !managed_debug;
-    let runtime_root = zcode_runtime_root().ok();
+    let runtime_root = selected.map(|value| value.root.clone());
     let (stage, message) = if executable.is_none() {
         ("zcode_not_installed", "未检测到 ZCode。".to_string())
-    } else if let Err(error) = &registration {
+    } else if let Err(error) = &selection {
         ("zcode_adapter_invalid", error.clone())
+    } else if let Some(error) = bundle_error {
+        ("zcode_bundle_invalid", format!("内置 ZCode 适配文件校验失败：{error}。点击可从启动器内置资源重新校验；不会改写会话或登录态。"))
     } else if themed {
         let mode = session
             .as_ref()
@@ -2821,15 +2907,10 @@ fn zcode_status() -> ExternalTargetStatus {
     } else {
         (
             "zcode_ready",
-            match &registration {
-                Ok(Some(local)) => format!("本机 ZCode {} 适配已关联；点击后校验文件、版本与官方签名，确认风险后挂载。", local.file_version),
-                Ok(None) => format!(
-                    "内置适配限 ZCode 3.6.5.4145；未找到本机适配登记：{}。新版需要单独关联已确认的本机适配器，不会直接放开版本校验。",
-                    crate::local_zcode_runtime::registration_path()
-                        .map(|path| path.display().to_string())
-                        .unwrap_or_else(|error| error),
-                ),
-                Err(error) => error.clone(),
+            match selected {
+                Some(selected) if selected.kind == ZcodeRuntimeKind::Local => format!("本机 ZCode {} 适配已关联；保留原恢复记录，确认风险后挂载。", selected.version),
+                Some(selected) => format!("内置 ZCode {} 适配已就绪，无需另装适配器或本机登记；确认风险后核验资源并挂载。", selected.version),
+                None => "未找到 ZCode。".into(),
             },
         )
     };
@@ -2838,7 +2919,7 @@ fn zcode_status() -> ExternalTargetStatus {
         stage: stage.to_string(),
         running: snapshot.process_count > 0,
         themed,
-        theme_state: if stage == "zcode_adapter_invalid" {
+        theme_state: if matches!(stage, "zcode_adapter_invalid" | "zcode_bundle_invalid") {
             "blocked"
         } else if stage == "zcode_waiting_workspace" {
             "pending"
@@ -2874,8 +2955,7 @@ fn launch_zcode_theme(mode: &str, approved: bool) -> Result<ExternalTargetStatus
         .as_ref()
         .map(PathBuf::from)
         .ok_or_else(|| "未检测到 ZCode。".to_string())?;
-    validate_zcode_target(&executable, true)?;
-    let root = ensure_zcode_runtime()?;
+    let selection = zcode_runtime_selection(&executable, true)?;
 
     if before.running && !before.themed && !matches!(before.stage.as_str(), "zcode_theme_disabled" | "zcode_waiting_workspace") {
         return Ok(before);
@@ -2885,6 +2965,7 @@ fn launch_zcode_theme(mode: &str, approved: bool) -> Result<ExternalTargetStatus
     if action == "start" && !approved {
         return Err("本次 ZCode 启动尚未确认调试端口风险。".into());
     }
+    let root = ensure_zcode_runtime(&selection)?;
     run_zcode_adapter(&root, &executable, action, mode)?;
     std::thread::sleep(Duration::from_millis(450));
     let status = zcode_status();
@@ -2905,7 +2986,8 @@ fn launch_zcode_native() -> Result<ExternalTargetStatus, String> {
         .ok_or_else(|| "未检测到 ZCode。".to_string())?;
 
     if before.themed {
-        let root = ensure_zcode_runtime()?;
+        let selection = zcode_runtime_selection(&executable, true)?;
+        let root = ensure_zcode_runtime(&selection)?;
         run_zcode_adapter(&root, &executable, "disable", "system")?;
         std::thread::sleep(Duration::from_millis(250));
         return Ok(zcode_status());
@@ -2991,7 +3073,7 @@ mod tests {
             SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos(),
         ));
         assert!(!base.exists());
-        for target in ["cursor", "grokbot"] {
+        for target in ["cursor", "grokbot", "zcode"] {
             let bundled = crate::reviewed_adapters::root(&base, target).unwrap();
             assert!(super::check_adapter_for_status(target, &bundled, &bundled).is_ok());
             assert!(super::check_adapter_for_status(target, &base.join("private"), &bundled).is_err());
@@ -3000,7 +3082,7 @@ mod tests {
         assert!(!base.exists(), "passive status must not extract any file");
         fs::create_dir(&base).unwrap();
         fs::write(base.join("SHA256SUMS.txt"), "invalid fixture manifest").unwrap();
-        for target in ["cursor", "grokbot"] {
+        for target in ["cursor", "grokbot", "zcode"] {
             assert!(super::check_adapter_for_status(target, &base, &base).is_err());
         }
         assert_eq!(fs::read(base.join("SHA256SUMS.txt")).unwrap(), b"invalid fixture manifest");
@@ -3016,7 +3098,7 @@ mod tests {
             SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos(),
         ));
         assert!(!base.exists());
-        for target in ["cursor", "grokbot"] {
+        for target in ["cursor", "grokbot", "zcode"] {
             let root = crate::reviewed_adapters::ensure(&base, target, super::RUNTIME_FILES).unwrap();
             fs::create_dir(root.join("state")).unwrap();
             let state = root.join("state/session.json");
@@ -3078,6 +3160,87 @@ mod tests {
             count += 1;
         }
         assert_eq!(count, 9);
+    }
+
+    fn zcode_report(version: &str) -> super::ZcodeTrustReport {
+        super::ZcodeTrustReport { file_version: version.into(), product_version: version.into(),
+            signature: "Valid".into(), signer_thumbprint: super::EXPECTED_ZCODE_SIGNER_THUMBPRINT.into() }
+    }
+
+    #[test]
+    fn zcode_public_version_selection_is_exact_and_preserves_signatures() {
+        for (version, expected) in [(super::CURRENT_ZCODE_VERSION, super::ZcodeRuntimeKind::Bundled),
+            (super::EXPECTED_ZCODE_VERSION, super::ZcodeRuntimeKind::Legacy)] {
+            assert_eq!(super::bundled_zcode_kind(&zcode_report(version)).unwrap(), expected);
+        }
+        for version in ["3.16.3.0", "3.16.4.8992", "3.11.2.6792"] {
+            assert!(super::bundled_zcode_kind(&zcode_report(version)).is_err());
+        }
+        let mut report = zcode_report(super::CURRENT_ZCODE_VERSION);
+        report.product_version = super::EXPECTED_ZCODE_VERSION.into();
+        assert!(super::bundled_zcode_kind(&report).is_err());
+        report = zcode_report(super::CURRENT_ZCODE_VERSION);
+        report.signature = "UnknownError".into();
+        assert!(super::bundled_zcode_kind(&report).is_err());
+        report.signature = "Valid".into(); report.signer_thumbprint = "untrusted".into();
+        assert!(super::bundled_zcode_kind(&report).is_err());
+    }
+
+    #[test]
+    fn zcode_clean_user_needs_no_local_registration_and_old_state_is_preserved() {
+        let base = std::env::temp_dir().join(format!("diana-zcode-clean-{}-{}", std::process::id(),
+            SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos()));
+        let modern = super::bundled_zcode_selection_at(&base, &zcode_report(super::CURRENT_ZCODE_VERSION)).unwrap();
+        let legacy = super::bundled_zcode_selection_at(&base, &zcode_report(super::EXPECTED_ZCODE_VERSION)).unwrap();
+        assert!(!base.exists(), "version selection must not extract files");
+        assert_ne!(modern.root, legacy.root);
+        assert!(legacy.root.ends_with("DianaZCodeTheme/experimental-3.6.5"));
+        assert_eq!(modern.adapter, crate::reviewed_adapters::version("zcode"));
+        fs::create_dir_all(legacy.root.join("state")).unwrap();
+        let old_state = legacy.root.join("state/session.json");
+        fs::write(&old_state, "legacy fixture: preserve").unwrap();
+        let extracted = crate::reviewed_adapters::ensure(&base.join("DianaCodexLauncher").join(super::MULTI_APP_CHANNEL), "zcode", super::RUNTIME_FILES).unwrap();
+        assert_eq!(extracted, modern.root);
+        assert!(extracted.join("adapter.mjs").is_file());
+        assert!(extracted.join("rules.mjs").is_file());
+        assert!(extracted.join("runtime-template.js").is_file());
+        assert!(extracted.join("assets/diana-corner-cutout-v2.png").is_file());
+        crate::reviewed_adapters::verify(&extracted, "zcode").unwrap();
+        assert!(!base.join("DianaZCodeTheme/local-runtime.json").exists());
+        assert_eq!(fs::read_to_string(&old_state).unwrap(), "legacy fixture: preserve");
+        assert_eq!(base.parent().unwrap(), std::env::temp_dir());
+        fs::remove_dir_all(&base).unwrap();
+    }
+
+    #[test]
+    fn zcode_new_and_old_sessions_cannot_be_interchanged() {
+        let base = std::env::temp_dir().join("diana-zcode-session-fixture-unused");
+        let selected = super::bundled_zcode_selection_at(&base, &zcode_report(super::CURRENT_ZCODE_VERSION)).unwrap();
+        let snapshot = super::ProcessSnapshot { main_process_id: Some(123),
+            main_command: Some("zcode.exe --remote-debugging-address=127.0.0.1 --remote-debugging-port=50123".into()),
+            ..Default::default() };
+        let mut session = super::ZcodeSessionRecord {status:"mounted".into(), adapter_version:selected.adapter.clone(),
+            version:selected.version.clone(), pid:123, port:50123, theme:"dark".into()};
+        assert!(super::zcode_session_matches(&snapshot, &session, &selected));
+        session.adapter_version = "local-3.16.3-v1".into();
+        assert!(!super::zcode_session_matches(&snapshot, &session, &selected));
+        session.adapter_version = selected.adapter.clone(); session.pid = 124;
+        assert!(!super::zcode_session_matches(&snapshot, &session, &selected));
+    }
+
+    #[test]
+    fn zcode_discovery_validates_file_and_resource_layout() {
+        let base = std::env::temp_dir().join(format!("diana-zcode-discovery-{}-{}", std::process::id(),
+            SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos()));
+        fs::create_dir_all(base.join("resources")).unwrap();
+        let exe = base.join("ZCode.exe");
+        fs::write(&exe, "fixture only, not executable").unwrap();
+        assert!(!super::zcode_install_path(&exe));
+        fs::write(base.join("resources/app.asar"), "fixture").unwrap();
+        assert!(super::zcode_install_path(&exe));
+        assert!(!super::zcode_install_path(&base.join("Other.exe")));
+        assert_eq!(base.parent().unwrap(), std::env::temp_dir());
+        fs::remove_dir_all(base).unwrap();
     }
 
     #[test]

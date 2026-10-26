@@ -3,11 +3,14 @@ use std::fs;
 use std::path::{Component, Path, PathBuf};
 
 include!("reviewed_adapter_files.rs");
+#[path = "reviewed_zcode.rs"]
+mod zcode;
 
 fn files(target: &str) -> Result<&'static [(&'static str, &'static [u8])], String> {
     match target {
         "cursor" => Ok(CURSOR_FILES),
         "grokbot" => Ok(GROKBOT_FILES),
+        "zcode" => Ok(zcode::FILES),
         _ => Err("未知适配器。".into()),
     }
 }
@@ -16,6 +19,7 @@ pub fn version(target: &str) -> &'static str {
     match target {
         "cursor" => CURSOR_VERSION,
         "grokbot" => GROKBOT_VERSION,
+        "zcode" => zcode::VERSION,
         _ => "",
     }
 }
@@ -143,7 +147,7 @@ mod tests {
     }
     #[test]
     fn embedded_manifests_are_exact_not_self_trusting() {
-        for target in ["cursor", "grokbot"] {
+        for target in ["cursor", "grokbot", "zcode"] {
             let content = files(target)
                 .unwrap()
                 .iter()

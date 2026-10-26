@@ -756,16 +756,17 @@ function App() {
     ) {
       const runtimeRoot =
         externalStatus.themeRoot ??
-        "%LOCALAPPDATA%\\DianaZCodeTheme\\experimental-3.6.5";
+        "%LOCALAPPDATA%\\DianaCodexLauncher\\multi-app-v1\\reviewed-runtimes\\zcode";
       const accepted = window.confirm(
         [
           "即将优先为 ZCode 挂载完整 Diana 日夜美术。",
           "",
-          "启动器核验本机适配记录指定的精确 ZCode 版本、官方数字签名与适配文件校验值，然后以 --remote-debugging-address=127.0.0.1 和随机高位端口启动 ZCode。短时 Node.js 适配器完成界面探测与挂载后立即退出；不修改 ZCode.exe、app.asar 或安装目录，也不创建服务、计划任务、自启动项或后台 watcher。",
+          "内置适配支持 ZCode 3.6.5.4145 / 3.16.3.8992，无需另装个人适配登记。启动器核验精确版本、官方数字签名与适配文件，新版另核验程序资源摘要，然后以 --remote-debugging-address=127.0.0.1 和随机高位端口启动 ZCode。短时 Node.js 适配器完成界面探测与挂载后立即退出；不修改 ZCode.exe、app.asar 或安装目录，也不创建服务、计划任务、自启动项或后台 watcher。",
           "",
           "临时调试端口没有身份认证。同一 Windows 账户下的其他本地进程可能发现它，读取当前可见界面、执行渲染页脚本或截图。回环地址不能消除这一风险；必须完整退出所有本次 ZCode 进程，端口才会关闭。",
           "",
           `本机适配器：${runtimeRoot}`,
+          `目标程序：${externalStatus.executable ?? "当前关联的 ZCode.exe"}`,
           `事件日志：${runtimeRoot}\\logs\\events.jsonl（不记录会话正文、DOM、截图、Cookie、令牌或 WebSocket 地址）`,
           "",
           "是否了解风险并继续完整挂载？"
@@ -1195,6 +1196,9 @@ function App() {
           ? "打开 DeepSeek 网页端"
           : "启动 DeepSeek 网页端";
       case "zcode":
+        if (externalStatus.stage === "zcode_bundle_invalid") {
+          return "重新校验并挂载";
+        }
         if (externalStatus.stage === "zcode_adapter_invalid") {
           return "请检查适配登记";
         }

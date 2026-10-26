@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
+import { directory as modernZcodeRoot, runtimeFiles as modernZcodeFiles } from './zcode-runtime-files.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const source = fs.readFileSync(path.join(root, 'src-tauri/src/reviewed_adapter_files.rs'), 'utf8');
 const catalog = JSON.parse(fs.readFileSync(path.join(root, 'src-tauri/resources/theme-packs/catalog.json'), 'utf8'));
@@ -15,6 +16,19 @@ for (const line of fs.readFileSync(path.join(zcodeRoot,'manifest.sha256'),'utf8'
   zcodeFiles++;
 }
 if (zcodeFiles !== 9 || !fs.readFileSync(path.join(root,'.gitattributes'),'utf8').includes('src-tauri/resources/theme-packs/zcode/runtime/** text eol=lf')) throw new Error('ZCode manifest or LF protection incomplete');
+const modernManifest = new Map(fs.readFileSync(path.join(modernZcodeRoot, 'SHA256SUMS.txt'), 'utf8').trim().split('\n').map(line => {
+  const match = /^([a-f0-9]{64})  ([A-Za-z0-9._/-]+)$/.exec(line);
+  if (!match) throw new Error('Invalid modern ZCode manifest');
+  return [match[2], match[1]];
+}));
+if (modernManifest.size !== modernZcodeFiles.size) throw new Error('Modern ZCode manifest incomplete');
+for (const [name, file] of modernZcodeFiles) {
+  const bytes = fs.readFileSync(file);
+  if (createHash('sha256').update(bytes).digest('hex') !== modernManifest.get(name)) throw new Error(`Modern ZCode hash mismatch: ${name}`);
+  if (!name.startsWith('assets/') && bytes.includes(13)) throw new Error(`Expected LF-only public ZCode file: ${name}`);
+}
+const modernCatalog = catalog.targets.find(t => t.id === 'zcode');
+if (!modernCatalog.bundlesAdapterRuntime || !modernCatalog.supportedVersions?.includes('3.16.3.8992')) throw new Error('Modern ZCode catalog missing');
 let checked = 0;
 for (const target of ['cursor','grokbot']) {
   const base = path.join(root, 'src-tauri/resources/theme-packs', target, 'runtime');
@@ -52,4 +66,4 @@ for (const target of ['cursor','grokbot']) {
 }
 const doubao = JSON.parse(fs.readFileSync(path.join(root, 'src-tauri/resources/theme-packs/doubao/extension/manifest.json'), 'utf8'));
 if (!fs.readFileSync(path.join(root,'src-tauri/src/external_targets.rs'),'utf8').includes(`DOUBAO_THEME_VERSION: &str = "${doubao.version}"`)) throw new Error('Doubao version mismatch');
-console.log(`Reviewed runtime integrity OK (${checked} Cursor/Grok + ${zcodeFiles} ZCode protected files; shared PNGs not duplicated).`);
+console.log(`Reviewed runtime integrity OK (${checked} Cursor/Grok + ${zcodeFiles} legacy ZCode + ${modernManifest.size} current ZCode protected files; shared PNGs not duplicated).`);
