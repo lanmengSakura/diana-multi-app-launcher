@@ -24,7 +24,9 @@ test('desktop bundle uses official plugin lifecycle and no debugging/network API
   const client=readFileSync(new URL('client.js',path),'utf8');
   assert.ok(client.includes('overrideTokens'));
   for(const forbidden of ['fetch(', 'WebSocket(', 'localStorage', 'sessionStorage', 'textContent.toString', 'remote-debugging'])assert.ok(!client.includes(forbidden),forbidden);
-  const payload=JSON.parse(client.match(/const \{ css, tokens \} = (.*);\n/)[1]);
+  const payloadLine=client.match(/^[ \t]*const \{ css, tokens \} = (.+);$/m);
+  assert.ok(payloadLine, 'generated client must include the theme payload');
+  const payload=JSON.parse(payloadLine[1]);
   for(const pair of Object.values(payload.tokens)){assert.equal(typeof pair.light,'string');assert.equal(typeof pair.dark,'string');}
   assert.ok(!payload.css.includes('/diana-brand/'));
   assert.ok(!payload.css.includes('asset:'));

@@ -208,14 +208,14 @@ function buildPayload(requestedMode) {
   const bridgeCss = `
 html.diana-theme-host .diana-skin-surface {
   isolation: isolate;
-  overflow: hidden;
 }
 html.diana-theme-host .diana-skin-surface > #diana-theme-chrome {
   position: absolute !important;
   inset: 0 !important;
   width: auto !important;
   height: auto !important;
-  z-index: 0 !important;
+  /* Paint over the isolated surface's background and below its native children. */
+  z-index: -1 !important;
 }
 html.diana-theme-host #diana-theme-chrome {
   pointer-events: none !important;
@@ -246,7 +246,6 @@ function bootstrap(payload) {
     version: payload.adapterVersion,
     requestedMode: payload.requestedMode,
     surface: null,
-    foreground: null,
     mutationObserver: null,
     intersectionObserver: null,
     media: window.matchMedia('(prefers-color-scheme: dark)'),
@@ -312,10 +311,32 @@ html.diana-theme-host.diana-mode-light { --diana-image-character: var(--diana-im
     root.classList.toggle('diana-mode-light', !dark);
   }
 
+  const composerSelector = '[data-composer-layout][data-composer-surface-variant], [class*="_ComposerLayoutRoot_"]';
+  const homeSelector = '[data-vscode-context*="chatgpt.supportsNewChatMenu"]';
+  const currentRailSelector = '[data-thread-user-message-navigation-rail-list]';
+  const threadLayoutSelector = '[data-request-input-activity-root]';
+  const homeLayoutSelector = '[class~="group/home-composer-layout"]';
+  const isHomeSurface = (surface) => surface?.matches(homeSelector) || surface?.matches(homeLayoutSelector);
+
+  function visibleElement(scope, selector) {
+    return [...scope.querySelectorAll(selector)].find((node) => {
+      if (node.closest('[hidden], [inert], [aria-hidden="true"], [data-app-shell-active-page="false"]')) return false;
+      const rect = node.getBoundingClientRect();
+      return rect.height > 0 && rect.width > 0 && rect.bottom > 0 && rect.right > 0 &&
+        rect.top < window.innerHeight && rect.left < window.innerWidth && getComputedStyle(node).visibility === 'visible';
+    });
+  }
+
   function findSurface() {
-    const composer = doc.querySelector('[class*="_ComposerLayoutRoot_"]');
-    const thread = doc.querySelector('.thread-scroll-container');
-    const main = composer?.closest('main') || thread?.closest('main') || doc.querySelector('main');
+    const home = visibleElement(doc, homeSelector);
+    const layout = visibleElement(home || doc, homeLayoutSelector);
+    if (layout && !layout.querySelector('[data-user-message-bubble], [data-thread-user-message-navigation-item-id]')) return layout;
+    if (home && visibleElement(home, '[data-testid="home-icon"]')) return home;
+    const thread = visibleElement(doc, '.thread-scroll-container');
+    const composer = visibleElement(doc, composerSelector);
+    const threadLayout = thread?.closest(threadLayoutSelector);
+    const main = threadLayout || thread?.closest('main') ||
+      composer?.closest('main') || visibleElement(doc, 'main');
     if (main) return main;
     const sidebar = doc.querySelector('aside.app-shell-left-panel');
     const rootChild = sidebar?.parentElement;
@@ -343,43 +364,76 @@ html.diana-theme-host.diana-mode-light { --diana-image-character: var(--diana-im
     return chrome;
   }
 
-  function directSurfaceChild(surface, anchor) {
-    if (!surface || !anchor || !surface.contains(anchor)) return null;
-    let node = anchor;
-    while (node.parentElement && node.parentElement !== surface) node = node.parentElement;
-    return node.parentElement === surface ? node : null;
-  }
-
-  function findForeground(surface) {
-    const thread = doc.querySelector('.thread-scroll-container');
-    const composer = doc.querySelector('[class*="_ComposerLayoutRoot_"]');
-    const threadChild = directSurfaceChild(surface, thread);
-    const composerChild = directSurfaceChild(surface, composer);
-    if (threadChild && composerChild && threadChild === composerChild) return threadChild;
-    return threadChild ?? composerChild;
-  }
-
   function ensureSurface() {
     const surface = findSurface();
-    if (!surface) return false;
     if (state.surface && state.surface !== surface) {
       state.surface.classList.remove('diana-skin-surface');
       state.surface.querySelector(':scope > #diana-theme-chrome')?.remove();
-    }
-    const foreground = findForeground(surface);
-    if (state.foreground && state.foreground !== foreground) {
-      state.foreground.classList.remove('diana-skin-foreground');
+      if (state.surface.dataset.dianaPositionPatched === 'true') {
+        state.surface.style.removeProperty('position');
+        delete state.surface.dataset.dianaPositionPatched;
+      }
     }
     state.surface = surface;
-    state.foreground = foreground;
+    if (!surface) return false;
     surface.classList.add('diana-skin-surface');
-    foreground?.classList.add('diana-skin-foreground');
     if (getComputedStyle(surface).position === 'static') {
       surface.dataset.dianaPositionPatched = 'true';
       surface.style.position = 'relative';
     }
-    if (!surface.querySelector(':scope > #diana-theme-chrome')) surface.prepend(makeChrome());
+    let chrome = surface.querySelector(':scope > #diana-theme-chrome');
+    if (!chrome) {
+      chrome = makeChrome();
+      surface.prepend(chrome);
+    }
+    chrome.classList.toggle('dream-home-shell', Boolean(isHomeSurface(surface)));
     return true;
+  }
+
+  // Only the decorative footer backdrops span the empty margins. Keep their
+  // native fade behind all controls, including expanded prompts and attachments.
+  const footerLayers = new Set();
+  let observedFooter = null;
+  const footerObserver = new ResizeObserver(scheduleRefresh);
+  function clearFooterLayer(layer) {
+    layer.classList.remove('diana-footer-backing');
+    layer.style.removeProperty('--diana-footer-left');
+    layer.style.removeProperty('--diana-footer-right');
+  }
+  function refreshFooter() {
+    const footer = state.surface?.querySelector('[data-thread-scroll-footer]');
+    const column = footer && !isHomeSurface(state.surface)
+      ? footer.querySelector('[data-pip-obstacle="thread-footer"]') : null;
+    if (column !== observedFooter) {
+      footerObserver.disconnect();
+      observedFooter = column;
+      if (column) {
+        footerObserver.observe(column);
+        footerObserver.observe(footer);
+      }
+    }
+    const next = new Set();
+    if (column) {
+      const controls = column.getBoundingClientRect();
+      const leading = footer.querySelector('[data-pip-obstacle="thread-footer-leading"] > :first-child');
+      const leadingRect = leading?.getBoundingClientRect();
+      const left = leadingRect?.width ? Math.min(controls.left, leadingRect.left) : controls.left;
+      const right = leadingRect?.width ? Math.max(controls.right, leadingRect.right) : controls.right;
+      const layout = footer.closest('[data-request-input-activity-root]') || footer.closest('.thread-scroll-container');
+      const surfaces = footer.querySelectorAll(':scope > [aria-hidden="true"].pointer-events-none.bg-surface');
+      const fades = layout?.querySelectorAll('[aria-hidden="true"].sticky.bottom-0 > [aria-hidden="true"].pointer-events-none.from-surface') ?? [];
+      for (const layer of [...surfaces, ...fades]) {
+        const frame = layer.getBoundingClientRect();
+        if (!controls.width || frame.width <= right - left + 48) continue;
+        layer.style.setProperty('--diana-footer-left', Math.max(0, left - frame.left - 24) + 'px');
+        layer.style.setProperty('--diana-footer-right', Math.max(0, frame.right - right - 24) + 'px');
+        layer.classList.add('diana-footer-backing');
+        next.add(layer);
+      }
+    }
+    for (const layer of footerLayers) if (!next.has(layer)) clearFooterLayer(layer);
+    footerLayers.clear();
+    for (const layer of next) footerLayers.add(layer);
   }
 
   function panelHeadingRow() {
@@ -454,10 +508,16 @@ html.diana-theme-host.diana-mode-light { --diana-image-character: var(--diana-im
     dense: { pattern: [.23,.31,.26,.36,.28,.33,.24,.35,.29,.27,.37,.25,.32,.28,.34,.24,.36,.30,.26,.33,.23,.35,.27,.31,.25,.34,.29,.24,.32], majors: [.42,.47,.40,.45,.43,.48,.41,.46,.44] },
   };
 
-  function ensureRail() {
-    const nav = doc.querySelector('nav[aria-label="用户消息"],nav[aria-label="User messages"]');
-    if (!nav) return 0;
-    const buttons = [...nav.querySelectorAll(':scope button')];
+  function railButtons() {
+    const scope = state.surface;
+    if (!scope || isHomeSurface(scope)) return [];
+    const list = visibleElement(scope, currentRailSelector);
+    if (list) return [...list.querySelectorAll('button[data-thread-user-message-navigation-item-id]')];
+    const nav = visibleElement(scope, 'nav[aria-label="用户消息"],nav[aria-label="User messages"]');
+    return nav ? [...nav.querySelectorAll('button')] : [];
+  }
+
+  function ensureRail(buttons) {
     const profile = buttons.length <= 32 ? profiles.sparse : buttons.length <= 96 ? profiles.balanced : profiles.dense;
     buttons.forEach((button, index) => {
       const block = Math.floor(index / profile.pattern.length);
@@ -465,12 +525,14 @@ html.diana-theme-host.diana-mode-light { --diana-image-character: var(--diana-im
       const major = index % 5 === 0;
       const scale = major ? profile.majors[Math.floor(index / 5) % profile.majors.length] : profile.pattern[slot];
       button.style.setProperty('--diana-art-scale', String(scale));
-      button.toggleAttribute('data-diana-rail-major', major);
+      if (major) button.setAttribute('data-diana-rail-major', 'true');
+      else button.removeAttribute('data-diana-rail-major');
     });
     return buttons.length;
   }
 
   function userMessageNodes() {
+    if (!state.surface) return [];
     const selectors = [
       '[data-message-author-role="user"]',
       '[data-message-role="user"]',
@@ -479,66 +541,94 @@ html.diana-theme-host.diana-mode-light { --diana-image-character: var(--diana-im
     ];
     const found = [];
     for (const selector of selectors) {
-      for (const node of doc.querySelectorAll(selector)) if (!found.includes(node)) found.push(node);
+      for (const node of state.surface.querySelectorAll(selector)) if (!found.includes(node)) found.push(node);
     }
     return found.filter((node) => node.getBoundingClientRect().height > 0);
   }
 
-  function updateViewportCurrent() {
-    const nav = doc.querySelector('nav[aria-label="用户消息"],nav[aria-label="User messages"]');
-    if (!nav) return;
-    const buttons = [...nav.querySelectorAll(':scope button')];
-    const messages = userMessageNodes();
-    if (!messages.length || Math.abs(messages.length - buttons.length) > 2) return;
-    const scroller = doc.querySelector('.thread-scroll-container') || doc.scrollingElement;
+  function updateViewportCurrent(buttons = railButtons()) {
+    if (!buttons.length) return;
+    const scroller = visibleElement(state.surface, '.thread-scroll-container') || doc.scrollingElement;
     const bounds = scroller === doc.scrollingElement
       ? { top: 0, bottom: window.innerHeight }
       : scroller.getBoundingClientRect();
     const center = (bounds.top + bounds.bottom) / 2;
-    let best = -1;
+    const keyed = buttons[0].hasAttribute('data-thread-user-message-navigation-item-id');
+    const selected = keyed ? buttons.filter((button) => button.getAttribute('aria-current') === 'true') : [];
+    let current = selected.length === 1 ? selected[0] : null;
+    const candidates = selected.length ? selected : buttons;
+    const byKey = new Map();
+    if (keyed && !current) {
+      for (const button of candidates) byKey.set(button.dataset.threadUserMessageNavigationItemId, button);
+    }
+    const messages = current ? [] : keyed
+      ? state.surface.querySelectorAll('[data-content-search-unit-key]')
+      : userMessageNodes();
+    if (!keyed && Math.abs(messages.length - buttons.length) > 2) return;
     let distance = Infinity;
     messages.forEach((message, index) => {
+      const button = keyed ? byKey.get(message.dataset.contentSearchUnitKey) : buttons[index];
+      if (!button) return;
       const rect = message.getBoundingClientRect();
       if (rect.bottom < bounds.top || rect.top > bounds.bottom) return;
       const d = Math.abs((rect.top + rect.bottom) / 2 - center);
-      if (d < distance) { distance = d; best = index; }
+      if (d < distance) { distance = d; current = button; }
     });
-    if (best < 0) return;
-    buttons.forEach((button, index) => button.toggleAttribute('data-diana-viewport-current', index === best));
+    current ??= selected[0];
+    for (const button of buttons) {
+      if (button === current) button.setAttribute('data-diana-viewport-current', 'true');
+      else button.removeAttribute('data-diana-viewport-current');
+    }
   }
 
   function refresh() {
+    if (window[KEY] !== state) return;
     state.scheduled = false;
     setMode();
     ensureSurface();
+    refreshFooter();
     ensurePanelHeadingStar();
-    ensureRail();
-    updateViewportCurrent();
+    const buttons = railButtons();
+    ensureRail(buttons);
+    updateViewportCurrent(buttons);
   }
 
   function scheduleRefresh() {
-    if (state.scheduled) return;
+    if (window[KEY] !== state || state.scheduled) return;
     state.scheduled = true;
     requestAnimationFrame(refresh);
   }
 
   function scheduleViewportRefresh() {
-    if (state.viewportScheduled) return;
+    if (window[KEY] !== state || state.viewportScheduled) return;
     state.viewportScheduled = true;
     requestAnimationFrame(() => {
+      if (window[KEY] !== state) return;
       state.viewportScheduled = false;
       updateViewportCurrent();
     });
   }
 
-  state.mutationObserver = new MutationObserver(scheduleRefresh);
-  state.mutationObserver.observe(root, { subtree: true, childList: true });
+  // Codex keeps inactive pages in the DOM. A minimized renderer may pause
+  // animation frames, so handle a native tab change after the DOM commit.
+  state.mutationObserver = new MutationObserver((records) => {
+    if (records.some(record => record.attributeName === 'data-app-shell-active-page')) refresh();
+    else scheduleRefresh();
+  });
+  state.mutationObserver.observe(root, {
+    subtree: true, childList: true, attributes: true,
+    attributeFilter: ['aria-current', 'hidden', 'inert', 'aria-hidden', 'data-expanded-composer', 'data-app-shell-active-page'],
+  });
   state.media.addEventListener?.('change', scheduleRefresh);
   window.addEventListener('resize', scheduleRefresh, { passive: true });
   doc.addEventListener('click', scheduleRefresh, { passive: true, capture: true });
   doc.addEventListener('scroll', scheduleViewportRefresh, { passive: true, capture: true });
 
   state.disable = () => {
+    footerObserver.disconnect();
+    for (const layer of footerLayers) clearFooterLayer(layer);
+    footerLayers.clear();
+    if (window[KEY] === state) delete window[KEY];
     state.mutationObserver?.disconnect();
     state.intersectionObserver?.disconnect();
     state.media.removeEventListener?.('change', scheduleRefresh);
@@ -547,7 +637,7 @@ html.diana-theme-host.diana-mode-light { --diana-image-character: var(--diana-im
     doc.removeEventListener('scroll', scheduleViewportRefresh, true);
     doc.getElementById(payload.styleId)?.remove();
     doc.querySelectorAll('[data-diana-injected="heading-star"],[data-diana-injected="panel-heading-star"]').forEach((node) => node.remove());
-    doc.querySelectorAll('nav[aria-label="用户消息"] button,nav[aria-label="User messages"] button').forEach((button) => {
+    doc.querySelectorAll('[data-diana-rail-major], [data-diana-viewport-current], nav[aria-label="用户消息"] button, nav[aria-label="User messages"] button, [data-thread-user-message-navigation-rail-list] button').forEach((button) => {
       button.removeAttribute('data-diana-rail-major');
       button.removeAttribute('data-diana-viewport-current');
       button.style.removeProperty('--diana-art-scale');
@@ -560,13 +650,9 @@ html.diana-theme-host.diana-mode-light { --diana-image-character: var(--diana-im
         delete surface.dataset.dianaPositionPatched;
       }
     });
-    doc.querySelectorAll('.diana-skin-foreground').forEach((foreground) => {
-      foreground.classList.remove('diana-skin-foreground');
-    });
     root.classList.remove('diana-theme-host', 'diana-mode-dark', 'diana-mode-light');
     delete root.dataset.dianaRequestedMode;
     Object.keys(variableMap).forEach((name) => root.style.removeProperty(name));
-    delete window[KEY];
     return true;
   };
 
@@ -578,7 +664,7 @@ html.diana-theme-host.diana-mode-light { --diana-image-character: var(--diana-im
     mode: root.classList.contains('diana-mode-dark') ? 'dark' : 'light',
     surfaceFound: Boolean(state.surface),
     overlayFound: Boolean(doc.getElementById('diana-theme-chrome')),
-    railButtons: doc.querySelectorAll('nav[aria-label="用户消息"] button,nav[aria-label="User messages"] button').length,
+    railButtons: railButtons().length,
     semanticUserMessages: userMessageNodes().length,
   };
 }
@@ -624,17 +710,27 @@ function capabilityExpression() {
     const doc = document;
     const root = doc.documentElement;
     const body = doc.body;
-    const main = doc.querySelector('main');
-    const composer = doc.querySelector('[class*="_ComposerLayoutRoot_"]');
-    const thread = doc.querySelector('.thread-scroll-container');
-    const sidebar = doc.querySelector('aside.app-shell-left-panel');
+    const visible = node => {
+      if (node.closest('[hidden], [inert], [aria-hidden="true"], [data-app-shell-active-page="false"]')) return false;
+      const box = node.getBoundingClientRect();
+      return box.width > 0 && box.height > 0 && box.bottom > 0 && box.right > 0 &&
+        box.top < innerHeight && box.left < innerWidth && getComputedStyle(node).visibility === 'visible';
+    };
+    const find = selector => [...doc.querySelectorAll(selector)].find(visible);
+    const main = find('main');
+    const composer = find('[data-composer-layout][data-composer-surface-variant], [class*="_ComposerLayoutRoot_"]');
+    const thread = find('.thread-scroll-container');
+    const sidebar = find('aside.app-shell-left-panel');
     const shellParent = sidebar?.parentElement ?? null;
     const shellSibling = shellParent
       ? [...shellParent.children].find((child) => child !== sidebar) ?? null
       : null;
-    const surface = composer?.closest('main') || thread?.closest('main') || main || shellSibling;
+    const home = [...doc.querySelectorAll('[data-vscode-context*="chatgpt.supportsNewChatMenu"]')]
+      .find((node) => visible(node) &&
+        node.querySelector('[data-testid="home-icon"], [class~="group/home-composer-layout"]'));
+    const surface = home || thread?.closest('main') || composer?.closest('main') || main || shellSibling;
     const rect = surface?.getBoundingClientRect() ?? null;
-    const shellSignalCount = [main, composer, thread, sidebar].filter(Boolean).length;
+    const shellSignalCount = [main, composer, thread, sidebar, home].filter(Boolean).length;
     return {
       ready: doc.readyState === 'interactive' || doc.readyState === 'complete',
       documentPresent: Boolean(root && doc.head && body),

@@ -256,15 +256,19 @@ try {
   $activationPid = Start-PackagedCodex -AppUserModelId $Manifest.appId -Arguments $launchArguments
   Write-AdapterEvent 'msix_activation_requested' @{ activationPid = $activationPid; port = $port }
 
-  $deadline = (Get-Date).AddSeconds(50)
+  # A first launch after a Store update can spend over a minute preparing its cache.
+  $deadline = (Get-Date).AddSeconds(180)
   $ready = $false
   $codexPid = [int]$activationPid
   do {
-    Start-Sleep -Milliseconds 350
     $process = Get-Process -Id $codexPid -ErrorAction SilentlyContinue
-    $windowReady = $process -and $process.MainWindowHandle -ne 0
-    $portReady = Test-TcpEndpointReachable -Address '127.0.0.1' -Port $port -TimeoutMilliseconds 250
-    if ($windowReady -and $portReady) { $ready = $true }
+    if (-not $process -or $process.HasExited) {
+      throw '本次启动的 Codex 已退出。若还有其他商店版或便携版窗口，请先从菜单完整退出，再重新启动。'
+    }
+    if ($process.MainWindowHandle -ne 0) {
+      $ready = Test-TcpEndpointReachable -Address '127.0.0.1' -Port $port -TimeoutMilliseconds 250
+    }
+    if (-not $ready) { Start-Sleep -Milliseconds 500 }
   } while (-not $ready -and (Get-Date) -lt $deadline)
   if (-not $ready -or -not $codexPid) { throw '通过 MSIX 激活后，Codex 调试端口或主窗口未在时限内就绪。' }
 

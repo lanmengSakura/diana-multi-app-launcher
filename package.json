@@ -1,6 +1,6 @@
 {
   "name": "diana-codex-launcher",
-  "version": "0.1.0-beta.4-rc.10",
+  "version": "0.1.0-beta.4-rc.11",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 1421",
@@ -19,6 +19,7 @@
     "package:windows": "node scripts/export-windows-packages.mjs",
     "qa:music": "node scripts/qa-music-toggle.mjs",
     "qa:runtime": "node scripts/verify-codex-runtime.mjs && node scripts/verify-reviewed-runtimes.mjs",
+    "qa:codex-visual": "node scripts/test-codex-visual-compat.mjs",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",

@@ -47,11 +47,6 @@ html.diana-theme-host #diana-theme-chrome {
   user-select: none;
 }
 
-html.diana-theme-host .diana-skin-surface > .diana-skin-foreground {
-  position: relative;
-  z-index: 1;
-}
-
 html.diana-theme-host #diana-theme-chrome > * {
   display: none;
 }
@@ -250,36 +245,37 @@ html.diana-theme-host aside.app-shell-left-panel button[class*="section-toggle"]
   color: color-mix(in srgb, var(--diana-accent) 58%, var(--diana-ink));
 }
 
-html.diana-theme-host [class*="_ComposerLayoutRoot_"] {
+html.diana-theme-host :is([class*="_ComposerLayoutRoot_"], [data-composer-layout][data-composer-surface-variant]) {
   box-shadow:
     inset 0 0 0 1px color-mix(in srgb, var(--diana-border) 84%, transparent),
     0 14px 34px rgb(0 0 0 / 12%);
   transition: box-shadow 140ms ease, background-color 140ms ease;
 }
 
-html.diana-theme-host [class*="_ComposerLayoutRoot_"]:focus-within {
+html.diana-theme-host :is([class*="_ComposerLayoutRoot_"], [data-composer-layout][data-composer-surface-variant]):focus-within {
   box-shadow:
     inset 0 0 0 1px var(--diana-accent-ring),
     0 14px 38px rgb(0 0 0 / 16%);
 }
 
-html.diana-theme-host [class*="_ComposerLayoutRoot_"]
+html.diana-theme-host :is([class*="_ComposerLayoutRoot_"], [data-composer-layout][data-composer-surface-variant])
   :where(button, [role="button"]):not(:disabled):hover,
-html.diana-theme-host [class*="_ComposerLayoutRoot_"]
+html.diana-theme-host :is([class*="_ComposerLayoutRoot_"], [data-composer-layout][data-composer-surface-variant])
   :where(button, [role="button"])[data-state="open"] {
   background-color: var(--diana-accent-wash-strong) !important;
   color: var(--diana-accent) !important;
 }
 
-html.diana-theme-host [class*="_ComposerLayoutRoot_"]
-  :where(button.bg-primary-solid, button[aria-label="发送"], button[aria-label="停止"]) {
+html.diana-theme-host :is([class*="_ComposerLayoutRoot_"], [data-composer-layout][data-composer-surface-variant])
+  :where(button.bg-primary-solid, button[aria-label="发送"], button[aria-label="停止"], button[aria-label="Send"], button[aria-label="Stop"]) {
+  --color-text-composer-primary: #fff;
   background-color: var(--diana-accent) !important;
   color: #fff !important;
   box-shadow: 0 5px 16px rgb(216 110 145 / 24%);
 }
 
-html.diana-theme-host [class*="_ComposerLayoutRoot_"]
-  :where(button.bg-primary-solid, button[aria-label="发送"], button[aria-label="停止"]):active {
+html.diana-theme-host :is([class*="_ComposerLayoutRoot_"], [data-composer-layout][data-composer-surface-variant])
+  :where(button.bg-primary-solid, button[aria-label="发送"], button[aria-label="停止"], button[aria-label="Send"], button[aria-label="Stop"]):active {
   transform: scale(.97);
 }
 
@@ -362,26 +358,26 @@ html.diana-theme-host aside.app-shell-left-panel
 }
 
 html.diana-theme-host
-  :where(button[aria-label="切换置顶摘要"], button[aria-label="Toggle pinned summary"], button[aria-label="切换底部面板显示"], button[aria-label="Toggle bottom panel"], button[aria-label="显示/隐藏侧边栏"], button[aria-label="Show/hide sidebar"]) {
+  :where(button[data-thread-summary-panel-toggle], button[aria-label="切换置顶摘要"], button[aria-label="Toggle pinned summary"], button[aria-label="切换底部面板显示"], button[aria-label="Toggle bottom panel"], button[aria-label="显示/隐藏侧边栏"], button[aria-label="Show/hide sidebar"]) {
   position: relative;
   transition: color 140ms ease, background-color 140ms ease, box-shadow 140ms ease;
 }
 
 html.diana-theme-host
-  :where(button[aria-label="切换置顶摘要"], button[aria-label="Toggle pinned summary"], button[aria-label="切换底部面板显示"], button[aria-label="Toggle bottom panel"], button[aria-label="显示/隐藏侧边栏"], button[aria-label="Show/hide sidebar"]):not(:disabled):hover {
+  :where(button[data-thread-summary-panel-toggle], button[aria-label="切换置顶摘要"], button[aria-label="Toggle pinned summary"], button[aria-label="切换底部面板显示"], button[aria-label="Toggle bottom panel"], button[aria-label="显示/隐藏侧边栏"], button[aria-label="Show/hide sidebar"]):not(:disabled):hover {
   color: var(--diana-accent) !important;
   background-color: var(--diana-accent-wash) !important;
 }
 
 html.diana-theme-host
-  :where(button[aria-label="切换置顶摘要"], button[aria-label="Toggle pinned summary"], button[aria-label="切换底部面板显示"], button[aria-label="Toggle bottom panel"], button[aria-label="显示/隐藏侧边栏"], button[aria-label="Show/hide sidebar"])[aria-pressed="true"] {
+  :where(button[data-thread-summary-panel-toggle], button[aria-label="切换置顶摘要"], button[aria-label="Toggle pinned summary"], button[aria-label="切换底部面板显示"], button[aria-label="Toggle bottom panel"], button[aria-label="显示/隐藏侧边栏"], button[aria-label="Show/hide sidebar"])[aria-pressed="true"] {
   color: var(--diana-accent) !important;
   background-color: var(--diana-accent-wash-strong) !important;
   box-shadow: inset 0 0 0 1px var(--diana-accent-ring);
 }
 
 html.diana-theme-host
-  :where(button[aria-label="切换置顶摘要"], button[aria-label="Toggle pinned summary"], button[aria-label="切换底部面板显示"], button[aria-label="Toggle bottom panel"], button[aria-label="显示/隐藏侧边栏"], button[aria-label="Show/hide sidebar"])[aria-pressed="true"]::after {
+  :where(button[data-thread-summary-panel-toggle], button[aria-label="切换置顶摘要"], button[aria-label="Toggle pinned summary"], button[aria-label="切换底部面板显示"], button[aria-label="Toggle bottom panel"], button[aria-label="显示/隐藏侧边栏"], button[aria-label="Show/hide sidebar"])[aria-pressed="true"]::after {
   content: "";
   position: absolute;
   top: 3px;
@@ -591,22 +587,92 @@ html.diana-theme-host nav:is([aria-label="用户消息"], [aria-label="User mess
   outline-offset: -1px;
 }
 
+/* Current Codex paints the rail on the first span's pseudo-element. */
+html.diana-theme-host [data-thread-user-message-navigation-rail-list]
+  button[data-thread-user-message-navigation-item-id] > span:empty {
+  /* Both the line and bookmark follow the host's per-message audio or hover level. */
+  --diana-rail-rest: var(--diana-art-scale, .3);
+  --diana-rail-length: calc(var(--diana-rail-rest) + (1 - var(--diana-rail-rest)) * clamp(0, var(--marker-progress, 0), 1));
+  color: var(--diana-rail-seed) !important;
+  opacity: 1 !important;
+}
+
+html.diana-theme-host [data-thread-user-message-navigation-rail-list]
+  button[data-diana-rail-major="true"] > span:empty {
+  color: var(--diana-rail-major) !important;
+  opacity: 1 !important;
+}
+
+html.diana-theme-host [data-thread-user-message-navigation-rail-list]
+  button:is(:hover, :focus-visible, [data-scrub-target]) > span:empty {
+  color: var(--diana-rail-hover) !important;
+}
+
+html.diana-theme-host [data-thread-user-message-navigation-rail-list]
+  button[data-thread-user-message-navigation-item-id] > span:empty::before {
+  height: 2px;
+  border-radius: 999px;
+  transform: scaleX(var(--diana-rail-length)) !important;
+}
+
+html.diana-theme-host [data-thread-user-message-navigation-rail-list]
+  button[data-diana-viewport-current="true"] > span:empty {
+  --marker-progress: 1;
+  color: var(--diana-rail-seed-strong) !important;
+  opacity: 1 !important;
+}
+
+/* Use the same displayed length for the native bookmarked-turn dot. */
+html.diana-theme-host [data-thread-user-message-navigation-rail-list]
+  button[data-thread-user-message-navigation-item-id] > span:empty[data-bookmarked]::after {
+  transform: translateX(calc(26px * var(--diana-rail-length))) !important;
+}
+
+html.diana-theme-host .diana-skin-surface .diana-footer-backing {
+  clip-path: inset(0 var(--diana-footer-right, 0px) 0 var(--diana-footer-left, 0px));
+}
+
+/* Keep the sidebar's activity toggle, unread glyph and accessibility intact. */
+html.diana-theme-host :where(aside, [data-app-shell-application-menu-header], [data-app-shell-page-sidebar])
+  button:is(
+    [aria-label="View activity"], [aria-label="查看活动"],
+    [aria-label="View activity, needs attention"], [aria-label="查看活动，有聊天需要关注"],
+    [aria-label="Turn off activity view"], [aria-label="关闭活动视图"],
+    [aria-label="Focus on active chats"], [aria-label="聚焦当前聊天"]
+  ) {
+  --color-accent: var(--diana-accent);
+  --accent-icon: var(--diana-accent);
+  color: var(--diana-muted) !important;
+  &:is(:hover, :focus-visible, [aria-pressed="true"], [aria-current="page"]) {
+    color: var(--diana-accent) !important;
+  }
+  &:is(:hover, :focus-visible) {
+    background-color: var(--diana-accent-wash) !important;
+  }
+  &:is([aria-pressed="true"], [aria-current="page"]) {
+    background-color: var(--diana-accent-wash-strong) !important;
+  }
+}
+
 /* Native work surfaces: color-only integration, with the original controls intact. */
 html.diana-theme-host
-  div.relative.flex.max-h-full.min-h-0.flex-col.overflow-hidden.rounded-3xl.bg-surface-elevated-secondary:has(section[role="presentation"]) {
+  :is(div.relative.flex.max-h-full.min-h-0.flex-col.overflow-hidden.rounded-3xl.bg-surface-elevated-secondary,
+      [data-summary-panel-variant][data-summary-panel-density].bg-surface-elevated-secondary):has(section[role="presentation"]) {
   background-color: var(--diana-work-panel) !important;
   border-color: var(--diana-work-panel-border) !important;
   box-shadow: 0 16px 36px rgb(0 0 0 / 26%), 0 0 0 1px var(--diana-work-panel-border) !important;
 }
 
 html.diana-theme-host
-  div.relative.flex.max-h-full.min-h-0.flex-col.overflow-hidden.rounded-3xl.bg-surface-elevated-secondary:has(section[role="presentation"])
+  :is(div.relative.flex.max-h-full.min-h-0.flex-col.overflow-hidden.rounded-3xl.bg-surface-elevated-secondary,
+      [data-summary-panel-variant][data-summary-panel-density].bg-surface-elevated-secondary):has(section[role="presentation"])
   section[role="presentation"] > header {
   background-color: var(--diana-work-panel) !important;
 }
 
 html.diana-theme-host
-  div.relative.flex.max-h-full.min-h-0.flex-col.overflow-hidden.rounded-3xl.bg-surface-elevated-secondary:has(section[role="presentation"])
+  :is(div.relative.flex.max-h-full.min-h-0.flex-col.overflow-hidden.rounded-3xl.bg-surface-elevated-secondary,
+      [data-summary-panel-variant][data-summary-panel-density].bg-surface-elevated-secondary):has(section[role="presentation"])
   section[role="presentation"]::after {
   background-color: var(--diana-work-divider) !important;
 }

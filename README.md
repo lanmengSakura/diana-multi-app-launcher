@@ -1,10 +1,10 @@
 # Diana Multi-App Launcher
 
-嘉然 Diana 多应用主题启动器。当前公开测试版本为 **`v0.1.0-beta.4-rc.10`**，仅面向 Windows 测试用户；安装器和便携版均未签名，不代表所有目标全部场景已完成认证。
+嘉然 Diana 多应用主题启动器。当前公开测试版本为 **`v0.1.0-beta.4-rc.11`**，提供 Windows x64 安装版和便携版。两个下载包均未签名。
 
-RC.10 **将 ZCode 3.16.3.8992 的独立公开适配组件实际内置进安装版和便携版**：不再要求另行制作个人适配器或 `local-runtime.json`。保留旧版 3.6.5.4145、已有本机适配的恢复记录，以及 RC.9 的状态修复。**旧 EXE 不会自动更新，需要下载本版**。详情和验收边界见 [发布说明](docs/RELEASE_RC10.md)。
+RC.11 更新了 Codex 日夜布局和消息导轨，保留旧版控件的适配，并延长跨版本更新后首次启动的等待时间。普通用户从本次 Release 手动下载更新。 [发布说明](docs/RELEASE_RC11.md)
 
-[八应用主题体验](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes) · [启动器演示](https://diana-launcher-demo.szbluedream01.chatgpt.site) · [Codex 主题演示](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes?app=codex) · [下载新版测试版](https://github.com/lanmengSakura/diana-multi-app-launcher/releases/tag/v0.1.0-beta.4-rc.10)
+[八应用主题体验](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes) · [启动器演示](https://diana-launcher-demo.szbluedream01.chatgpt.site) · [Codex 主题演示](https://diana-launcher-demo.szbluedream01.chatgpt.site/themes?app=codex) · [下载新版测试版](https://github.com/lanmengSakura/diana-multi-app-launcher/releases/tag/v0.1.0-beta.4-rc.11)
 
 **完整功能由你选择启用。** 本启动器公开提供完整挂载组件；下载、安装、打开或关联应用位置不代表同意调试连接。Codex、Cursor、Grok Bot、ZCode 新开实验调试会话前会告知风险并等待确认，取消不会执行本次挂载。回环端口没有身份认证，同机进程可能读取界面、执行脚本或截图；仅关闭启动器或撤下皮肤不会关闭目标应用持有的端口，须完整退出目标应用。请先看 [风险与退出方法](SECURITY.md)。
 
@@ -42,7 +42,7 @@ RC.8/RC.9 只接入本机适配记录，没有把新版适配交付给普通用�
 
 自动发现补充 Windows 安装登记和正在运行的程序位置；仍找不到时手动关联 EXE 即可。签名、精确双版本字段、程序资源摘要、监听归属与适配文件检查仍保留，未知版本不会放开。
 
-当前提供 RC.10 的安装版与便携版，旧下载文件不被覆盖。DeepSeek 入口说明见 [适配说明](docs/DESKTOP_ADAPTATION_20261026.md)，新版 ZCode 的交付与测试边界见 [RC.10 发布说明](docs/RELEASE_RC10.md)。
+当前下载包含 RC.11 安装版与便携版。旧版本可在对应的 Release 中找到。DeepSeek 入口说明见 [适配说明](docs/DESKTOP_ADAPTATION_20261026.md)，新版 ZCode 的交付与测试边界见 [RC.10 发布说明](docs/RELEASE_RC10.md)。
 
 使用前请看 [对应入口、依赖、恢复方式与测试范围](DELIVERY.md)。本版补齐 Cursor / Grok Bot 的可分发完整运行组件，修复 Cursor 跟随系统时的明暗混用；需要手动下载更新，不会自动替换旧 EXE。已测范围与剩余限制见 [本次发布说明](RELEASE_NOTES.md)。
 
@@ -58,8 +58,8 @@ Cursor 与 DeepSeek Harness 网页端的真实主题源已同步日间莓粉线�
 
 在 GitHub Releases 下载下列任一文件：
 
-- `Diana-Multi-App-Launcher_0.1.0-beta.4-rc.10_x64-setup.exe`：当前用户 NSIS 安装包；
-- `diana-multi-app-launcher_0.1.0-beta.4-rc.10_x64-portable.exe`：免安装便携版。
+- `Diana-Multi-App-Launcher_0.1.0-beta.4-rc.11_x64-setup.exe`：当前用户 NSIS 安装包；
+- `diana-multi-app-launcher_0.1.0-beta.4-rc.11_x64-portable.exe`：免安装便携版。
 
 `v0.1.0-beta.1` 的 Windows 构建会因主题 CSS 换行转换触发 `SHA-256 mismatch`，请勿继续使用；该问题已在 Beta.2 修复。
 
@@ -73,7 +73,7 @@ Cursor 与 DeepSeek Harness 网页端的真实主题源已同步日间莓粉线�
 
 Windows SmartScreen 可能提示“未知发布者”，因为当前 Beta 没有代码签名证书。请只从本仓库 Release 下载，并核对发布页给出的 SHA-256。
 
-## RC.10 下载包的入口
+## RC.11 下载包的入口
 
 | 目标 | Beta 形态 | 重要边界 |
 |---|---|---|
